@@ -147,7 +147,6 @@ def create_next_scale(scale_info):
                      min(chunk_size[2], new_size[2] - ax_idx * chunk_size[2])],
                     dtype=np.uint8  # TODO do not hard-code dtype
                     )
-                #import pdb; pdb.set_trace()
                 new_chunk[:half_chunk[0], :half_chunk[1],
                           :half_chunk[2]] = (
                               load_and_downscale_old_chunk(sag_idx * 2,

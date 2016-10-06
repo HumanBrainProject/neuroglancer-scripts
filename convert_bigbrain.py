@@ -1,4 +1,10 @@
 #! /usr/bin/env python3
+#
+# Copyright (c) 2016 Forschungszentrum Juelich GmbH
+# Author: Yann Leprince <y.leprince@fz-juelich.de>
+#
+# This software is made available under the MIT licence, see LICENCE.txt.
+
 
 import copy
 import json

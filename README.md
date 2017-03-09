@@ -1,0 +1,12 @@
+Convert volumetric images to the Neuroglancer precomputed tile format
+
+**Work in progress**: the old `convert.py` script is being converted to the scheme
+describedbelow:
+
+1. Write the metadata for the full-resolution image (example:
+   `BigBrainRelease.2015/info_fullres.json`)
+2. Create metadata for all scales using `generate_scales_info.py`
+3. Convert your data to raw full-resolution tiles by adapting one of these
+   scripts to your needs:
+   - `slices_to_raw_chunks.py`
+4. Compute downscaled pyramid levels using `compute_scales.py`.

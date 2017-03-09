@@ -22,29 +22,41 @@ def create_info_json():
     assert len(info["scales"]) == 1
     full_scale_info = info["scales"][0]
 
-    def downscale_info(factor):
+    full_resolution = full_scale_info["resolution"]
+    best_axis_resolution = min(full_resolution)
+    axis_factor_offsets = [
+        int(round(math.log2(axis_res / best_axis_resolution)))
+        for axis_res in full_resolution]
+
+    def downscale_info(log2_factor):
+        factors = [2 ** max(0, log2_factor - axis_factor_offset)
+                   for axis_factor_offset in axis_factor_offsets]
         scale_info = copy.deepcopy(full_scale_info)
-        scale_info["resolution"] = [res * factor for res in
-                                    full_scale_info["resolution"]]
-        scale_info["size"] = [(sz - 1) // factor + 1 for sz in
-                              full_scale_info["size"]]
+        scale_info["resolution"] = [
+            res * axis_factor for res, axis_factor in
+            zip(full_scale_info["resolution"], factors)]
+        scale_info["size"] = [
+            (sz - 1) // axis_factor + 1 for sz, axis_factor in
+            zip(full_scale_info["size"], factors)]
         # Key is the resolution in micrometres
         scale_info["key"] = str(round(min(res / 1000 for res in
                                           scale_info["resolution"]))) + "um"
         return scale_info
 
     assert len(full_scale_info["chunk_sizes"]) == 1  # more not implemented
-    max_downscale_factor = math.ceil(math.log2(
-        max(a / b for a, b in zip(full_scale_info["size"],
-                                  full_scale_info["chunk_sizes"][0]))))
-    info["scales"] = [downscale_info(2 ** i)
+    max_downscale_factor = (
+        max(math.ceil(math.log2(a / b)) - c
+            for a, b, c in zip(full_scale_info["size"],
+                               full_scale_info["chunk_sizes"][0],
+                               axis_factor_offsets)))
+    info["scales"] = [downscale_info(i)
                       for i in range(max_downscale_factor)]
 
-    with open("BigBrainRelease.2015/info", "w") as f:
+    with open("info", "w") as f:
         json.dump(info, f)
 
 def read_info_json():
-    with open("BigBrainRelease.2015/info") as f:
+    with open("info") as f:
         info = json.load(f)
     return info
 
@@ -249,10 +261,10 @@ def make_jpeg_chunks(scale_info):
                          quality=95, optimize=True, progressive=True)
 
 
-# create_info_json()
-info = read_info_json()
+create_info_json()
+#info = read_info_json()
 # create_fullres_chunks(full_scale_info=info["scales"][0])
-for i in range(len(info["scales"]) - 1):
-    assert create_next_scale(info["scales"][i]) == info["scales"][i + 1]
-for i in reversed(range(len(info["scales"]))):
-    make_jpeg_chunks(info["scales"][i])
+# for i in range(len(info["scales"]) - 1):
+#     assert create_next_scale(info["scales"][i]) == info["scales"][i + 1]
+# for i in reversed(range(len(info["scales"]))):
+#     make_jpeg_chunks(info["scales"][i])

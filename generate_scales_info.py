@@ -11,6 +11,7 @@ import json
 import math
 import os
 import os.path
+import sys
 
 import numpy as np
 
@@ -129,7 +130,7 @@ Create a list of scales in Neuroglancer "info" JSON file format
 
 Output is written to a file named "info" in the current directory.
 """)
-    parser.add_argument("input_fullres_info",
+    parser.add_argument("fullres_info",
                        help="JSON file containing the full-resolution info")
     args = parser.parse_args(argv[1:])
     return args
@@ -138,7 +139,7 @@ Output is written to a file named "info" in the current directory.
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return linearize(args.fullres_info) or 0
+    return generate_scales_info(args.fullres_info) or 0
 
 
 if __name__ == "__main__":

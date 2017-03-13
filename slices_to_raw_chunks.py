@@ -27,6 +27,7 @@ def slices_to_raw_chunks(info):
     dtype = np.dtype(info["data_type"])
     if dtype.byteorder != "|":
         dtype.byteorder = "<"
+    num_channels = info["num_channels"]
 
     for z_chunk_idx in range((size[2] - 1) // chunk_size[2] + 1):
         z_slicing = np.s_[chunk_size[2] * z_chunk_idx:
@@ -38,11 +39,13 @@ def slices_to_raw_chunks(info):
         block = skimage.io.concatenate_images(
             skimage.io.imread(get_slice_filename(slice_number))
             for slice_number in np.r_[z_slicing])
+        assert block.shape[2] == size[0]  # check slice width
+        assert block.shape[1] == size[1]  # check slice height
         if block.ndim == 4:
             # Scikit-image loads multi-channel (e.g. RGB) images in [Z, Y, X,
             # channel] order, while Neuroglancer expects [channel, Z, Y, X] (in
             # C-contiguous indexing).
-            assert block.shape[3] == info["num_channels"]
+            assert block.shape[3] == num_channels
             block = numpy.swapaxes(block, 0, 3)
         elif block.ndim == 3:
             block = block[np.newaxis, :, :, :]
@@ -57,6 +60,11 @@ def slices_to_raw_chunks(info):
                 x_slicing = np.s_[chunk_size[0] * x_chunk_idx:
                                   min(chunk_size[0] * (x_chunk_idx + 1), size[0])]
                 chunk = block[:, :, y_slicing, x_slicing]
+                assert chunk.size == ((x_slicing.stop - x_slicing.start) *
+                                      (y_slicing.stop - y_slicing.start) *
+                                      (z_slicing.stop - z_slicing.start) *
+                                      num_channels)
+
                 chunk_name = raw_chunk_pattern.format(
                     x_slicing.start, x_slicing.stop,
                     y_slicing.start, y_slicing.stop,

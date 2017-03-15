@@ -89,7 +89,7 @@ def convert_chunks_to_jpeg(jpeg_quality=95,
     """Convert Neuroglancer precomputed chunks from raw to jpeg format"""
     with open("info") as f:
         info = json.load(f)
-    for scale_index in range(4, len(info["scales"]) - 1):
+    for scale_index in range(len(info["scales"]) - 1):
         make_jpeg_chunks(info, scale_index,
                          jpeg_quality=jpeg_quality,
                          slicing_plane=slicing_plane)

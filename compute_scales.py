@@ -7,6 +7,7 @@
 
 
 import copy
+import gzip
 import json
 import math
 import os
@@ -49,8 +50,14 @@ def create_next_scale(info, source_scale_index, outside_value=0):
         zmax = min(old_chunk_size[2] * (z_idx + 1), old_size[2])
         chunk_filename = raw_chunk_scheme.format(
             xmin, xmax, ymin, ymax, zmin, zmax, key=old_key)
-        chunk = np.fromfile(chunk_filename, dtype=dtype).reshape(
-            [num_channels, zmax - zmin, ymax - ymin, xmax - xmin])
+
+        try:
+            f = open(chunk_filename, "rb")
+        except OSError:
+            f = gzip.open(chunk_filename + ".gz", "rb")
+        with f:
+            chunk = np.frombuffer(f.read(), dtype=dtype).reshape(
+                [num_channels, zmax - zmin, ymax - ymin, xmax - xmin])
         chunk = chunk.astype(np.float32)  # unbounded type for arithmetic
 
         if downscaling_factors[2] == 2:
@@ -150,7 +157,7 @@ def create_next_scale(info, source_scale_index, outside_value=0):
                     xmin, xmax, ymin, ymax, zmin, zmax, key=new_key)
                 print("Writing", new_chunk_name)
                 os.makedirs(os.path.dirname(new_chunk_name), exist_ok=True)
-                with open(new_chunk_name, "wb") as f:
+                with gzip.open(new_chunk_name + ".gz", "wb") as f:
                     f.write(new_chunk.astype(dtype).tobytes())
 
 

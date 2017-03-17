@@ -6,10 +6,8 @@
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 
-import copy
 import gzip
 import json
-import math
 import os
 import os.path
 import sys
@@ -17,7 +15,7 @@ import sys
 import numpy as np
 
 
-raw_chunk_scheme = "raw/{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
 
 def create_next_scale(info, source_scale_index, outside_value=0):
@@ -48,7 +46,7 @@ def create_next_scale(info, source_scale_index, outside_value=0):
         ymax = min(old_chunk_size[1] * (y_idx + 1), old_size[1])
         zmin = old_chunk_size[2] * z_idx
         zmax = min(old_chunk_size[2] * (z_idx + 1), old_size[2])
-        chunk_filename = raw_chunk_scheme.format(
+        chunk_filename = RAW_CHUNK_PATTERN.format(
             xmin, xmax, ymin, ymax, zmin, zmax, key=old_key)
 
         try:
@@ -153,7 +151,7 @@ def create_next_scale(info, source_scale_index, outside_value=0):
                                       y_idx * chunk_fetch_factor[1] + 1,
                                       x_idx * chunk_fetch_factor[0] + 1))
 
-                new_chunk_name = raw_chunk_scheme.format(
+                new_chunk_name = RAW_CHUNK_PATTERN.format(
                     xmin, xmax, ymin, ymax, zmin, zmax, key=new_key)
                 print("Writing", new_chunk_name)
                 os.makedirs(os.path.dirname(new_chunk_name), exist_ok=True)
@@ -162,7 +160,7 @@ def create_next_scale(info, source_scale_index, outside_value=0):
 
 
 def compute_scales(outside_value):
-    """Generate lower scales in Neuroglancer a list of scales from an input JSON file"""
+    """Generate lower scales following an input info file"""
     with open("info") as f:
         info = json.load(f)
     for i in range(len(info["scales"]) - 1):

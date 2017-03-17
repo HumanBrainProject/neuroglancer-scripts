@@ -15,11 +15,12 @@ import numpy as np
 import PIL.Image
 
 
-raw_chunk_pattern = "raw/{key}/{0}-{1}/{2}-{3}/{4}-{5}"
-jpeg_chunk_pattern = "jpeg/{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+CHUNK_PATTERN = "raw/{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
 
-def make_jpeg_chunks(info, scale_index, jpeg_quality=95, slicing_plane="xy"):
+def make_jpeg_chunks(info, scale_index,
+                     raw_chunks_dir,
+                     jpeg_quality=95, slicing_plane="xy"):
     """Make JPEG chunks for a specific scale"""
 
     dtype = np.dtype(info["data_type"])
@@ -45,10 +46,12 @@ def make_jpeg_chunks(info, scale_index, jpeg_quality=95, slicing_plane="xy"):
                     ymax = min(chunk_size[1] * (y_idx + 1), size[1])
                     zmin = chunk_size[2] * z_idx
                     zmax = min(chunk_size[2] * (z_idx + 1), size[2])
-                    raw_chunk_filename = raw_chunk_pattern.format(
-                        xmin, xmax, ymin, ymax, zmin, zmax, key=key)
                     shape = (num_channels,
                              zmax - zmin, ymax - ymin, xmax - xmin)
+
+                    raw_chunk_filename = os.path.join(
+                        raw_chunks_dir, CHUNK_PATTERN.format(
+                            xmin, xmax, ymin, ymax, zmin, zmax, key=key))
                     try:
                         f = open(raw_chunk_filename, "rb")
                     except OSError:
@@ -72,7 +75,7 @@ def make_jpeg_chunks(info, scale_index, jpeg_quality=95, slicing_plane="xy"):
                         # Channels (RGB) need to be along the last axis for PIL
                         reshaped_chunk = np.swapaxes(reshaped_chunk, 0, 3)
 
-                    jpeg_chunk_filename = jpeg_chunk_pattern.format(
+                    jpeg_chunk_filename = CHUNK_PATTERN.format(
                         xmin, xmax, ymin, ymax, zmin, zmax, key=key)
                     img = PIL.Image.fromarray(reshaped_chunk)
                     print("Writing", jpeg_chunk_filename)
@@ -84,13 +87,15 @@ def make_jpeg_chunks(info, scale_index, jpeg_quality=95, slicing_plane="xy"):
                              optimize=True,
                              progressive=True)
 
-def convert_chunks_to_jpeg(jpeg_quality=95,
+
+def convert_chunks_to_jpeg(raw_chunks_dir, jpeg_quality=95,
                            slicing_plane="xy"):
     """Convert Neuroglancer precomputed chunks from raw to jpeg format"""
     with open("info") as f:
         info = json.load(f)
     for scale_index in range(len(info["scales"]) - 1):
         make_jpeg_chunks(info, scale_index,
+                         raw_chunks_dir,
                          jpeg_quality=jpeg_quality,
                          slicing_plane=slicing_plane)
 
@@ -104,6 +109,8 @@ Convert Neuroglancer precomputed chunks from raw to jpeg format
 
 The list of scales is read from a file named "info" in the current directory.
 """)
+    parser.add_argument("raw_chunks_dir",
+                        help="directory where the input raw chunks are found")
     parser.add_argument("--jpeg-quality", type=int, default=95,
                         help="JPEG quality factor (0-95, values above 95"
                         " increase file size but provide little extra quality)")
@@ -117,7 +124,8 @@ The list of scales is read from a file named "info" in the current directory.
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return convert_chunks_to_jpeg(jpeg_quality=args.jpeg_quality,
+    return convert_chunks_to_jpeg(args.raw_chunks_dir,
+                                  jpeg_quality=args.jpeg_quality,
                                   slicing_plane=args.slicing_plane) or 0
 
 

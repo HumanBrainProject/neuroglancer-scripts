@@ -72,13 +72,30 @@ def volume_file_to_raw_chunks(volume_filename):
     print("Detected input axis orientations {0}+"
           .format("".join(nibabel.orientations.ornt2axcodes(ornt))))
     new_affine = affine * nibabel.orientations.inv_ornt_aff(ornt, img.shape)
-    sys.stderr.write("Now loading volume... ")
+    input_voxel_sizes = nibabel.affines.voxel_sizes(affine)
+    info_voxel_sizes = 0.000001 * np.asarray(info["scales"][0]["resolution"])
+    print("Input voxel size is {0} mm".format(input_voxel_sizes))
+    if not np.allclose(input_voxel_sizes, info_voxel_sizes):
+        print("ERROR: voxel size is inconsistent with resolution in the info"
+              " file({0} mm)".format(info_voxel_sizes))
+        return 1
+
+    sys.stderr.write("Loading volume... ")
     sys.stderr.flush()
     volume = nibabel.orientations.apply_orientation(img.get_data(), ornt)
     sys.stderr.write("done.\n")
     print("Loaded volume has data type {0}, chunks will be saved with {1}"
           .format(volume.dtype.name, info["data_type"]))
+
+    sys.stderr.write("Writing chunks... ")
+    sys.stderr.flush()
     volume_to_raw_chunks(info, volume)
+    sys.stderr.write("done.\n")
+
+    # This is the affine of the converted volume, print it at the end so it
+    # does not get lost in scrolling
+    print("Affine transformation of the converted volume:\n{0}"
+          .format(new_affine))
 
 
 def parse_command_line(argv):

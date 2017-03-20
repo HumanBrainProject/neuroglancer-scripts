@@ -15,7 +15,7 @@ import numpy as np
 import PIL.Image
 
 
-CHUNK_PATTERN = "raw/{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
 
 def make_jpeg_chunks(info, scale_index,

@@ -18,5 +18,5 @@
    ```
    mkdir jpeg
    cd jpeg
-   ../../convert_chunks_to_jpeg.py --slicing-plane=xz
+   ../../convert_chunks_to_jpeg.py --slicing-plane=xz ../raw/
    ```

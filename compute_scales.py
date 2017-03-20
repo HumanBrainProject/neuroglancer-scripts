@@ -176,7 +176,7 @@ Create lower scales in Neuroglancer precomputed raw format
 
 The list of scales is read from a file named "info" in the current directory.
 """)
-    parser.add_argument("--outside-value", default=0)
+    parser.add_argument("--outside-value", type=float, default=0)
     args = parser.parse_args(argv[1:])
     return args
 

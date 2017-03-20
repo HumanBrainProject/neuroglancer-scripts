@@ -172,9 +172,9 @@ def convert_slices_in_directory(slice_dir, input_orientation):
         info = json.load(f)
 
     input_axis_permutation = tuple(AXIS_PERMUTATION_FOR_RAS[l]
-                              for l in input_orientation)
+                                   for l in input_orientation)
     input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
-                             for l in input_orientation)
+                                  for l in input_orientation)
 
     slice_filenames = os.listdir(slice_dir)
     slice_filenames = [os.path.join(slice_dir, filename)

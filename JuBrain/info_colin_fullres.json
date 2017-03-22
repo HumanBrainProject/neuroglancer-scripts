@@ -1,0 +1,1 @@
+{"type": "image", "data_type": "uint8", "num_channels": 1, "scales": [{"chunk_sizes": [[64, 64, 64]], "encoding": "raw", "key": "1000um", "resolution": [1000000, 1000000, 1000000], "size": [151, 188, 154], "voxel_offset": [0, 0, 0]}]}

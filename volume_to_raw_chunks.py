@@ -61,7 +61,8 @@ def volume_to_raw_chunks(info, volume):
                     f.write(chunk.astype(dtype).tobytes())
 
 
-def volume_file_to_raw_chunks(volume_filename):
+def volume_file_to_raw_chunks(volume_filename,
+                              ignore_scaling=False):
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
     with open("info") as f:
         info = json.load(f)
@@ -81,11 +82,14 @@ def volume_file_to_raw_chunks(volume_filename):
               " file({0} mm)".format(info_voxel_sizes))
         return 1
 
+    if ignore_scaling:
+        img.header.set_slope_inter(None)
+
     sys.stderr.write("Loading volume... ")
     sys.stderr.flush()
     volume = nibabel.orientations.apply_orientation(img.get_data(), ornt)
-    print("Re-oriented input shape is {0}".format(volume.shape))
     sys.stderr.write("done.\n")
+    print("Re-oriented input shape is {0}".format(volume.shape))
     print("Loaded volume has data type {0}, chunks will be saved with {1}"
           .format(volume.dtype.name, info["data_type"]))
 
@@ -112,6 +116,7 @@ to a RAS+ oriented space. Chunks are saved in RAS+ order (X from left to Right,
 Y from posterior to Anterior, Z from inferior to Superior).
 """)
     parser.add_argument("volume_filename")
+    parser.add_argument("--ignore-scaling", action="store_true")
     args = parser.parse_args(argv[1:])
     return args
 
@@ -119,7 +124,8 @@ Y from posterior to Anterior, Z from inferior to Superior).
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return volume_file_to_raw_chunks(args.volume_filename) or 0
+    return volume_file_to_raw_chunks(args.volume_filename,
+                                     ignore_scaling=args.ignore_scaling) or 0
 
 
 if __name__ == "__main__":

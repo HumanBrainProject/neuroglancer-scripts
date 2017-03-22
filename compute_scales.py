@@ -28,9 +28,7 @@ def create_next_scale(info, source_scale_index, outside_value=0):
     new_key = new_scale_info["key"]
     old_size = old_scale_info["size"]
     new_size = new_scale_info["size"]
-    dtype = np.dtype(info["data_type"])
-    if dtype.byteorder != "|":
-        dtype.byteorder = "<"
+    dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
     downscaling_factors = [(os + 1) // ns
                            for os, ns in zip(old_size, new_size)]

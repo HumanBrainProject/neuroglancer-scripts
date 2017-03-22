@@ -67,6 +67,7 @@ def volume_file_to_raw_chunks(volume_filename):
         info = json.load(f)
 
     img = nibabel.load(volume_filename)
+    print("Native input shape is {0}".format(img.header.get_data_shape()))
     affine = img.affine
     ornt = nibabel.orientations.io_orientation(affine)
     print("Detected input axis orientations {0}+"
@@ -83,6 +84,7 @@ def volume_file_to_raw_chunks(volume_filename):
     sys.stderr.write("Loading volume... ")
     sys.stderr.flush()
     volume = nibabel.orientations.apply_orientation(img.get_data(), ornt)
+    print("Re-oriented input shape is {0}".format(volume.shape))
     sys.stderr.write("done.\n")
     print("Loaded volume has data type {0}, chunks will be saved with {1}"
           .format(volume.dtype.name, info["data_type"]))

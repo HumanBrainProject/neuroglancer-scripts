@@ -44,6 +44,7 @@ following Apache configuration (e.g. put it in a ``.htaccess`` file):
 # Data chunks are stored in sub-directories, in order to avoid having
 # directories with millions of entries. Therefore we need to rewrite URLs
 # because Neuroglancer expects a flat layout.
+Options FollowSymLinks
 RewriteEngine On
 RewriteRule "^(.*)/([0-9]+-[0-9]+)_([0-9]+-[0-9]+)_([0-9]+-[0-9]+)$" "$1/$2/$3/$4"
 
@@ -55,6 +56,7 @@ RewriteRule "^(.*)/([0-9]+-[0-9]+)_([0-9]+-[0-9]+)_([0-9]+-[0-9]+)$" "$1/$2/$3/$
     # directive, but with that configuration Apache fails to serve the
     # pre-compressed chunks (confirmed with Debian version 2.2.22-13+deb7u6).
     # Fixes welcome.
+    Options Multiviews
     AddEncoding x-gzip .gz
     AddType application/octet-stream .gz
 </IfModule>

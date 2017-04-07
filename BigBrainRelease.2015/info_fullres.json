@@ -5,9 +5,9 @@
   "scales": [
     {
       "chunk_sizes": [],
-      "encoding": "jpeg",
+      "encoding": "raw",
       "key": "full",
-      "resolution": [20000, 20000, 20000],
+      "resolution": [21166.6666666666666, 20000, 21166.6666666666666],
       "size": [6572, 7404, 5711],
       "voxel_offset": [0, 0, 0]
     }

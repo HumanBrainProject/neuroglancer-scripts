@@ -136,11 +136,12 @@ def create_info_json_scales(info, target_chunk_size=64):
     return info
 
 
-def generate_scales_info(input_fullres_info_filename):
+def generate_scales_info(input_fullres_info_filename,
+                         target_chunk_size=64):
     """Generate a list of scales from an input JSON file"""
     with open(input_fullres_info_filename) as f:
         info = json.load(f)
-    create_info_json_scales(info)
+    create_info_json_scales(info, target_chunk_size=target_chunk_size)
     with open("info", "w") as f:
         json.dump(info, f)
 
@@ -156,6 +157,11 @@ Output is written to a file named "info" in the current directory.
 """)
     parser.add_argument("fullres_info",
                        help="JSON file containing the full-resolution info")
+    parser.add_argument("--target-chunk-size", type=int, default=64,
+                        help="target chunk size (default 64). This size will"
+                        " be used for cubic chunks, the size of anisotropic"
+                        " chunks will be adapted to contain approximately the"
+                        " same number of voxels.")
     args = parser.parse_args(argv[1:])
     return args
 
@@ -163,7 +169,8 @@ Output is written to a file named "info" in the current directory.
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return generate_scales_info(args.fullres_info) or 0
+    return generate_scales_info(args.fullres_info,
+                                target_chunk_size=args.target_chunk_size) or 0
 
 
 if __name__ == "__main__":

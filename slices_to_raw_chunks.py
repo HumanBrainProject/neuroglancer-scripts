@@ -14,7 +14,6 @@ import sys
 import numpy as np
 import skimage.io
 
-
 # Generated with the following Python expression:
 # >>> from itertools import *
 # >>> ["".join(l) for t in product("LR", "AP", "IS") for l in permutations(t)]
@@ -64,7 +63,7 @@ def invert_permutation(p):
     return s
 
 
-def slices_to_raw_chunks(info, slice_filenames,
+def slices_to_raw_chunks(info, slice_filename_lists,
                          input_axis_inversions, input_axis_permutation):
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
@@ -78,7 +77,8 @@ def slices_to_raw_chunks(info, slice_filenames,
 
     permutation_to_input = invert_permutation(input_axis_permutation)
 
-    assert len(slice_filenames) == size[input_axis_permutation[2]]
+    for l in slice_filename_lists:
+        assert len(l) == size[input_axis_permutation[2]]
     input_size = permute(size, permutation_to_input)
     input_chunk_size = permute(chunk_size, permutation_to_input)
 
@@ -98,23 +98,29 @@ def slices_to_raw_chunks(info, slice_filenames,
                               :last_slice
                               :input_axis_permutation[2]]
         print("Reading slices {0} to {1}... "
-              .format(first_slice, last_slice), end="")
+              .format(first_slice, last_slice - 1), end="")
         sys.stdout.flush()
-        # Loads the data in [slice, row, column] C-contiguous order
-        block = skimage.io.concatenate_images(
-            map(skimage.io.imread, slice_filenames[slice_slicing]))
-        assert block.shape[2] == input_size[0]  # check slice width
-        assert block.shape[1] == input_size[1]  # check slice height
-        if block.ndim == 4:
-            # Scikit-image loads multi-channel (e.g. RGB) images in [slice,
-            # row, column, channel] order, while Neuroglancer expects channel
-            # to come first (in C-contiguous indexing).
-            assert block.shape[3] == num_channels
-            block = np.swapaxes(block, 0, 3)
-        elif block.ndim == 3:
-            block = block[np.newaxis, :, :, :]
-        else:
-            raise ValueError("block has unknown dimensionality")
+
+        def load_z_stack(slice_filenames):
+            # Loads the data in [slice, row, column] C-contiguous order
+            block = skimage.io.concatenate_images(
+                map(skimage.io.imread, slice_filenames[slice_slicing]))
+            assert block.shape[2] == input_size[0]  # check slice width
+            assert block.shape[1] == input_size[1]  # check slice height
+            if block.ndim == 4:
+                # Scikit-image loads multi-channel (e.g. RGB) images in [slice,
+                # row, column, channel] order, while Neuroglancer expects channel
+                # to come first (in C-contiguous indexing).
+                block = np.swapaxes(block, 0, 3)
+            elif block.ndim == 3:
+                block = block[np.newaxis, :, :, :]
+            else:
+                raise ValueError("block has unknown dimensionality")
+            return block
+
+        block = np.concatenate([load_z_stack(l) for l in slice_filename_lists],
+                               axis=0)
+        assert block.shape[0] == num_channels
 
         # Flip and permute axes to go from input (channel, slice, row, column)
         # to Neuroglancer (channel, Z, Y, X)
@@ -166,7 +172,7 @@ def slices_to_raw_chunks(info, slice_filenames,
                     f.write(chunk.astype(dtype).tobytes())
 
 
-def convert_slices_in_directory(slice_dir, input_orientation):
+def convert_slices_in_directory(slice_dirs, input_orientation):
     """Load slices from a directory and convert them to Neuroglancer chunks"""
     with open("info") as f:
         info = json.load(f)
@@ -176,10 +182,10 @@ def convert_slices_in_directory(slice_dir, input_orientation):
     input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
                                   for l in input_orientation)
 
-    slice_filenames = os.listdir(slice_dir)
-    slice_filenames = [os.path.join(slice_dir, filename)
-                       for filename in sorted(slice_filenames)]
-    slices_to_raw_chunks(info, slice_filenames,
+    slice_filename_lists = [[os.path.join(d, filename)
+                             for filename in sorted(os.listdir(d))]
+                            for d in slice_dirs]
+    slices_to_raw_chunks(info, slice_filename_lists,
                          input_axis_inversions, input_axis_permutation)
 
 def parse_command_line(argv):
@@ -217,9 +223,12 @@ A few examples:
 - use “RPS” or “RPI” for axial slices shown in neurological convention
 - use “LPS” or “LPI” for axial slices shown in neurological convention
 """)
-    parser.add_argument("slice_dir",
-                        help="directory containing the input slices (they will"
-                             " be loaded in lexicographic order)")
+    parser.add_argument("slice_dirs", nargs="+",
+                        help="list of directories containing input slices,"
+                        " slices from each directory will be loaded and"
+                        " concatenated in lexicographic order, stacks from"
+                        " different directories will be concatenated as"
+                        " different channels")
     parser.add_argument("input_orientation",
                         help="A 3-character code describe the anatomical"
                         " orientation of the input axes (see above)")
@@ -233,7 +242,7 @@ A few examples:
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return convert_slices_in_directory(args.slice_dir,
+    return convert_slices_in_directory(args.slice_dirs,
                                        args.input_orientation) or 0
 
 

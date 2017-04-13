@@ -6,6 +6,7 @@
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 
+import collections
 import copy
 import json
 import math
@@ -14,6 +15,29 @@ import os.path
 import sys
 
 import numpy as np
+
+
+KEY_UNITS = collections.OrderedDict([
+    ("km", 1e-12),
+    ("m", 1e-9),
+    ("mm", 1e-6),
+    ("um", 1e-3),
+    ("nm", 1.),
+    ("pm", 1e3),
+])
+
+
+def format_key(resolution_nm, unit):
+    return format(resolution_nm * KEY_UNITS[unit], ".0f") + unit
+
+
+def choose_unit_for_key(resolution_nm):
+    """Find the coarsest unit that ensures distinct keys"""
+    for unit, factor in KEY_UNITS.items():
+        if round(resolution_nm * factor) != 0 and (
+            format_key(resolution_nm, unit) != format_key(resolution_nm * 2, unit)):
+            return unit
+    raise RuntimeError("cannot find a suitable unit for {} nm".format(resolution_nm))
 
 
 def create_info_json_scales(info, target_chunk_size=64):
@@ -70,6 +94,7 @@ def create_info_json_scales(info, target_chunk_size=64):
     axis_level_delays = [
         int(round(math.log2(axis_res / best_axis_resolution)))
         for axis_res in full_resolution]
+    key_unit = choose_unit_for_key(best_axis_resolution)
 
     def downscale_info(scale_level):
         factors = [2 ** max(0, scale_level - delay)
@@ -82,8 +107,7 @@ def create_info_json_scales(info, target_chunk_size=64):
             (sz - 1) // axis_factor + 1 for sz, axis_factor in
             zip(full_scale_info["size"], factors)]
         # Key is the resolution in micrometres
-        scale_info["key"] = str(round(min(res / 1000 for res in
-                                          scale_info["resolution"]))) + "um"
+        scale_info["key"] = format_key(min(scale_info["resolution"]), key_unit)
 
         max_delay = max(axis_level_delays)
         anisotropy_factors = [max(0, max_delay - delay - scale_level)

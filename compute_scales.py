@@ -30,8 +30,13 @@ def create_next_scale(info, source_scale_index, outside_value=0):
     new_size = new_scale_info["size"]
     dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
-    downscaling_factors = [(os + 1) // ns
+
+    downscaling_factors = [1 if os == ns else 2
                            for os, ns in zip(old_size, new_size)]
+    if new_size != [(os - 1) // ds + 1
+                    for os, ds in zip(old_size, downscaling_factors)]:
+        raise ValueError("Unsupported downscaling factor between scales {} and {}"
+                         .format(old_key, new_key))
     half_chunk = [osz // f
                   for osz, f in zip(old_chunk_size, downscaling_factors)]
     chunk_fetch_factor = [nsz // hc

@@ -8,11 +8,37 @@
 import gzip
 import json
 import os
-import os.path
+from pathlib import Path
 import sys
 
 import numpy as np
 import skimage.io
+from tqdm import tqdm, trange
+
+
+SI_PREFIXES = [
+    (1, ""),
+    (1024, "ki"),
+    (1024 * 1024, "Mi"),
+    (1024 * 1024 * 1024, "Gi"),
+    (1024 * 1024 * 1024 * 1024, "Ti"),
+    (1024 * 1024 * 1024 * 1024 * 1024, "Pi"),
+    (1024 * 1024 * 1024 * 1024 * 1024 * 1024, "Ei"),
+]
+
+
+def readable_count(count):
+    for factor, prefix in SI_PREFIXES:
+        if count > 10 * factor:
+            num_str = format(count / factor, ".0f")
+        else:
+            num_str = format(count / factor, ".1f")
+        if len(num_str) <= 3:
+            return num_str + " " + prefix
+    # Fallback: use the last prefix
+    factor, prefix = SI_PREFIXES[-1]
+    return "{:,.0f} {}".format(count / factor, prefix)
+
 
 # Generated with the following Python expression:
 # >>> from itertools import *
@@ -65,30 +91,59 @@ def invert_permutation(p):
 
 def slices_to_raw_chunks(info, slice_filename_lists,
                          input_axis_inversions, input_axis_permutation):
+    """Convert a list of 2D slices to Neuroglancer pre-computed chunks
+
+    Parameters:
+    ===========
+
+    - `info` is the JSON dictionary that describes the dataset for
+      Neuroglancer. Only the information from the first scale is used.
+
+    - `slice_filename_lists`: a list of lists of filenames. Files from each
+      inner list are read as 2D images and concatenated along the third axis.
+      Blocks from the outer list are concatenated along a fourth axis,
+      representing the image channels.
+
+    - `input_axis_inversions`: a 3-tuple in (column, row, slice) order. Each
+      value must be 1 (preserve orientation along the axis) or -1 (invert
+      orientation along the axis).
+
+    - `input_axis_permutation`: a 3-tuple in (column, row, slice) order. Each
+      value is 0 for X (L-R axis), 1 for Y (A-P axis), 2 for Z (I-S axis).
+    """
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
-    chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
-    size = info["scales"][0]["size"]  # in order x, y, z
+    chunk_size = info["scales"][0]["chunk_sizes"][0]  # in RAS order (X, Y, Z)
+    size = info["scales"][0]["size"]  # in RAS order (X, Y, Z)
     dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
 
     # Here x, y, and z refer to the data orientation in output chunks (which
     # should correspond to RAS+ anatomical axes). For the data orientation in
-    # input slices the terms (column, row, slice) are used.
+    # input slices the terms (column (index along image width), row (index
+    # along image height), slice) are used.
 
+    # permutation_to_input is a 3-tuple in RAS (X, Y, Z) order.
+    # Each value is 0 column, 1 for row, 2 for slice.
     permutation_to_input = invert_permutation(input_axis_permutation)
 
-    for l in slice_filename_lists:
-        assert len(l) == size[input_axis_permutation[2]]
-    input_size = permute(size, permutation_to_input)
-    input_chunk_size = permute(chunk_size, permutation_to_input)
+    # input_size and input_chunk_size are in (column, row, slice) order.
+    input_size = permute(size, input_axis_permutation)
+    input_chunk_size = permute(chunk_size, input_axis_permutation)
 
-    for slice_chunk_idx in range((input_size[2] - 1)
-                                 // input_chunk_size[2] + 1):
+    for l in slice_filename_lists:
+        if len(l) != input_size[2]:
+            raise ValueError("{} slices found where {} were expected"
+                             .format(len(l), input_size[2]))
+
+    for slice_chunk_idx in trange((input_size[2] - 1)
+                                  // input_chunk_size[2] + 1,
+                                  desc="converting slice groups",
+                                  leave=True, unit="slice groups"):
         first_slice_in_order = input_chunk_size[2] * slice_chunk_idx
         last_slice_in_order = min(input_chunk_size[2] * (slice_chunk_idx + 1),
                                   input_size[2])
 
-        if input_axis_permutation[2] == -1:
+        if input_axis_inversions[2] == -1:
             first_slice = input_size[2] - first_slice_in_order - 1
             last_slice = input_size[2] - last_slice_in_order - 1
         else:
@@ -96,10 +151,14 @@ def slices_to_raw_chunks(info, slice_filename_lists,
             last_slice = last_slice_in_order
         slice_slicing = np.s_[first_slice
                               :last_slice
-                              :input_axis_permutation[2]]
-        print("Reading slices {0} to {1}... "
-              .format(first_slice, last_slice - 1), end="")
-        sys.stdout.flush()
+                              :input_axis_inversions[2]]
+        tqdm.write("Reading slices {0} to {1} ({2}B memory needed)... "
+                   .format(first_slice, last_slice - input_axis_inversions[2],
+                   readable_count(input_size[0]
+                                  * input_size[1]
+                                  * (last_slice_in_order - first_slice_in_order + 1)
+                                  * num_channels
+                                  * dtype.itemsize)))
 
         def load_z_stack(slice_filenames):
             # Loads the data in [slice, row, column] C-contiguous order
@@ -119,6 +178,7 @@ def slices_to_raw_chunks(info, slice_filename_lists,
                                  .format(block.ndim))
             return block
 
+        # Concatenate all channels from different directories
         block = np.concatenate([load_z_stack(l) for l in slice_filename_lists],
                                axis=0)
         assert block.shape[0] == num_channels
@@ -130,8 +190,13 @@ def slices_to_raw_chunks(info, slice_filename_lists,
                       ::input_axis_inversions[0]]
         block = np.moveaxis(block, (3, 2, 1),
                             (3 - a for a in input_axis_permutation))
+        # equivalent: np.transpose(block, axes=([0] + [3 - a for a in reversed(invert_permutation(input_axis_permutation))]))
 
-        print("writing chunks...")
+        progress_bar = tqdm(
+            total=(((input_size[1] - 1) // input_chunk_size[1] + 1)
+                   * ((input_size[0] - 1) // input_chunk_size[0] + 1)),
+            desc="writing chunks", unit="chunks", leave=False)
+
         for row_chunk_idx in range((input_size[1] - 1)
                                    // input_chunk_size[1] + 1):
             row_slicing = np.s_[
@@ -146,7 +211,7 @@ def slices_to_raw_chunks(info, slice_filename_lists,
 
                 input_slicing = (column_slicing, row_slicing, np.s_[:])
                 x_slicing , y_slicing, z_slicing = permute(
-                    input_slicing, input_axis_permutation)
+                    input_slicing, permutation_to_input)
                 chunk = block[:, z_slicing, y_slicing, x_slicing]
 
                 # This variable represents the coordinates with real slice
@@ -157,11 +222,11 @@ def slices_to_raw_chunks(info, slice_filename_lists,
                     (first_slice_in_order, last_slice_in_order)
                 )
                 x_coords , y_coords, z_coords = permute(
-                    input_coords, input_axis_permutation)
-                assert chunk.size == ((x_coords[1] - x_coords[0]) *
-                                      (y_coords[1] - y_coords[0]) *
-                                      (z_coords[1] - z_coords[0]) *
-                                      num_channels)
+                    input_coords, permutation_to_input)
+                assert chunk.size == ((x_coords[1] - x_coords[0])
+                                      * (y_coords[1] - y_coords[0])
+                                      * (z_coords[1] - z_coords[0])
+                                      * num_channels)
 
                 chunk_name = RAW_CHUNK_PATTERN.format(
                     x_coords[0], x_coords[1],
@@ -171,6 +236,10 @@ def slices_to_raw_chunks(info, slice_filename_lists,
                 os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
                 with gzip.open(chunk_name + ".gz", "wb") as f:
                     f.write(chunk.astype(dtype).tobytes())
+                progress_bar.update()
+        # free up memory before reading next block (prevent doubled memory
+        # usage)
+        del block
 
 
 def convert_slices_in_directory(slice_dirs, input_orientation):
@@ -183,9 +252,7 @@ def convert_slices_in_directory(slice_dirs, input_orientation):
     input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
                                   for l in input_orientation)
 
-    slice_filename_lists = [[os.path.join(d, filename)
-                             for filename in sorted(os.listdir(d))]
-                            for d in slice_dirs]
+    slice_filename_lists = [sorted(d.iterdir()) for d in slice_dirs]
     slices_to_raw_chunks(info, slice_filename_lists,
                          input_axis_inversions, input_axis_permutation)
 
@@ -207,7 +274,7 @@ Each character represents the anatomical direction of an input axis:
 - The second character represents the direction along columns in the input
   slices, i.e. the top-to-bottom on-screen axis when the image is displayed.
 - The third character represents the direction along increasing slice numbers
-  (slices from the input directory are sorted in lexicographical order)
+  (slices from the input directory are sorted in lexicographic order)
 
 Each character can take one of six values, which represent the direction that
 the axis **points to**:
@@ -218,13 +285,16 @@ the axis **points to**:
 - S for an axis that points towards Superior
 - I for an axis that points towards Inferior
 
+In the output chunks, the axes will be re-oriented accordingly to match RAS+
+anatomical orientation.
+
 A few examples:
 - use “RIA” or “RIP” for coronal slices shown in neurological convention
 - use “LIA” or “LIP” for coronal slices shown in radiological convention
 - use “RPS” or “RPI” for axial slices shown in neurological convention
 - use “LPS” or “LPI” for axial slices shown in neurological convention
 """)
-    parser.add_argument("slice_dirs", nargs="+",
+    parser.add_argument("slice_dirs", nargs="+", type=Path,
                         help="list of directories containing input slices,"
                         " slices from each directory will be loaded and"
                         " concatenated in lexicographic order, stacks from"

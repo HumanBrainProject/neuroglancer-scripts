@@ -115,7 +115,8 @@ def slices_to_raw_chunks(info, slice_filename_lists,
             elif block.ndim == 3:
                 block = block[np.newaxis, :, :, :]
             else:
-                raise ValueError("block has unknown dimensionality")
+                raise ValueError("block has unexpected dimensionality (ndim={})"
+                                 .format(block.ndim))
             return block
 
         block = np.concatenate([load_z_stack(l) for l in slice_filename_lists],

@@ -13,7 +13,7 @@ import os.path
 import sys
 
 import numpy as np
-
+from tqdm import tqdm, trange
 
 RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
@@ -30,13 +30,13 @@ def create_next_scale(info, source_scale_index, outside_value=0):
     new_size = new_scale_info["size"]
     dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
-
     downscaling_factors = [1 if os == ns else 2
                            for os, ns in zip(old_size, new_size)]
     if new_size != [(os - 1) // ds + 1
                     for os, ds in zip(old_size, downscaling_factors)]:
         raise ValueError("Unsupported downscaling factor between scales {} and {}"
                          .format(old_key, new_key))
+
     half_chunk = [osz // f
                   for osz, f in zip(old_chunk_size, downscaling_factors)]
     chunk_fetch_factor = [nsz // hc
@@ -81,6 +81,11 @@ def create_next_scale(info, source_scale_index, outside_value=0):
 
         return chunk.astype(dtype)
 
+    progress_bar = tqdm(
+        total=(((new_size[0] - 1) // new_chunk_size[0] + 1)
+               * ((new_size[1] - 1) // new_chunk_size[1] + 1)
+               * ((new_size[2] - 1) // new_chunk_size[2] + 1)),
+        desc="computing scale {}".format(new_key), unit="chunks", leave=True)
     for x_idx in range((new_size[0] - 1) // new_chunk_size[0] + 1):
         for y_idx in range((new_size[1] - 1) // new_chunk_size[1] + 1):
             for z_idx in range((new_size[2] - 1) // new_chunk_size[2] + 1):
@@ -156,10 +161,10 @@ def create_next_scale(info, source_scale_index, outside_value=0):
 
                 new_chunk_name = RAW_CHUNK_PATTERN.format(
                     xmin, xmax, ymin, ymax, zmin, zmax, key=new_key)
-                print("Writing", new_chunk_name)
                 os.makedirs(os.path.dirname(new_chunk_name), exist_ok=True)
                 with gzip.open(new_chunk_name + ".gz", "wb") as f:
                     f.write(new_chunk.astype(dtype).tobytes())
+                progress_bar.update()
 
 
 def compute_scales(outside_value):

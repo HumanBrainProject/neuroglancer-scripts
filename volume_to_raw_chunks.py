@@ -14,6 +14,7 @@ import sys
 import numpy as np
 import nibabel
 import nibabel.orientations
+from tqdm import tqdm
 
 
 RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
@@ -35,6 +36,11 @@ def volume_to_raw_chunks(info, volume):
     assert volume.shape[:3] == tuple(size)
     assert volume.shape[3] == num_channels
 
+    progress_bar = tqdm(
+        total=(((size[0] - 1) // chunk_size[0] + 1)
+               * ((size[1] - 1) // chunk_size[1] + 1)
+               * ((size[2] - 1) // chunk_size[2] + 1)),
+        desc="writing", unit="chunks", leave=True)
     for x_chunk_idx in range((size[0] - 1) // chunk_size[0] + 1):
         x_slicing = np.s_[chunk_size[0] * x_chunk_idx:
                           min(chunk_size[0] * (x_chunk_idx + 1), size[0])]
@@ -59,6 +65,7 @@ def volume_to_raw_chunks(info, volume):
                 os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
                 with gzip.open(chunk_name + ".gz", "wb") as f:
                     f.write(chunk.astype(dtype).tobytes())
+                progress_bar.update()
 
 
 def volume_file_to_raw_chunks(volume_filename,

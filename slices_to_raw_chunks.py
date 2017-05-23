@@ -302,7 +302,7 @@ A few examples:
                         " different channels")
     parser.add_argument("input_orientation",
                         help="A 3-character code describe the anatomical"
-                        " orientation of the input axes (see above)")
+                        " orientation of the input axes (see below)")
     args = parser.parse_args(argv[1:])
     args.input_orientation = args.input_orientation.upper()
     if args.input_orientation not in POSSIBLE_AXIS_ORIENTATIONS:

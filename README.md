@@ -2,22 +2,28 @@ Data conversion
 ===============
 
 **Converting volumetric images to the Neuroglancer precomputed tile format.**
-For practical examples, see the `BigBrainRelease.2015` or `Jubrain`
+For practical examples, see the `BigBrainRelease.2015` or `JuBrain`
 sub-directories.
 
 1. Write the metadata for the full-resolution image (example:
-   `BigBrainRelease.2015/info_fullres.json`).
+   `BigBrainRelease.2015/info_fullres.json`). If your input data is readable by
+   `nibabel`, you can use `volume_to_raw_chunks.py --generate-info` do do the
+   job.
 
-2. Create metadata for all scales using `generate_scales_info.py`.
+2. Create metadata for all scales using `generate_scales_info.py`. This step
+   outputs a file named `info` in the current directory, which is needed for
+   all the subsequent steps.
 
 3. Convert your data to raw full-resolution tiles by using one of these
    scripts:
    - `slices_to_raw_chunks.py`
    - `volume_to_raw_chunks.py`
 
-4. Compute downscaled pyramid levels using `compute_scales.py`.
+4. Compute downscaled pyramid levels using `compute_scales.py` (only suitable
+   for grey-level data, not available yet for labelled data such as
+   parcellations).
 
-5. If needed, convert chunks to compressed format using one of:
+5. If needed, convert the raw chunks to a compressed format using one of:
    - `convert_chunks_to_jpeg.py`
    - `compress_segmentation_chunks.py`
 

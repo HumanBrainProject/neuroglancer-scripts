@@ -7,6 +7,7 @@
 
 import gzip
 import json
+import logging
 import os
 import os.path
 import sys
@@ -16,6 +17,11 @@ import nibabel
 import nibabel.orientations
 from tqdm import tqdm
 
+
+logging.basicConfig(format='%(message)s', level=logging.INFO)
+
+
+NG_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
 
 RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
@@ -69,46 +75,88 @@ def volume_to_raw_chunks(info, volume):
 
 
 def volume_file_to_raw_chunks(volume_filename,
+                              generate_info=False,
                               ignore_scaling=False):
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
-    with open("info") as f:
-        info = json.load(f)
-
     img = nibabel.load(volume_filename)
-    print("Native input shape is {0}".format(img.header.get_data_shape()))
+    native_shape = img.header.get_data_shape()
+    logging.info("Native input shape is %s", native_shape)
     affine = img.affine
+    native_voxel_sizes = nibabel.affines.voxel_sizes(affine)
+    logging.info("Native voxel size is %s mm", native_voxel_sizes)
+
     ornt = nibabel.orientations.io_orientation(affine)
-    print("Detected input axis orientations {0}+"
-          .format("".join(nibabel.orientations.ornt2axcodes(ornt))))
+    logging.info("Detected input axis orientations %s+",
+                 "".join(nibabel.orientations.ornt2axcodes(ornt)))
+
     new_affine = affine * nibabel.orientations.inv_ornt_aff(ornt, img.shape)
-    input_voxel_sizes = nibabel.affines.voxel_sizes(affine)
+    reoriented_shape = [native_shape[int(i)] for i in ornt[:, 0]]
+    reoriented_voxel_sizes = [native_voxel_sizes[int(i)] for i in ornt[:, 0]]
+    logging.info("Re-oriented input shape is %s", reoriented_shape)
+
+    try:
+        with open("info") as f:
+            info = json.load(f)
+    except:
+        generate_info=True
+
+    if generate_info:
+        header_info = """\
+{{
+    "type": "image",
+    "num_channels": {num_channels},
+    "data_type": "{data_type}",
+    "scales": [
+        {{
+            "encoding": "raw",
+            "size": {size},
+            "resolution": {resolution},
+            "voxel_offset": [0, 0, 0]
+        }}
+    ]
+}}""".format(num_channels=native_shape[3] if len(native_shape) >= 4 else 1,
+            data_type=img.header.get_data_dtype().name,
+            size=list(reoriented_shape),
+            resolution=[vs * 1000000 for vs in reoriented_voxel_sizes[:3]])
+        logging.info("Please generate the info file with "
+                     "generate_scales_info.py using the information below, "
+                     "then run this program again")
+        json.loads(header_info)  # ensure well-formed JSON
+        print(header_info)
+        if img.header.get_data_dtype().name not in NG_DATA_TYPES:
+            logging.error("%s data type is not supported by Neuroglancer. "
+                          "You must set data_type to one of %s. The data "
+                          "will be cast during conversion.",
+                          img.header.get_data_dtype().name, NG_DATA_TYPES)
+            # return code indicating that manual intervention is needed
+            return 4
+        # return code indicating that ready-to-use info was printed
+        return 3
+
     info_voxel_sizes = 0.000001 * np.asarray(info["scales"][0]["resolution"])
-    print("Input voxel size is {0} mm".format(input_voxel_sizes))
-    if not np.allclose(input_voxel_sizes, info_voxel_sizes):
-        print("ERROR: voxel size is inconsistent with resolution in the info"
-              " file({0} mm)".format(info_voxel_sizes))
-        return 1
+    if not np.allclose(reoriented_voxel_sizes, info_voxel_sizes):
+        logging.warning("voxel size is inconsistent with resolution in the "
+                        "info file(%s nm)", info_voxel_sizes)
 
     if ignore_scaling:
         img.header.set_slope_inter(None)
 
-    sys.stderr.write("Loading volume... ")
-    sys.stderr.flush()
-    volume = nibabel.orientations.apply_orientation(img.get_data(), ornt)
-    sys.stderr.write("done.\n")
-    print("Re-oriented input shape is {0}".format(volume.shape))
-    print("Loaded volume has data type {0}, chunks will be saved with {1}"
-          .format(volume.dtype.name, info["data_type"]))
+    logging.info("Loading volume...")
+    volume = nibabel.orientations.apply_orientation(img.dataobj, ornt)
 
-    sys.stderr.write("Writing chunks... ")
-    sys.stderr.flush()
+    logging.info("The volume has data type %s, but chunks will be saved with "
+                 "%s. You should make sure that the cast does not lose "
+                 "range/accuracy.", volume.dtype.name, info["data_type"])
+
+    logging.info("Writing chunks... ")
     volume_to_raw_chunks(info, volume)
-    sys.stderr.write("done.\n")
 
     # This is the affine of the converted volume, print it at the end so it
-    # does not get lost in scrolling
-    print("Affine transformation of the converted volume:\n{0}"
-          .format(new_affine))
+    # does not get lost in scrolling. Use full double precision, without
+    # scientific notation.
+    np.set_printoptions(suppress=True, precision=17)
+    logging.info("Affine transformation of the converted volume:\n%s",
+                 np.array2string(new_affine, separator=", "))
 
 
 def parse_command_line(argv):
@@ -124,6 +172,7 @@ Y from posterior to Anterior, Z from inferior to Superior).
 """)
     parser.add_argument("volume_filename")
     parser.add_argument("--ignore-scaling", action="store_true")
+    parser.add_argument("--generate-info", action="store_true")
     args = parser.parse_args(argv[1:])
     return args
 
@@ -132,6 +181,7 @@ def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return volume_file_to_raw_chunks(args.volume_filename,
+                                     generate_info=args.generate_info,
                                      ignore_scaling=args.ignore_scaling) or 0
 
 

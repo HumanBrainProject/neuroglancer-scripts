@@ -10,6 +10,11 @@
 
 * Conversion of the Maximum Probability Map to raw chunks
 
+  These raw-encoded tiles are an intermediate step to the compressed tiles
+  below. Note that the info file specifies `encoding:
+  "compressed_segmentation"`, if you want to serve these raw-encoded tiles to
+  Neuroglancer you have to change the encoding to `"raw"`.
+
   We generate only one scale, because we do not (yet) have a tool to downscale
   a parcellation (`compute_scales.py` works for greyscale volumes, not for
   labelled volumes).

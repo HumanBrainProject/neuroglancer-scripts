@@ -40,7 +40,7 @@ def choose_unit_for_key(resolution_nm):
     raise RuntimeError("cannot find a suitable unit for {} nm".format(resolution_nm))
 
 
-def create_info_json_scales(info, target_chunk_size=64):
+def create_info_json_scales(info, target_chunk_size=64, max_scales=None):
     """Create a list of scales in Neuroglancer "info" JSON file format
 
     This function takes a dictionary as input, in the format documented at
@@ -131,17 +131,21 @@ def create_info_json_scales(info, target_chunk_size=64):
         max(math.ceil(math.log2(a / target_chunk_size)) - b
             for a, b in zip(full_scale_info["size"],
                             axis_level_delays)))
+    if max_scales:
+        max_downscale_level = min(max_downscale_level, max_scales)
     info["scales"] = [downscale_info(scale_level)
                       for scale_level in range(max_downscale_level)]
     return info
 
 
 def generate_scales_info(input_fullres_info_filename,
-                         target_chunk_size=64):
+                         target_chunk_size=64,
+                         max_scales=None):
     """Generate a list of scales from an input JSON file"""
     with open(input_fullres_info_filename) as f:
         info = json.load(f)
-    create_info_json_scales(info, target_chunk_size=target_chunk_size)
+    create_info_json_scales(info, target_chunk_size=target_chunk_size,
+                            max_scales=max_scales)
     with open("info", "w") as f:
         json.dump(info, f)
 
@@ -157,6 +161,9 @@ Output is written to a file named "info" in the current directory.
 """)
     parser.add_argument("fullres_info",
                        help="JSON file containing the full-resolution info")
+    parser.add_argument("--max-scales", type=int, default=None,
+                        help="maximum number of scales to generate"
+                        " (default: unlimited)")
     parser.add_argument("--target-chunk-size", type=int, default=64,
                         help="target chunk size (default 64). This size will"
                         " be used for cubic chunks, the size of anisotropic"
@@ -170,7 +177,8 @@ def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return generate_scales_info(args.fullres_info,
-                                target_chunk_size=args.target_chunk_size) or 0
+                                target_chunk_size=args.target_chunk_size,
+                                max_scales=args.max_scales) or 0
 
 
 if __name__ == "__main__":

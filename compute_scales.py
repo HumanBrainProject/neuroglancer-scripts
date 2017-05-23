@@ -18,7 +18,14 @@ from tqdm import tqdm, trange
 RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
 
-def create_next_scale(info, source_scale_index, outside_value=0):
+def create_next_scale(info, source_scale_index, outside_value=None):
+    if outside_value is None:
+        padding_mode = "edge"
+        pad_kwargs = {}
+    else:
+        padding_mode = "constant"
+        pad_kwargs = {"constant_values": outside_value}
+
     # Key is the resolution in micrometres
     old_scale_info = info["scales"][source_scale_index]
     new_scale_info = info["scales"][source_scale_index + 1]
@@ -64,19 +71,19 @@ def create_next_scale(info, source_scale_index, outside_value=0):
         if downscaling_factors[2] == 2:
             if chunk.shape[1] % 2 != 0:
                 chunk = np.pad(chunk, ((0, 0), (0, 1), (0, 0), (0, 0)),
-                               "constant", constant_values=outside_value)
+                               padding_mode, **pad_kwargs)
             chunk = (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :]) * 0.5
 
         if downscaling_factors[1] == 2:
             if chunk.shape[2] % 2 != 0:
                 chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 1), (0, 0)),
-                               "constant", constant_values=outside_value)
+                               padding_mode, **pad_kwargs)
             chunk = (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :]) * 0.5
 
         if downscaling_factors[0] == 2:
             if chunk.shape[3] % 2 != 0:
                 chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 0), (0, 1)),
-                               "constant", constant_values=outside_value)
+                               padding_mode, **pad_kwargs)
             chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
 
         return chunk.astype(dtype)
@@ -167,7 +174,7 @@ def create_next_scale(info, source_scale_index, outside_value=0):
                 progress_bar.update()
 
 
-def compute_scales(outside_value):
+def compute_scales(outside_value=None):
     """Generate lower scales following an input info file"""
     with open("info") as f:
         info = json.load(f)
@@ -184,7 +191,10 @@ Create lower scales in Neuroglancer precomputed raw format
 
 The list of scales is read from a file named "info" in the current directory.
 """)
-    parser.add_argument("--outside-value", type=float, default=0)
+    parser.add_argument("--outside-value", type=float, default=None,
+                        help="the volume is padded with this value for"
+                        " computing the voxels at the border. If not given, the"
+                        " volume is padded with its edge values.")
     args = parser.parse_args(argv[1:])
     return args
 

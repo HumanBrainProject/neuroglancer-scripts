@@ -48,14 +48,10 @@ def volume_to_raw_chunks(info, volume):
     dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
 
-    if volume.ndim < 4:
-        volume = np.atleast_3d(volume)[:, :, :, np.newaxis]
-    elif volume.ndim > 4:
-        raise ValueError("Volumes with more than 4 dimensions not supported")
-
-    # Volume given by nibabel are using Fortran indexing (X, Y, Z, T)
+    # Volumes given by nibabel are using Fortran indexing (X, Y, Z, T)
     assert volume.shape[:3] == tuple(size)
-    assert volume.shape[3] == num_channels
+    if len(volume.shape) > 3:
+        assert volume.shape[3] == num_channels
 
     progress_bar = tqdm(
         total=(((size[0] - 1) // chunk_size[0] + 1)
@@ -71,8 +67,13 @@ def volume_to_raw_chunks(info, volume):
             for z_chunk_idx in range((size[2] - 1) // chunk_size[2] + 1):
                 z_slicing = np.s_[chunk_size[2] * z_chunk_idx:
                                   min(chunk_size[2] * (z_chunk_idx + 1), size[2])]
-                chunk = np.moveaxis(volume[x_slicing, y_slicing, z_slicing, :],
-                                    (0, 1, 2, 3), (3, 2, 1, 0))
+                if len(volume.shape) == 4:
+                    chunk = volume[x_slicing, y_slicing, z_slicing, :]
+                elif len(volume.shape) == 3:
+                    chunk = volume[x_slicing, y_slicing, z_slicing]
+                    chunk = chunk[..., np.newaxis]
+
+                chunk = np.moveaxis(chunk, (0, 1, 2, 3), (3, 2, 1, 0))
                 assert chunk.size == ((x_slicing.stop - x_slicing.start) *
                                       (y_slicing.stop - y_slicing.start) *
                                       (z_slicing.stop - z_slicing.start) *
@@ -150,14 +151,14 @@ def volume_file_to_raw_chunks(volume_filename,
     if ignore_scaling:
         img.header.set_slope_inter(None)
 
-    logging.info("Loading volume...")
-    volume = img.get_data()
-
-    if volume.dtype.name != info["data_type"]:
+    if img.header.get_data_dtype().name != info["data_type"]:
         logging.info("The volume has data type %s, but chunks will be saved "
                      "with %s. You should make sure that the cast does not "
                      "lose range/accuracy.",
                      volume.dtype.name, info["data_type"])
+
+    logging.info("Loading volume...")
+    volume = img.dataobj
 
     logging.info("Writing chunks... ")
     volume_to_raw_chunks(info, volume)

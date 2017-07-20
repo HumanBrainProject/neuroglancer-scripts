@@ -58,15 +58,15 @@ def volume_to_raw_chunks(info, volume):
                * ((size[1] - 1) // chunk_size[1] + 1)
                * ((size[2] - 1) // chunk_size[2] + 1)),
         desc="writing", unit="chunks", leave=True)
-    for x_chunk_idx in range((size[0] - 1) // chunk_size[0] + 1):
-        x_slicing = np.s_[chunk_size[0] * x_chunk_idx:
-                          min(chunk_size[0] * (x_chunk_idx + 1), size[0])]
+    for z_chunk_idx in range((size[2] - 1) // chunk_size[2] + 1):
+        z_slicing = np.s_[chunk_size[2] * z_chunk_idx:
+                          min(chunk_size[2] * (z_chunk_idx + 1), size[2])]
         for y_chunk_idx in range((size[1] - 1) // chunk_size[1] + 1):
             y_slicing = np.s_[chunk_size[1] * y_chunk_idx:
                               min(chunk_size[1] * (y_chunk_idx + 1), size[1])]
-            for z_chunk_idx in range((size[2] - 1) // chunk_size[2] + 1):
-                z_slicing = np.s_[chunk_size[2] * z_chunk_idx:
-                                  min(chunk_size[2] * (z_chunk_idx + 1), size[2])]
+            for x_chunk_idx in range((size[0] - 1) // chunk_size[0] + 1):
+                x_slicing = np.s_[chunk_size[0] * x_chunk_idx:
+                                  min(chunk_size[0] * (x_chunk_idx + 1), size[0])]
                 if len(volume.shape) == 4:
                     chunk = volume[x_slicing, y_slicing, z_slicing, :]
                 elif len(volume.shape) == 3:

@@ -99,6 +99,13 @@ def volume_file_to_raw_chunks(volume_filename,
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
     img = nibabel.load(volume_filename)
     shape = img.header.get_data_shape()
+    if ignore_scaling:
+        dtype = img.header.get_data_dtype()
+    else:
+        # There is no guarantee that img.dataobj.dtype exists, so we have to
+        # read a value from the file to see the result of the scaling
+        zero_index = tuple(0 for _ in shape)
+        dtype = (img.dataobj[zero_index]).dtype
     logging.info("Input image shape is %s", shape)
     affine = img.affine
     voxel_sizes = nibabel.affines.voxel_sizes(affine)
@@ -128,7 +135,7 @@ def volume_file_to_raw_chunks(volume_filename,
         }}
     ]
 }}""".format(num_channels=shape[3] if len(shape) >= 4 else 1,
-            data_type=img.header.get_data_dtype().name,
+            data_type=dtype.name,
             size=list(shape[:3]),
             resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
         logging.info("Please generate the info file with "
@@ -136,11 +143,11 @@ def volume_file_to_raw_chunks(volume_filename,
                      "then run this program again")
         json.loads(header_info)  # ensure well-formed JSON
         print(header_info)
-        if img.header.get_data_dtype().name not in NG_DATA_TYPES:
+        if dtype.name not in NG_DATA_TYPES:
             logging.error("%s data type is not supported by Neuroglancer. "
                           "You must set data_type to one of %s. The data "
                           "will be cast during conversion.",
-                          img.header.get_data_dtype().name, NG_DATA_TYPES)
+                          dtype.name, NG_DATA_TYPES)
             # return code indicating that manual intervention is needed
             return 4
         # return code indicating that ready-to-use info was printed
@@ -151,19 +158,19 @@ def volume_file_to_raw_chunks(volume_filename,
         logging.warning("voxel size is inconsistent with resolution in the "
                         "info file(%s nm)", info_voxel_sizes)
 
+    # TODO fix ignore_scaling
     if ignore_scaling:
         img.header.set_slope_inter(None)
 
-    if img.header.get_data_dtype().name != info["data_type"]:
+    if not np.can_cast(dtype, info["data_type"], casting="safe"):
         logging.info("The volume has data type %s, but chunks will be saved "
                      "with %s. You should make sure that the cast does not "
                      "lose range/accuracy.",
-                     img.header.get_data_dtype().name,
-                     info["data_type"])
+                     dtype.name, info["data_type"])
 
     round_to_nearest = (
         np.issubdtype(info["data_type"], np.integer)
-        and not np.issubdtype(img.dataobj.dtype, np.integer))
+        and not np.issubdtype(dtype, np.integer))
     if round_to_nearest:
         logging.info("Values will be rounded to the nearest integer")
 

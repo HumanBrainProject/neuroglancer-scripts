@@ -155,8 +155,8 @@ def volume_file_to_raw_chunks(volume_filename,
         transform = nifti_to_neuroglancer_transform(
             transform, np.asarray(info["scales"][0]["resolution"]))
         json_transform = [list(row) for row in transform]
-        logging.info("Neuroglancer transform of the converted volume:\n%s "
-                     "(written to transform.json)",
+        logging.info("Neuroglancer transform of the converted volume "
+                     "(written to transform.json):\n%s",
                      json.dumps(json_transform))
         with open("transform.json", "w") as f:
             json.dump(json_transform, f)

@@ -4,7 +4,7 @@
   mkdir colin
   cd colin
   ../../generate_scales_info.py ../info_colin_fullres.json
-  ../../volume_to_raw_chunks.py --ignore-scaling ../colin.nii.gz
+  ../../volume_to_raw_chunks.py ../colin.nii.gz
   ../../compute_scales.py
   ```
 

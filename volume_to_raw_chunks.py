@@ -133,14 +133,33 @@ def volume_file_to_raw_chunks(volume_filename,
             size=list(shape[:3]),
             resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
 
-        json.loads(header_info)  # ensure well-formed JSON
+        info = json.loads(header_info)  # ensure well-formed JSON
         print(header_info)
         with open("info_fullres.json", "w") as f:
             f.write(header_info)
         logging.info("The metadata above was written to info_fullres.json. "
                      "Please run generate_scales_info.py on that file "
                      "to generate the 'info' file, then run this program "
-                     "again")
+                     "again.")
+
+        # We need to take the voxel scaling out of img.affine, and convert the
+        # translation part from millimetres to nanometres.
+        transform = np.empty((4, 4))
+        transform[:, 0] = affine[:, 0] / voxel_sizes[0]
+        transform[:, 1] = affine[:, 1] / voxel_sizes[1]
+        transform[:, 2] = affine[:, 2] / voxel_sizes[2]
+        transform[:3, 3] = affine[:3, 3] * 1000000
+        transform[3, 3] = 1
+        # Finally, compensate the half-voxel shift which is due to the
+        # different conventions of Nifti and Neuroglancer.
+        transform = nifti_to_neuroglancer_transform(
+            transform, np.asarray(info["scales"][0]["resolution"]))
+        json_transform = [list(row) for row in transform]
+        logging.info("Neuroglancer transform of the converted volume:\n%s "
+                     "(written to transform.json)",
+                     json.dumps(json_transform))
+        with open("transform.json", "w") as f:
+            json.dump(json_transform, f)
 
         if dtype.name not in NG_DATA_TYPES:
             logging.error("The %s data type is not supported by Neuroglancer. "
@@ -188,28 +207,6 @@ def volume_file_to_raw_chunks(volume_filename,
 
     logging.info("Writing chunks... ")
     volume_to_raw_chunks(info, volume, round_to_nearest=round_to_nearest)
-
-    # This is the affine of the converted volume, print it at the end so it
-    # does not get lost in scrolling.
-    #
-    # We need to take the voxel scaling out of img.affine, and convert the
-    # translation part from millimetres to nanometres.
-    transform = np.empty((4, 4))
-    transform[:, 0] = affine[:, 0] / voxel_sizes[0]
-    transform[:, 1] = affine[:, 1] / voxel_sizes[1]
-    transform[:, 2] = affine[:, 2] / voxel_sizes[2]
-    transform[:3, 3] = affine[:3, 3] * 1000000
-    transform[3, 3] = 1
-    # Finally, compensate the half-voxel shift which is due to the different
-    # conventions of Nifti and Neuroglancer.
-    transform = nifti_to_neuroglancer_transform(
-        transform, np.asarray(info["scales"][0]["resolution"]))
-    json_transform = [list(row) for row in transform]
-    logging.info("Neuroglancer transform of the converted volume:\n%s "
-                 "(written to transform.json)",
-                 json.dumps(json_transform))
-    with open("transform.json", "w") as f:
-        json.dump(json_transform, f)
 
 
 def parse_command_line(argv):

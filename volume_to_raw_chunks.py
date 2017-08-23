@@ -168,10 +168,6 @@ def volume_file_to_raw_chunks(volume_filename,
         logging.warning("voxel size is inconsistent with resolution in the "
                         "info file(%s nm)", info_voxel_sizes)
 
-    # TODO fix ignore_scaling
-    if ignore_scaling:
-        img.header.set_slope_inter(None)
-
     if not np.can_cast(dtype, info["data_type"], casting="safe"):
         logging.info("The volume has data type %s, but chunks will be saved "
                      "with %s. You should make sure that the cast does not "
@@ -185,7 +181,10 @@ def volume_file_to_raw_chunks(volume_filename,
         logging.info("Values will be rounded to the nearest integer")
 
     logging.info("Loading volume...")
-    volume = img.dataobj
+    if ignore_scaling:
+        volume = img.dataobj.get_unscaled()
+    else:
+        volume = img.dataobj
 
     logging.info("Writing chunks... ")
     volume_to_raw_chunks(info, volume, round_to_nearest=round_to_nearest)

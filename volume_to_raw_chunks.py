@@ -41,7 +41,7 @@ def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     return ret
 
 
-def volume_to_raw_chunks(info, volume):
+def volume_to_raw_chunks(info, volume, round_to_nearest=False):
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
     size = info["scales"][0]["size"]  # in order x, y, z
@@ -72,6 +72,9 @@ def volume_to_raw_chunks(info, volume):
                 elif len(volume.shape) == 3:
                     chunk = volume[x_slicing, y_slicing, z_slicing]
                     chunk = chunk[..., np.newaxis]
+
+                if round_to_nearest:
+                    chunk = np.rint(chunk)
 
                 chunk = np.moveaxis(chunk, (0, 1, 2, 3), (3, 2, 1, 0))
                 assert chunk.size == ((x_slicing.stop - x_slicing.start) *
@@ -158,11 +161,17 @@ def volume_file_to_raw_chunks(volume_filename,
                      img.header.get_data_dtype().name,
                      info["data_type"])
 
+    round_to_nearest = (
+        np.issubdtype(info["data_type"], np.integer)
+        and not np.issubdtype(img.dataobj.dtype, np.integer))
+    if round_to_nearest:
+        logging.info("Values will be rounded to the nearest integer")
+
     logging.info("Loading volume...")
     volume = img.dataobj
 
     logging.info("Writing chunks... ")
-    volume_to_raw_chunks(info, volume)
+    volume_to_raw_chunks(info, volume, round_to_nearest=round_to_nearest)
 
     # This is the affine of the converted volume, print it at the end so it
     # does not get lost in scrolling.

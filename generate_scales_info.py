@@ -40,7 +40,8 @@ def choose_unit_for_key(resolution_nm):
     raise RuntimeError("cannot find a suitable unit for {} nm".format(resolution_nm))
 
 
-def create_info_json_scales(info, target_chunk_size=64, max_scales=None):
+def create_info_json_scales(info, target_chunk_size=64,
+                            encoding=None, max_scales=None):
     """Create a list of scales in Neuroglancer "info" JSON file format
 
     This function takes a dictionary as input, in the format documented at
@@ -78,6 +79,15 @@ def create_info_json_scales(info, target_chunk_size=64, max_scales=None):
     """
     assert len(info["scales"]) == 1
     full_scale_info = info["scales"][0]
+
+    if encoding:
+        full_scale_info["encoding"] = encoding
+    elif "encoding" not in full_scale_info:
+        full_scale_info["encoding"] = "raw"
+
+    if (full_scale_info["encoding"] == "compressed_segmentation"
+        and "compressed_segmentation_block_size" not in full_scale_info):
+        full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
 
     target_chunk_exponent = int(math.log2(target_chunk_size))
     assert target_chunk_size == 2 ** target_chunk_exponent
@@ -140,12 +150,13 @@ def create_info_json_scales(info, target_chunk_size=64, max_scales=None):
 
 def generate_scales_info(input_fullres_info_filename,
                          target_chunk_size=64,
+                         encoding=None,
                          max_scales=None):
     """Generate a list of scales from an input JSON file"""
     with open(input_fullres_info_filename) as f:
         info = json.load(f)
     create_info_json_scales(info, target_chunk_size=target_chunk_size,
-                            max_scales=max_scales)
+                            encoding=encoding, max_scales=max_scales)
     with open("info", "w") as f:
         json.dump(info, f)
 
@@ -169,6 +180,12 @@ Output is written to a file named "info" in the current directory.
                         " be used for cubic chunks, the size of anisotropic"
                         " chunks will be adapted to contain approximately the"
                         " same number of voxels.")
+    parser.add_argument("--encoding", default=None,
+                        choices=("raw", "jpeg", "compressed_segmentation"),
+                        help="data encoding (raw, jpeg, or"
+                        " compressed_segmentation). By default this is"
+                        " inherited from the fullres_info file, with a"
+                        " fallback to raw.")
     args = parser.parse_args(argv[1:])
     return args
 
@@ -178,6 +195,7 @@ def main(argv):
     args = parse_command_line(argv)
     return generate_scales_info(args.fullres_info,
                                 target_chunk_size=args.target_chunk_size,
+                                encoding=args.encoding,
                                 max_scales=args.max_scales) or 0
 
 

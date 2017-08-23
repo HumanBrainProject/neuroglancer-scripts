@@ -114,12 +114,6 @@ def volume_file_to_raw_chunks(volume_filename,
     logging.info("Detected input axis orientations %s+",
                  "".join(nibabel.orientations.aff2axcodes(affine)))
 
-    try:
-        with open("info") as f:
-            info = json.load(f)
-    except:
-        generate_info=True
-
     if generate_info:
         header_info = """\
 {{
@@ -138,20 +132,36 @@ def volume_file_to_raw_chunks(volume_filename,
             data_type=dtype.name,
             size=list(shape[:3]),
             resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
-        logging.info("Please generate the info file with "
-                     "generate_scales_info.py using the information below, "
-                     "then run this program again")
+
         json.loads(header_info)  # ensure well-formed JSON
         print(header_info)
+        with open("info_fullres.json", "w") as f:
+            f.write(header_info)
+        logging.info("The metadata above was written to info_fullres.json. "
+                     "Please run generate_scales_info.py on that file "
+                     "to generate the 'info' file, then run this program "
+                     "again")
+
         if dtype.name not in NG_DATA_TYPES:
-            logging.error("%s data type is not supported by Neuroglancer. "
-                          "You must set data_type to one of %s. The data "
-                          "will be cast during conversion.",
+            logging.error("The %s data type is not supported by Neuroglancer. "
+                          "You must set data_type to one of %s. The values "
+                          "will be rounded (if targeting an integer type) and "
+                          "cast during the conversion.",
                           dtype.name, NG_DATA_TYPES)
             # return code indicating that manual intervention is needed
             return 4
-        # return code indicating that ready-to-use info was printed
-        return 3
+        # return code indicating that ready-to-use info was output
+        return 0
+
+    try:
+        with open("info") as f:
+            info = json.load(f)
+    except:
+        logging.error("No 'info' file was found in the current directory. "
+                      "You can generate one by running this program with the "
+                      "--generate-info option, then using "
+                      "generate_scales_info.py on the result")
+        return 1
 
     info_voxel_sizes = 0.000001 * np.asarray(info["scales"][0]["resolution"])
     if not np.allclose(voxel_sizes, info_voxel_sizes):
@@ -215,8 +225,12 @@ to a RAS+ oriented space. Chunks are saved in RAS+ order (X from left to Right,
 Y from posterior to Anterior, Z from inferior to Superior).
 """)
     parser.add_argument("volume_filename")
-    parser.add_argument("--ignore-scaling", action="store_true")
-    parser.add_argument("--generate-info", action="store_true")
+    parser.add_argument("--ignore-scaling", action="store_true",
+                        help="read the values as stored on disk, without "
+                        "applying the data scaling (slope/intercept)")
+    parser.add_argument("--generate-info", action="store_true",
+                        help="generate an 'info_fullres.json' file containing "
+                        "the metadata read for this volume, then exit")
     args = parser.parse_args(argv[1:])
     return args
 

@@ -155,7 +155,8 @@ def volume_file_to_raw_chunks(volume_filename,
         logging.info("The volume has data type %s, but chunks will be saved "
                      "with %s. You should make sure that the cast does not "
                      "lose range/accuracy.",
-                     volume.dtype.name, info["data_type"])
+                     img.header.get_data_dtype().name,
+                     info["data_type"])
 
     logging.info("Loading volume...")
     volume = img.dataobj

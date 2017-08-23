@@ -85,9 +85,13 @@ def create_info_json_scales(info, target_chunk_size=64,
     elif "encoding" not in full_scale_info:
         full_scale_info["encoding"] = "raw"
 
-    if (full_scale_info["encoding"] == "compressed_segmentation"
-        and "compressed_segmentation_block_size" not in full_scale_info):
-        full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
+    if full_scale_info["encoding"] == "compressed_segmentation":
+        if "compressed_segmentation_block_size" not in full_scale_info:
+            full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
+        # compressed_segmentation only supports uint32 or uint64
+        if info["data_type"] in ("uint8", "uint16"):
+            info["data_type"] = "uint32"
+
 
     target_chunk_exponent = int(math.log2(target_chunk_size))
     assert target_chunk_size == 2 ** target_chunk_exponent

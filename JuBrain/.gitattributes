@@ -1,2 +1,0 @@
-atlas.nii.gz filter=lfs diff=lfs merge=lfs -text
-colin.nii.gz filter=lfs diff=lfs merge=lfs -text

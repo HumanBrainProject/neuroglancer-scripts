@@ -41,7 +41,7 @@ def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     return ret
 
 
-def volume_to_raw_chunks(info, volume, round_to_nearest=False):
+def volume_to_raw_chunks(info, volume, chunk_transformer=None):
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
     size = info["scales"][0]["size"]  # in order x, y, z
@@ -73,8 +73,8 @@ def volume_to_raw_chunks(info, volume, round_to_nearest=False):
                     chunk = volume[x_slicing, y_slicing, z_slicing]
                     chunk = chunk[..., np.newaxis]
 
-                if round_to_nearest:
-                    chunk = np.rint(chunk)
+                if chunk_transformer is not None:
+                    chunk = chunk_transformer(chunk)
 
                 chunk = np.moveaxis(chunk, (0, 1, 2, 3), (3, 2, 1, 0))
                 assert chunk.size == ((x_slicing.stop - x_slicing.start) *
@@ -89,7 +89,7 @@ def volume_to_raw_chunks(info, volume, round_to_nearest=False):
                     key=info["scales"][0]["key"])
                 os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
                 with gzip.open(chunk_name + ".gz", "wb") as f:
-                    f.write(chunk.astype(dtype).tobytes())
+                    f.write(chunk.tobytes())
                 progress_bar.update()
 
 
@@ -103,17 +103,28 @@ def matrix_as_compact_urlsafe_json(matrix):
 
 def volume_file_to_raw_chunks(volume_filename,
                               generate_info=False,
-                              ignore_scaling=False):
+                              ignore_scaling=False,
+                              input_min=None,
+                              input_max=None):
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
     img = nibabel.load(volume_filename)
     shape = img.header.get_data_shape()
+
+    proxy = img.dataobj
     if ignore_scaling:
-        dtype = img.header.get_data_dtype()
+        proxy._slope = 1.0
+        proxy._inter = 0.0
+
+    if input_max is not None:
+        # In case scaling is used, usually the result will be provided by
+        # nibabel as float64
+        input_dtype = np.dtype(np.float64)
     else:
-        # There is no guarantee that img.dataobj.dtype exists, so we have to
+        # There is no guarantee that proxy.dtype exists, so we have to
         # read a value from the file to see the result of the scaling
         zero_index = tuple(0 for _ in shape)
-        dtype = (img.dataobj[zero_index]).dtype
+        input_dtype = proxy[zero_index].dtype
+
     logging.info("Input image shape is %s", shape)
     affine = img.affine
     voxel_sizes = nibabel.affines.voxel_sizes(affine)
@@ -123,6 +134,10 @@ def volume_file_to_raw_chunks(volume_filename,
                  "".join(nibabel.orientations.aff2axcodes(affine)))
 
     if generate_info:
+        if input_dtype.name in NG_DATA_TYPES:
+            guessed_dtype = input_dtype.name
+        else:
+            guessed_dtype = "float32"
         header_info = """\
 {{
     "type": "image",
@@ -137,7 +152,7 @@ def volume_file_to_raw_chunks(volume_filename,
         }}
     ]
 }}""".format(num_channels=shape[3] if len(shape) >= 4 else 1,
-            data_type=dtype.name,
+            data_type=guessed_dtype,
             size=list(shape[:3]),
             resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
 
@@ -169,12 +184,13 @@ def volume_file_to_raw_chunks(volume_filename,
                      "(written to transform.json):\n%s",
                      matrix_as_compact_urlsafe_json(json_transform))
 
-        if dtype.name not in NG_DATA_TYPES:
+        if input_dtype.name not in NG_DATA_TYPES:
             logging.error("The %s data type is not supported by Neuroglancer. "
-                          "You must set data_type to one of %s. The values "
-                          "will be rounded (if targeting an integer type) and "
-                          "cast during the conversion.",
-                          dtype.name, NG_DATA_TYPES)
+                          "float32 was set, please adjust if needed "
+                          "(data_type must be one of %s). The values will be "
+                          "rounded (if targeting an integer type) and cast "
+                          "during the conversion.",
+                          input_dtype.name, NG_DATA_TYPES)
             # return code indicating that manual intervention is needed
             return 4
         # return code indicating that ready-to-use info was output
@@ -190,31 +206,61 @@ def volume_file_to_raw_chunks(volume_filename,
                       "generate_scales_info.py on the result")
         return 1
 
+    output_dtype = np.dtype(info["data_type"])
     info_voxel_sizes = 0.000001 * np.asarray(info["scales"][0]["resolution"])
     if not np.allclose(voxel_sizes, info_voxel_sizes):
         logging.warning("voxel size is inconsistent with resolution in the "
                         "info file(%s nm)", info_voxel_sizes)
 
-    if not np.can_cast(dtype, info["data_type"], casting="safe"):
-        logging.info("The volume has data type %s, but chunks will be saved "
-                     "with %s. You should make sure that the cast does not "
-                     "lose range/accuracy.",
-                     dtype.name, info["data_type"])
+    if not np.can_cast(input_dtype, output_dtype, casting="safe"):
+        logging.warning("The volume has data type %s, but chunks will be "
+                        "saved with %s. You should make sure that the cast "
+                        "does not lose range/accuracy.",
+                        input_dtype.name, output_dtype.name)
 
-    round_to_nearest = (
-        np.issubdtype(info["data_type"], np.integer)
-        and not np.issubdtype(dtype, np.integer))
-    if round_to_nearest:
-        logging.info("Values will be rounded to the nearest integer")
-
-    logging.info("Loading volume...")
-    if ignore_scaling:
-        volume = img.dataobj.get_unscaled()
+    # Scaling according to --input-min and --input-max. We modify the
+    # slope/inter values used by Nibabel rather than re-implementing
+    # post-scaling of the read data, in order to benefit from the clever
+    # handling of data types by Nibabel
+    if np.issubdtype(output_dtype, np.integer):
+        output_min = np.iinfo(output_dtype).min
+        output_max = np.iinfo(output_dtype).max
     else:
-        volume = img.dataobj
+        output_min = 0.0
+        output_max = 1.0
+    if input_max is not None:
+        if input_min is None:
+            input_min = 0
+        postscaling_slope = (output_max - output_min) / (input_max - input_min)
+        postscaling_inter = output_min - input_min * postscaling_slope
+        prescaling_slope = proxy.slope
+        prescaling_inter = proxy.inter
+        proxy._slope = prescaling_slope * postscaling_slope
+        proxy._inter = prescaling_inter * postscaling_slope + postscaling_inter
+
+    # Transformations applied to the voxel values
+    round_to_nearest = (
+        np.issubdtype(output_dtype, np.integer)
+        and not np.issubdtype(input_dtype, np.integer))
+    if round_to_nearest:
+        logging.warning("Values will be rounded to the nearest integer")
+
+    clip_values = (
+        np.issubdtype(output_dtype, np.integer)
+        and not np.can_cast(input_dtype, output_dtype, casting="safe"))
+    if clip_values:
+        logging.warning("Values will be clipped to the range [%s, %s]",
+                        output_min, output_max)
+
+    def chunk_transformer(chunk):
+        if round_to_nearest:
+            np.rint(chunk, out=chunk)
+        if clip_values:
+            np.clip(chunk, output_min, output_max, out=chunk)
+        return chunk.astype(output_dtype)
 
     logging.info("Writing chunks... ")
-    volume_to_raw_chunks(info, volume, round_to_nearest=round_to_nearest)
+    volume_to_raw_chunks(info, proxy, chunk_transformer=chunk_transformer)
 
 
 def parse_command_line(argv):
@@ -231,10 +277,17 @@ Y from posterior to Anterior, Z from inferior to Superior).
     parser.add_argument("volume_filename")
     parser.add_argument("--ignore-scaling", action="store_true",
                         help="read the values as stored on disk, without "
-                        "applying the data scaling (slope/intercept)")
+                        "applying the data scaling (slope/intercept) from the "
+                        "volume header")
     parser.add_argument("--generate-info", action="store_true",
                         help="generate an 'info_fullres.json' file containing "
                         "the metadata read for this volume, then exit")
+    parser.add_argument("--input-min", type=float, default=0.0,
+                        help="input value that will be mapped to the minimum "
+                        "output value")
+    parser.add_argument("--input-max", type=float, default=None,
+                        help="input value that will be mapped to the maximum "
+                        "output value")
     args = parser.parse_args(argv[1:])
     return args
 
@@ -244,7 +297,9 @@ def main(argv):
     args = parse_command_line(argv)
     return volume_file_to_raw_chunks(args.volume_filename,
                                      generate_info=args.generate_info,
-                                     ignore_scaling=args.ignore_scaling) or 0
+                                     ignore_scaling=args.ignore_scaling,
+                                     input_min=args.input_min,
+                                     input_max=args.input_max) or 0
 
 
 if __name__ == "__main__":

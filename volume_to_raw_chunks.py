@@ -93,6 +93,14 @@ def volume_to_raw_chunks(info, volume, round_to_nearest=False):
                 progress_bar.update()
 
 
+def matrix_as_compact_urlsafe_json(matrix):
+    # Transform tre matrix, transforming numbers whose floating-point
+    # representation has a training .0 to integers
+    array = [[int(x) if str(x).endswith(".0") and int(x) == x
+              else x for x in row] for row in matrix]
+    return json.dumps(array, indent=None, separators=('_', ':'))
+
+
 def volume_file_to_raw_chunks(volume_filename,
                               generate_info=False,
                               ignore_scaling=False):
@@ -155,11 +163,11 @@ def volume_file_to_raw_chunks(volume_filename,
         transform = nifti_to_neuroglancer_transform(
             transform, np.asarray(info["scales"][0]["resolution"]))
         json_transform = [list(row) for row in transform]
-        logging.info("Neuroglancer transform of the converted volume "
-                     "(written to transform.json):\n%s",
-                     json.dumps(json_transform))
         with open("transform.json", "w") as f:
             json.dump(json_transform, f)
+        logging.info("Neuroglancer transform of the converted volume "
+                     "(written to transform.json):\n%s",
+                     matrix_as_compact_urlsafe_json(json_transform))
 
         if dtype.name not in NG_DATA_TYPES:
             logging.error("The %s data type is not supported by Neuroglancer. "

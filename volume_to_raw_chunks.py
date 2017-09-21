@@ -270,9 +270,11 @@ def parse_command_line(argv):
         description="""\
 Convert from neuro-imaging formats to Neuroglancer pre-computed raw chunks
 
-The affine transformation on the input volume (as read by Nibabel) is to point
-to a RAS+ oriented space. Chunks are saved in RAS+ order (X from left to Right,
-Y from posterior to Anterior, Z from inferior to Superior).
+Chunks are saved with the same data orientation as the input volume.
+
+The image values will be scaled (additionally to any slope/intercept scaling
+defined in the file header) if --input-max is specified. If --input-min is
+omitted, it is assumed to be zero.
 """)
     parser.add_argument("volume_filename")
     parser.add_argument("--ignore-scaling", action="store_true",
@@ -289,6 +291,11 @@ Y from posterior to Anterior, Z from inferior to Superior).
                         help="input value that will be mapped to the maximum "
                         "output value")
     args = parser.parse_args(argv[1:])
+
+    if args.input_max is None and args.input_min is not None:
+        parser.error("--input-min cannot be specified if --input-max is "
+                     "omitted")
+
     return args
 
 

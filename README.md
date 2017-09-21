@@ -95,11 +95,12 @@ A standalone mesh layer needs a mesh in the VTK ASCII format. `mesh_to_vtk.py`
 can be used to convert a mesh from GIfTI to that format.
 
 A mesh associated with a segmentation label needs to be in a
-Neuroglancer-specific binary precomputed format. `mesh_to_precomputed.py` can
-be used to convert meshes to this format. Additionally, you need to add a
-`mesh` key to the `info` file of the segmentation volume, and provide one JSON
-file per segment, as described in [the Neuroglancer documentation of the
-precomputed format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md).
+Neuroglancer-specific binary precomputed format. `mesh_to_precomputed.py` or
+`stl_to_precomputed.py` can be used to convert meshes to this format.
+Additionally, you need to add a `mesh` key to the `info` file of the
+segmentation volume, and provide one JSON file per segment, as described in
+[the Neuroglancer documentation of the precomputed
+format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md).
 At the moment this must be done manually.
 
 

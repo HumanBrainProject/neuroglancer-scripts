@@ -1,41 +1,124 @@
-Data conversion
+Dependencies
+============
+
+These scripts should work with Python 3.4 or later. In order to install the
+required dependencies in a virtual environment, run:
+```
+python3 -m venv conversion-venv
+. conversion-venv/bin/activate
+pip install -r requirements.txt
+```
+
+
+Converting data
 ===============
 
-**Converting volumetric images to the Neuroglancer precomputed tile format.**
-For practical examples, see the `BigBrainRelease.2015` or `JuBrain`
-sub-directories.
+Two main types of data can be converted with these scripts: image volumes, and
+surface meshes.
 
-1. Write the metadata for the full-resolution image (example:
-   `BigBrainRelease.2015/info_fullres.json`). If your input data is readable by
-   `nibabel`, you can use `volume_to_raw_chunks.py --generate-info` do do the
-   job.
+Converting image volumes
+------------------------
 
-2. Create metadata for all scales using `generate_scales_info.py`. This step
-   outputs a file named `info` in the current directory, which is needed for
-   all the subsequent steps.
+Here is a summary of the steps needed for converting volumetric images to the
+Neuroglancer precomputed chunk format.
 
-3. Convert your data to raw full-resolution tiles by using one of these
+Two types of data layout are accepted as input:
+- Volumes in NIfTI format (or any other format readable by Nibabel). See
+  `JuBrain` for an example.
+- Series of 2D slices. See `BigBrainRelease.2015` for an example.
+
+1. Write the metadata for the full-resolution image [in JSON
+   format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md).
+   If your input data is readable by Nibabel, you can use
+   `volume_to_raw_chunks.py --generate-info` do do the job. Here is an example
+   with minimal metadata (note that the resolution is expressed in
+   *nanometres*):
+
+   ```JSON
+   {
+       "type": "image",
+       "data_type": "uint8",
+       "num_channels": 1,
+       "scales": [
+           {
+               "size": [151, 188, 154],
+               "resolution": [1000000, 1000000, 1000000],
+               "voxel_offset": [0, 0, 0]
+           }
+       ]
+   }
+   ```
+
+2. Create metadata for all scales using `generate_scales_info.py` on the
+   previously created JSON file. This step writes a file named `info` in the
+   current directory, which is needed by Neuroglancer as well as by all the
+   subsequent steps. You are advised to create a fresh directory for each
+   dataset.
+
+   If your image contains discrete labels, you will need to pass
+   `--max-scales=1`, because scale pyramids are not (yet) supported for
+   labelled data.
+
+   At this stage you may want to run `scale_stats.py`, which displays the
+   number of chunks that will be created, and their uncompressed size. Thus,
+   you can make sure that you have enough disk space before proceeding.
+
+3. Convert your data to raw full-resolution chunks by using one of these
    scripts:
    - `slices_to_raw_chunks.py`
    - `volume_to_raw_chunks.py`
 
-4. Compute downscaled pyramid levels using `compute_scales.py` (only suitable
-   for grey-level data, not available yet for labelled data such as
-   parcellations).
+4. Compute downscaled pyramid levels using `compute_scales.py`. The scales are
+   computed by local averaging, so this step is not suitable for images
+   containing discrete labels.
 
-5. If needed, convert the raw chunks to a compressed format using one of:
-   - `convert_chunks_to_jpeg.py`
-   - `compress_segmentation_chunks.py`
+   At this point the raw-format data is ready to be displayed in Neuroglancer.
+
+5. Finally, you can convert the raw chunks to a compressed format using one of:
+   - `convert_chunks_to_jpeg.py` (lossy JPEG compression, see `--jpeg-quality`)
+   - `compress_segmentation_chunks.py` (lossless compression, recommended for
+      discrete labels).
+
+   You will need to generate these compressed chunks in a separate directory
+   from the raw chunks, and generate a suitable `info` file by using the
+   `--encoding` parameter to `generate_scales_info.py`.
+
+
+Converting surface meshes
+-------------------------
+
+A surface mesh can be displayed in two ways in Neuroglancer: associated with a
+segmentation label as part of a `segmentation` type layer, or as a standalone
+mesh layer.
+
+A standalone mesh layer needs a mesh in the VTK ASCII format. `mesh_to_vtk.py`
+can be used to convert a mesh from GIfTI to that format.
+
+A mesh associated with a segmentation label needs to be in a
+Neuroglancer-specific binary precomputed format. `mesh_to_precomputed.py` or
+`stl_to_precomputed.py` can be used to convert meshes to this format.
+Additionally, you need to add a `mesh` key to the `info` file of the
+segmentation volume, and provide one JSON file per segment, as described in
+[the Neuroglancer documentation of the precomputed
+format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md).
+At the moment this must be done manually.
 
 
 Serving the converted data
 ==========================
+
+nginx
+-----
 
 A Docker image running a specially-configured *nginx* web-server is available
 for serving the converted data:
 [neuroglancer-docker](https://github.com/HumanBrainProject/neuroglancer-docker)
 (directly
 [available on Docker Hub](https://hub.docker.com/r/ylep/neuroglancer/)).
+
+
+Apache
+------
 
 Alternatively, you serve the pre-computed images using Apache, with the
 following Apache configuration (e.g. put it in a ``.htaccess`` file):

@@ -89,7 +89,7 @@ def volume_to_raw_chunks(info, volume, chunk_transformer=None):
                     key=info["scales"][0]["key"])
                 os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
                 with gzip.open(chunk_name + ".gz", "wb") as f:
-                    f.write(chunk.tobytes())
+                    f.write(chunk.astype(dtype).tobytes())
                 progress_bar.update()
 
 

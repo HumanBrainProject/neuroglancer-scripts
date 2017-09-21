@@ -284,7 +284,7 @@ omitted, it is assumed to be zero.
     parser.add_argument("--generate-info", action="store_true",
                         help="generate an 'info_fullres.json' file containing "
                         "the metadata read for this volume, then exit")
-    parser.add_argument("--input-min", type=float, default=0.0,
+    parser.add_argument("--input-min", type=float, default=None,
                         help="input value that will be mapped to the minimum "
                         "output value")
     parser.add_argument("--input-max", type=float, default=None,

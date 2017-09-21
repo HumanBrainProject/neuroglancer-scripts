@@ -1,1 +1,0 @@
-{"type": "segmentation", "data_type": "uint32", "num_channels": 1, "scales": [{"chunk_sizes": [[64, 64, 64]], "encoding": "compressed_segmentation", "compressed_segmentation_block_size": [8, 8, 8], "key": "1000um", "resolution": [1000000, 1000000, 1000000], "size": [151, 188, 154], "voxel_offset": [0, 0, 0]}]}

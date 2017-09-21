@@ -10,7 +10,7 @@ Conversion of the grey-level template image (MNI Colin27 T1 MRI)
   ```Shell
   mkdir colin27T1_seg
   cd colin27T1_seg
-  ../../../volume_to_raw_chunks.py --generate-info ../colin27T1_seg.nii.gz
+  ../../volume_to_raw_chunks.py --generate-info ../colin27T1_seg.nii.gz
   ```
 
   At this point, you need to edit `info_fullres.json` to set `"data_type":
@@ -19,9 +19,9 @@ Conversion of the grey-level template image (MNI Colin27 T1 MRI)
   integers between 0 and 255 are encoded.
 
   ```Shell
-  ../../../generate_scales_info.py info_fullres.json
-  ../../../volume_to_raw_chunks.py ../colin27T1_seg.nii.gz
-  ../../../compute_scales.py
+  ../../generate_scales_info.py info_fullres.json
+  ../../volume_to_raw_chunks.py ../colin27T1_seg.nii.gz
+  ../../compute_scales.py
   ```
 
 Conversion of the Maximum Probability Map
@@ -37,15 +37,16 @@ Conversion of the Maximum Probability Map
    ```Shell
    mkdir MPM-raw
    cd MPM-raw
-   ../../../volume_to_raw_chunks.py --generate-info ../MPM.nii.gz
-   ../../../generate_scales_info.py --max-scales=1 info_fullres.json
-   ../../../volume_to_raw_chunks.py ../MPM.nii.gz
+   ../../volume_to_raw_chunks.py --generate-info ../MPM.nii.gz
+   ../../generate_scales_info.py --max-scales=1 info_fullres.json
+   ../../volume_to_raw_chunks.py ../MPM.nii.gz
    ```
 
 2. Conversion to the compressed segmentation format
 
    ```Shell
+   mkdir MPM
    cd MPM
-   ../../../generate_scales_info.py --encoding=compressed_segmentation --max-scales=1 ../MPM-raw/info_fullres.json
-   ../../../compress_segmentation_chunks.py ../MPM-raw/
+   ../../generate_scales_info.py --encoding=compressed_segmentation --max-scales=1 ../MPM-raw/info_fullres.json
+   ../../compress_segmentation_chunks.py ../MPM-raw/
    ```

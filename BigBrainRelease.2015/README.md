@@ -4,7 +4,7 @@
 
 3. Create raw chunks
 
-   ```
+   ```Shell
    mkdir raw
    cd raw
    ../../generate_scales_info.py ../info_fullres.json
@@ -15,7 +15,7 @@
 4. Convert raw chunks to JPEG: copy the `info` file from the `raw`
    sub-directory, and replace `encoding` by `jpeg`. Then, convert the chunks:
 
-   ```
+   ```Shell
    mkdir jpeg
    cd jpeg
    ../../convert_chunks_to_jpeg.py --slicing-plane=xz ../raw/
@@ -23,7 +23,7 @@
 
 5. Convert the cortical meshes (downloaded from ftp://bigbrain.loris.ca/BigBrainRelease.2015/3D_Surfaces/Apr7_2016/gii/). The coordinate transformation is needed because the X and Y axes are inverted in these Gifti files.
 
-   ```
+   ```Shell
    mkdir Apr7_2016
    cd Apr7_2016
    ../../mesh_to_vtk.py --coord-transform=-1,0,0,0,0,-1,0,0,0,0,1,0 gray_left_327680.gii grey-left.vtk

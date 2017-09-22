@@ -105,7 +105,8 @@ def volume_file_to_raw_chunks(volume_filename,
                               generate_info=False,
                               ignore_scaling=False,
                               input_min=None,
-                              input_max=None):
+                              input_max=None,
+                              load_full_volume=False):
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
     img = nibabel.load(volume_filename)
     shape = img.header.get_data_shape()
@@ -259,8 +260,12 @@ def volume_file_to_raw_chunks(volume_filename,
             np.clip(chunk, output_min, output_max, out=chunk)
         return chunk.astype(output_dtype)
 
+    if load_full_volume:
+        logging.info("Loading full volume to memory... ")
+        volume = img.get_data()
+    else: volume = proxy
     logging.info("Writing chunks... ")
-    volume_to_raw_chunks(info, proxy, chunk_transformer=chunk_transformer)
+    volume_to_raw_chunks(info, volume, chunk_transformer=chunk_transformer)
 
 
 def parse_command_line(argv):
@@ -290,6 +295,10 @@ omitted, it is assumed to be zero.
     parser.add_argument("--input-max", type=float, default=None,
                         help="input value that will be mapped to the maximum "
                         "output value")
+    parser.add_argument("--load-full-volume", action="store_true",
+                        help="load full volume to memory. "
+                        "This will significantly speed up the conversion if the volume is "
+                        "small enough to fit into the system memory")
     args = parser.parse_args(argv[1:])
 
     if args.input_max is None and args.input_min is not None:
@@ -306,7 +315,8 @@ def main(argv):
                                      generate_info=args.generate_info,
                                      ignore_scaling=args.ignore_scaling,
                                      input_min=args.input_min,
-                                     input_max=args.input_max) or 0
+                                     input_max=args.input_max,
+                                     load_full_volume=args.load_full_volume) or 0
 
 
 if __name__ == "__main__":

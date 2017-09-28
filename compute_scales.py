@@ -13,12 +13,13 @@ import os.path
 import sys
 
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+RAW_CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
-
-def create_next_scale(info, source_scale_index, outside_value=None):
+def create_next_scale(info, source_scale_index, outside_value=None, 
+                      flat_folder=False, compress=True):
     if outside_value is None:
         padding_mode = "edge"
         pad_kwargs = {}
@@ -49,6 +50,9 @@ def create_next_scale(info, source_scale_index, outside_value=None):
     chunk_fetch_factor = [nsz // hc
                           for nsz, hc in zip(new_chunk_size, half_chunk)]
 
+    if flat_folder: chunk_pattern = RAW_CHUNK_PATTERN_FLAT
+    else: chunk_pattern = RAW_CHUNK_PATTERN
+
     def load_and_downscale_old_chunk(z_idx, y_idx, x_idx):
         xmin = old_chunk_size[0] * x_idx
         xmax = min(old_chunk_size[0] * (x_idx + 1), old_size[0])
@@ -56,7 +60,7 @@ def create_next_scale(info, source_scale_index, outside_value=None):
         ymax = min(old_chunk_size[1] * (y_idx + 1), old_size[1])
         zmin = old_chunk_size[2] * z_idx
         zmax = min(old_chunk_size[2] * (z_idx + 1), old_size[2])
-        chunk_filename = RAW_CHUNK_PATTERN.format(
+        chunk_filename = chunk_pattern.format(
             xmin, xmax, ymin, ymax, zmin, zmax, key=old_key)
 
         try:
@@ -166,20 +170,25 @@ def create_next_scale(info, source_scale_index, outside_value=None):
                                       y_idx * chunk_fetch_factor[1] + 1,
                                       x_idx * chunk_fetch_factor[0] + 1))
 
-                new_chunk_name = RAW_CHUNK_PATTERN.format(
+                new_chunk_name = chunk_pattern.format(
                     xmin, xmax, ymin, ymax, zmin, zmax, key=new_key)
                 os.makedirs(os.path.dirname(new_chunk_name), exist_ok=True)
-                with gzip.open(new_chunk_name + ".gz", "wb") as f:
-                    f.write(new_chunk.astype(dtype).tobytes())
+                if compress:
+                    with gzip.open(new_chunk_name + ".gz", "wb") as f:
+                        f.write(new_chunk.astype(dtype).tobytes())
+                else:
+                    with open(new_chunk_name, "wb") as f:
+                        f.write(new_chunk.astype(dtype).tobytes())
                 progress_bar.update()
 
 
-def compute_scales(outside_value=None):
+def compute_scales(outside_value=None, flat_folder=False, compress=True):
     """Generate lower scales following an input info file"""
     with open("info") as f:
         info = json.load(f)
     for i in range(len(info["scales"]) - 1):
-        create_next_scale(info, i, outside_value=outside_value)
+        create_next_scale(info, i, outside_value=outside_value,
+                          flat_folder=flat_folder, compress=compress)
 
 
 def parse_command_line(argv):
@@ -195,6 +204,11 @@ The list of scales is read from a file named "info" in the current directory.
                         help="the volume is padded with this value for"
                         " computing the voxels at the border. If not given, the"
                         " volume is padded with its edge values.")
+    parser.add_argument("--flat", action="store_true", dest="flat_folder",
+                        help="Chunks are stored in one folder per resolution, as neuroglancer expects. "
+                        "Store downscaled chunks for single resolution in one folder, as neuroglancer expects.")
+    parser.add_argument("--no-compression", action="store_false", dest="compress",
+                        help="Don't gzip the output.")
     args = parser.parse_args(argv[1:])
     return args
 
@@ -202,7 +216,8 @@ The list of scales is read from a file named "info" in the current directory.
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return compute_scales(outside_value=args.outside_value) or 0
+    return compute_scales(outside_value=args.outside_value,
+                          flat_folder=args.flat_folder, compress=args.compress) or 0
 
 
 if __name__ == "__main__":

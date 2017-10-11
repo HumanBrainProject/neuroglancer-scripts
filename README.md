@@ -101,7 +101,10 @@ Additionally, you need to add a `mesh` key to the `info` file of the
 segmentation volume, and provide one JSON file per segment, as described in
 [the Neuroglancer documentation of the precomputed
 format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md).
-At the moment this must be done manually.
+At the moment this must be done manually. Note that you may omit the `:0`
+suffix from the file name if you are serving the files using nginx or Apache as
+described below; this is necessary on filesystems which disallow `:` in file
+names.
 
 
 Different conventions for physical coordinates
@@ -145,6 +148,9 @@ Alternatively, you serve the pre-computed images using Apache, with the
 following Apache configuration (e.g. put it in a ``.htaccess`` file):
 
 ```ApacheConf
+# If you get a 403 Forbidden error, try to comment out the Options directives
+# below (they may be disallowed by your server's AllowOverride setting).
+
 <IfModule headers_module>
     # Needed to use the data from a Neuroglancer instance served from a
     # different server (see http://enable-cors.org/server_apache.html).
@@ -157,6 +163,12 @@ following Apache configuration (e.g. put it in a ``.htaccess`` file):
 Options FollowSymLinks
 RewriteEngine On
 RewriteRule "^(.*)/([0-9]+-[0-9]+)_([0-9]+-[0-9]+)_([0-9]+-[0-9]+)$" "$1/$2/$3/$4"
+
+# Microsoft filesystems do not support colons in file names, but pre-computed
+# meshes use a colon in the URI (e.g. 100:0). As :0 is the most common (only?)
+# suffix in use, we will serve a file that has this suffix stripped.
+RewriteCond "%{REQUEST_FILENAME}" !-f
+RewriteRule "^(.*):0$" "$1"
 
 <IfModule mime_module>
     # Allow serving pre-compressed files, which can save a lot of space for raw

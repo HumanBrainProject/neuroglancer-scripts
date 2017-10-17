@@ -141,7 +141,6 @@ def volume_file_to_raw_chunks(volume_filename,
             guessed_dtype = "float32"
         header_info = """\
 {{
-    "type": "image",
     "num_channels": {num_channels},
     "data_type": "{data_type}",
     "scales": [

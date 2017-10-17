@@ -41,6 +41,7 @@ def choose_unit_for_key(resolution_nm):
 
 
 def create_info_json_scales(info, target_chunk_size=64,
+                            dataset_type=None,
                             encoding=None, max_scales=None):
     """Create a list of scales in Neuroglancer "info" JSON file format
 
@@ -61,14 +62,10 @@ def create_info_json_scales(info, target_chunk_size=64,
 
     Example input (for the BigBrain):
     {
-      "type": "image",
       "data_type": "uint8",
       "num_channels": 1,
       "scales": [
         {
-          "chunk_sizes": [[64, 64, 64]],
-          "encoding": "jpeg",
-          "key": "full",
           "resolution": [20000, 20000, 20000],
           "size": [6572, 7404, 5711],
           "voxel_offset": [0, 0, 0]
@@ -85,7 +82,18 @@ def create_info_json_scales(info, target_chunk_size=64,
     elif "encoding" not in full_scale_info:
         full_scale_info["encoding"] = "raw"
 
+    if dataset_type:
+        info["type"] = dataset_type
+    elif "type" not in info:
+        if full_scale_info["encoding"] == "compressed_segmentation":
+            info["type"] = "segmentation"
+        else:
+            info["type"] = "image"
+
     if full_scale_info["encoding"] == "compressed_segmentation":
+        if info["type"] != "segmentation":
+            print("WARNING: using compressed_segmentation encoding but "
+                  "'type' is not 'segmentation'")
         if "compressed_segmentation_block_size" not in full_scale_info:
             full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
         # compressed_segmentation only supports uint32 or uint64
@@ -154,15 +162,17 @@ def create_info_json_scales(info, target_chunk_size=64,
 
 def generate_scales_info(input_fullres_info_filename,
                          target_chunk_size=64,
+                         dataset_type=None,
                          encoding=None,
                          max_scales=None):
     """Generate a list of scales from an input JSON file"""
     with open(input_fullres_info_filename) as f:
         info = json.load(f)
     create_info_json_scales(info, target_chunk_size=target_chunk_size,
-                            encoding=encoding, max_scales=max_scales)
+                            dataset_type=dataset_type, encoding=encoding,
+                            max_scales=max_scales)
     with open("info", "w") as f:
-        json.dump(info, f)
+        json.dump(info, f, separators=(",", ":"), sort_keys=True)
 
 
 def parse_command_line(argv):
@@ -184,6 +194,11 @@ Output is written to a file named "info" in the current directory.
                         " be used for cubic chunks, the size of anisotropic"
                         " chunks will be adapted to contain approximately the"
                         " same number of voxels.")
+    parser.add_argument("--type", default=None,
+                        choices=("image", "segmentation"),
+                        help="Type of dataset (image or segmentation). By"
+                        " default this is inherited from the fullres_info"
+                        " file, with a fallback to image.")
     parser.add_argument("--encoding", default=None,
                         choices=("raw", "jpeg", "compressed_segmentation"),
                         help="data encoding (raw, jpeg, or"
@@ -199,6 +214,7 @@ def main(argv):
     args = parse_command_line(argv)
     return generate_scales_info(args.fullres_info,
                                 target_chunk_size=args.target_chunk_size,
+                                dataset_type=args.type,
                                 encoding=args.encoding,
                                 max_scales=args.max_scales) or 0
 

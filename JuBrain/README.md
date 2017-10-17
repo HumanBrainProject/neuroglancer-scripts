@@ -38,7 +38,7 @@ Conversion of the Maximum Probability Map
    mkdir MPM-raw
    cd MPM-raw
    ../../volume_to_raw_chunks.py --generate-info ../MPM.nii.gz
-   ../../generate_scales_info.py --max-scales=1 info_fullres.json
+   ../../generate_scales_info.py --type=segmentation --max-scales=1 info_fullres.json
    ../../volume_to_raw_chunks.py ../MPM.nii.gz
    ```
 
@@ -47,6 +47,6 @@ Conversion of the Maximum Probability Map
    ```Shell
    mkdir MPM
    cd MPM
-   ../../generate_scales_info.py --encoding=compressed_segmentation --max-scales=1 ../MPM-raw/info_fullres.json
+   ../../generate_scales_info.py --type=segmentation --encoding=compressed_segmentation --max-scales=1 ../MPM-raw/info_fullres.json
    ../../compress_segmentation_chunks.py ../MPM-raw/
    ```

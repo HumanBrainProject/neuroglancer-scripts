@@ -60,6 +60,9 @@ def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
         points = np.dot(coord_transform[:3, :3],points)
         points += coord_transform[:3, 3, np.newaxis]
         points = points.T
+        if np.linalg.det(coord_transform[:3, :3]) < 0:
+            # Flip the triangles to fix inside/outside
+            triangles = np.flip(triangles, axis=1)
 
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6

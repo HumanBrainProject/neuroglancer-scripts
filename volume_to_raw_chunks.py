@@ -24,6 +24,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 NG_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
 
 RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+RAW_CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
 
 def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
@@ -41,7 +42,7 @@ def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     return ret
 
 
-def volume_to_raw_chunks(info, volume, chunk_transformer=None):
+def volume_to_raw_chunks(info, volume, chunk_transformer=None, flat_folder=False, compress=True):
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
     size = info["scales"][0]["size"]  # in order x, y, z
@@ -82,14 +83,20 @@ def volume_to_raw_chunks(info, volume, chunk_transformer=None):
                                       (z_slicing.stop - z_slicing.start) *
                                       num_channels)
 
-                chunk_name = RAW_CHUNK_PATTERN.format(
+                if flat_folder: chunk_pattern = RAW_CHUNK_PATTERN_FLAT
+                else: chunk_pattern = RAW_CHUNK_PATTERN
+                chunk_name = chunk_pattern.format(
                     x_slicing.start, x_slicing.stop,
                     y_slicing.start, y_slicing.stop,
                     z_slicing.start, z_slicing.stop,
                     key=info["scales"][0]["key"])
                 os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
-                with gzip.open(chunk_name + ".gz", "wb") as f:
-                    f.write(chunk.astype(dtype).tobytes())
+                if compress:
+                    with gzip.open(chunk_name + ".gz", "wb") as f:
+                        f.write(chunk.astype(dtype).tobytes())
+                else:
+                    with open(chunk_name, "wb") as f:
+                        f.write(chunk.astype(dtype).tobytes())
                 progress_bar.update()
 
 
@@ -106,7 +113,9 @@ def volume_file_to_raw_chunks(volume_filename,
                               ignore_scaling=False,
                               input_min=None,
                               input_max=None,
-                              load_full_volume=False):
+                              load_full_volume=False,
+                              flat_folder=False,
+                              compress=True):
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
     img = nibabel.load(volume_filename)
     shape = img.header.get_data_shape()
@@ -264,7 +273,8 @@ def volume_file_to_raw_chunks(volume_filename,
         volume = img.get_data()
     else: volume = proxy
     logging.info("Writing chunks... ")
-    volume_to_raw_chunks(info, volume, chunk_transformer=chunk_transformer)
+    volume_to_raw_chunks(info, volume, chunk_transformer=chunk_transformer,
+                        flat_folder=flat_folder, compress=compress)
 
 
 def parse_command_line(argv):
@@ -298,6 +308,10 @@ omitted, it is assumed to be zero.
                         help="load full volume to memory. "
                         "This will significantly speed up the conversion if the volume is "
                         "small enough to fit into the system memory")
+    parser.add_argument("--flat", action="store_true", dest="flat_folder",
+                        help="store chunks for single resolution in one folder, as neuroglancer expects")
+    parser.add_argument("--no-compression", action="store_false", dest="compress",
+                        help="Don't gzip the output.")
     args = parser.parse_args(argv[1:])
 
     if args.input_max is None and args.input_min is not None:
@@ -315,7 +329,9 @@ def main(argv):
                                      ignore_scaling=args.ignore_scaling,
                                      input_min=args.input_min,
                                      input_max=args.input_max,
-                                     load_full_volume=args.load_full_volume) or 0
+                                     load_full_volume=args.load_full_volume,
+                                     flat_folder=args.flat_folder,
+                                     compress=args.compress) or 0
 
 
 if __name__ == "__main__":

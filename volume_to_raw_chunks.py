@@ -211,11 +211,15 @@ def volume_file_to_raw_chunks(volume_filename,
     try:
         with open("info") as f:
             info = json.load(f)
-    except:
-        logging.error("No 'info' file was found in the current directory. "
-                      "You can generate one by running this program with the "
-                      "--generate-info option, then using "
-                      "generate_scales_info.py on the result")
+    except OSError as exc:
+        logging.error("No 'info' file was found in the current directory "
+                      "({0}). You can generate one by running this program "
+                      "with the --generate-info option, then using "
+                      "generate_scales_info.py on the result"
+                      .format(exc))
+        return 1
+    except ValueError as e:
+        logging.error("Invalid 'info' file: {0}".format(e))
         return 1
 
     output_dtype = np.dtype(info["data_type"])

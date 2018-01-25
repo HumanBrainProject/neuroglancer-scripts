@@ -19,6 +19,32 @@ RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 RAW_CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
 
+def downscale_by_averaging(chunk, downscaling_factors,
+                           padding_mode, pad_kwargs):
+    dtype = chunk.dtype
+    chunk = chunk.astype(np.float32)  # unbounded type for arithmetic
+
+    if downscaling_factors[2] == 2:
+        if chunk.shape[1] % 2 != 0:
+            chunk = np.pad(chunk, ((0, 0), (0, 1), (0, 0), (0, 0)),
+                           padding_mode, **pad_kwargs)
+        chunk = (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :]) * 0.5
+
+    if downscaling_factors[1] == 2:
+        if chunk.shape[2] % 2 != 0:
+            chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 1), (0, 0)),
+                           padding_mode, **pad_kwargs)
+        chunk = (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :]) * 0.5
+
+    if downscaling_factors[0] == 2:
+        if chunk.shape[3] % 2 != 0:
+            chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 0), (0, 1)),
+                           padding_mode, **pad_kwargs)
+        chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
+
+    return chunk.astype(dtype)
+
+
 def create_next_scale(info, source_scale_index, outside_value=None,
                       flat_folder=False, compress=True):
     if outside_value is None:
@@ -56,6 +82,8 @@ def create_next_scale(info, source_scale_index, outside_value=None,
     else:
         chunk_pattern = RAW_CHUNK_PATTERN
 
+    downscaling_function = downscale_by_averaging
+
     def load_and_downscale_old_chunk(z_idx, y_idx, x_idx):
         xmin = old_chunk_size[0] * x_idx
         xmax = min(old_chunk_size[0] * (x_idx + 1), old_size[0])
@@ -73,27 +101,9 @@ def create_next_scale(info, source_scale_index, outside_value=None,
         with f:
             chunk = np.frombuffer(f.read(), dtype=dtype).reshape(
                 [num_channels, zmax - zmin, ymax - ymin, xmax - xmin])
-        chunk = chunk.astype(np.float32)  # unbounded type for arithmetic
 
-        if downscaling_factors[2] == 2:
-            if chunk.shape[1] % 2 != 0:
-                chunk = np.pad(chunk, ((0, 0), (0, 1), (0, 0), (0, 0)),
-                               padding_mode, **pad_kwargs)
-            chunk = (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :]) * 0.5
-
-        if downscaling_factors[1] == 2:
-            if chunk.shape[2] % 2 != 0:
-                chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 1), (0, 0)),
-                               padding_mode, **pad_kwargs)
-            chunk = (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :]) * 0.5
-
-        if downscaling_factors[0] == 2:
-            if chunk.shape[3] % 2 != 0:
-                chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 0), (0, 1)),
-                               padding_mode, **pad_kwargs)
-            chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
-
-        return chunk.astype(dtype)
+        return downscaling_function(chunk, downscaling_factors,
+                                    padding_mode, pad_kwargs)
 
     progress_bar = tqdm(
         total=(((new_size[0] - 1) // new_chunk_size[0] + 1)

@@ -29,7 +29,7 @@ def make_jpeg_chunks(info, scale_index,
     num_channels = info["num_channels"]
     if dtype != np.uint8:
         raise ValueError("JPEG compression is only possible for uint8 type")
-    if num_channels != 1 and num_channels !=3:
+    if num_channels != 1 and num_channels != 3:
         raise ValueError("JPEG compression is only possible for"
                          " images with 1 or 3 channels")
     scale_info = info["scales"][scale_index]

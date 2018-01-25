@@ -49,7 +49,7 @@ def make_seg_chunks(info, scale_index, raw_chunks_dir):
                     zmax = min(chunk_size[2] * (z_idx + 1), size[2])
                     raw_chunk_filename = os.path.join(
                         raw_chunks_dir, CHUNK_PATTERN.format(
-                        xmin, xmax, ymin, ymax, zmin, zmax, key=key))
+                            xmin, xmax, ymin, ymax, zmin, zmax, key=key))
                     shape = (num_channels,
                              zmax - zmin, ymax - ymin, xmax - xmin)
                     try:
@@ -143,6 +143,7 @@ def number_of_encoding_bits(elements):
         if 2 ** bits >= elements:
             return bits
     raise ValueError("Too many elements!")
+
 
 def pack_encoded_values(encoded_values, bits):
     # TODO optimize with np.packbits for bits == 1

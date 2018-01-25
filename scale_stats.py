@@ -47,10 +47,10 @@ def show_scales_info(info):
     num_channels = info["num_channels"]
     for scale in info["scales"]:
         scale_name = scale["key"]
-        size = scale["size"]  #np.array(scale["size"], dtype=np.uintp)
+        size = scale["size"]
         for chunk_size in scale["chunk_sizes"]:
-            #chunk_size = np.array(chunk_size, dtype=np.uintp)
-            size_in_chunks = [(s - 1) // cs + 1 for s, cs in zip(size, chunk_size)]
+            size_in_chunks = [(s - 1) // cs + 1 for s,
+                              cs in zip(size, chunk_size)]
             num_chunks = np.prod(size_in_chunks)
             num_directories = size_in_chunks[0] * (1 + size_in_chunks[1])
             size_bytes = np.prod(size) * dtype.itemsize * num_channels
@@ -64,6 +64,7 @@ def show_scales_info(info):
     print("---")
     print("Total: {:,d} chunks, {:,d} directories, raw uncompressed size {}B"
           .format(total_chunks, total_directories, readable(total_size)))
+
 
 def show_scale_file_info(input_info_filename):
     """Show information about a list of scales from an input JSON file"""
@@ -80,7 +81,7 @@ def parse_command_line(argv):
 Show information about a list of scales in Neuroglancer "info" JSON file format
 """)
     parser.add_argument("info_file", nargs="?", default="./info",
-                       help="JSON file containing the information")
+                        help="JSON file containing the information")
     args = parser.parse_args(argv[1:])
     return args
 

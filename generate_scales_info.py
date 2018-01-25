@@ -35,9 +35,10 @@ def choose_unit_for_key(resolution_nm):
     """Find the coarsest unit that ensures distinct keys"""
     for unit, factor in KEY_UNITS.items():
         if round(resolution_nm * factor) != 0 and (
-            format_key(resolution_nm, unit) != format_key(resolution_nm * 2, unit)):
+                format_key(resolution_nm, unit) != format_key(resolution_nm * 2, unit)):
             return unit
-    raise RuntimeError("cannot find a suitable unit for {} nm".format(resolution_nm))
+    raise RuntimeError("cannot find a suitable unit for {} nm"
+                       .format(resolution_nm))
 
 
 def create_info_json_scales(info, target_chunk_size=64,
@@ -99,7 +100,6 @@ def create_info_json_scales(info, target_chunk_size=64,
         # compressed_segmentation only supports uint32 or uint64
         if info["data_type"] in ("uint8", "uint16"):
             info["data_type"] = "uint32"
-
 
     target_chunk_exponent = int(math.log2(target_chunk_size))
     assert target_chunk_size == 2 ** target_chunk_exponent
@@ -185,7 +185,7 @@ Create a list of scales in Neuroglancer "info" JSON file format
 Output is written to a file named "info" in the current directory.
 """)
     parser.add_argument("fullres_info",
-                       help="JSON file containing the full-resolution info")
+                        help="JSON file containing the full-resolution info")
     parser.add_argument("--max-scales", type=int, default=None,
                         help="maximum number of scales to generate"
                         " (default: unlimited)")

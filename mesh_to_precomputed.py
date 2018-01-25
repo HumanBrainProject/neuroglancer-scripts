@@ -17,6 +17,7 @@ def progress(text):
     sys.stderr.write(text)
     sys.stderr.flush()
 
+
 def mesh_file_to_precomputed(input_filename, output_filename,
                              coord_transform=None):
     """Convert a mesh read by nibabel to Neuroglancer precomputed format"""
@@ -35,7 +36,7 @@ def mesh_file_to_precomputed(input_filename, output_filename,
         if coord_transform.shape[0] == 4:
             assert np.all(coord_transform[3, :] == [0, 0, 0, 1])
         points = points.T
-        points = np.dot(coord_transform[:3, :3],points)
+        points = np.dot(coord_transform[:3, :3], points)
         points += coord_transform[:3, 3, np.newaxis]
         points = points.T
         if np.linalg.det(coord_transform[:3, :3]) < 0:

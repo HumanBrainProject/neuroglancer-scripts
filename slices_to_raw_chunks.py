@@ -79,6 +79,7 @@ def permute(seq, p):
     """Permute the elements of seq according to the permutation p"""
     return tuple(seq[i] for i in p)
 
+
 def invert_permutation(p):
     """The argument p is assumed to be some permutation of 0, 1, ..., len(p)-1.
     Returns an array s, where s[i] gives the index of i in p.
@@ -149,16 +150,14 @@ def slices_to_raw_chunks(info, slice_filename_lists,
         else:
             first_slice = first_slice_in_order
             last_slice = last_slice_in_order
-        slice_slicing = np.s_[first_slice
-                              :last_slice
-                              :input_axis_inversions[2]]
+        slice_slicing = np.s_[first_slice:last_slice:input_axis_inversions[2]]
         tqdm.write("Reading slices {0} to {1} ({2}B memory needed)... "
                    .format(first_slice, last_slice - input_axis_inversions[2],
-                   readable_count(input_size[0]
-                                  * input_size[1]
-                                  * (last_slice_in_order - first_slice_in_order + 1)
-                                  * num_channels
-                                  * dtype.itemsize)))
+                           readable_count(input_size[0]
+                                          * input_size[1]
+                                          * (last_slice_in_order - first_slice_in_order + 1)
+                                          * num_channels
+                                          * dtype.itemsize)))
 
         def load_z_stack(slice_filenames):
             # Loads the data in [slice, row, column] C-contiguous order
@@ -200,17 +199,15 @@ def slices_to_raw_chunks(info, slice_filename_lists,
         for row_chunk_idx in range((input_size[1] - 1)
                                    // input_chunk_size[1] + 1):
             row_slicing = np.s_[
-                input_chunk_size[1] * row_chunk_idx
-                :min(input_chunk_size[1] * (row_chunk_idx + 1), input_size[1])]
+                input_chunk_size[1] * row_chunk_idx:min(input_chunk_size[1] * (row_chunk_idx + 1), input_size[1])]
             for column_chunk_idx in range((input_size[0] - 1)
                                           // input_chunk_size[0] + 1):
                 column_slicing = np.s_[
-                    input_chunk_size[0] * column_chunk_idx
-                    :min(input_chunk_size[0] * (column_chunk_idx + 1),
-                         input_size[0])]
+                    input_chunk_size[0] * column_chunk_idx:min(input_chunk_size[0] * (column_chunk_idx + 1),
+                                                               input_size[0])]
 
                 input_slicing = (column_slicing, row_slicing, np.s_[:])
-                x_slicing , y_slicing, z_slicing = permute(
+                x_slicing, y_slicing, z_slicing = permute(
                     input_slicing, permutation_to_input)
                 chunk = block[:, z_slicing, y_slicing, x_slicing]
 
@@ -221,7 +218,7 @@ def slices_to_raw_chunks(info, slice_filename_lists,
                     (row_slicing.start, row_slicing.stop),
                     (first_slice_in_order, last_slice_in_order)
                 )
-                x_coords , y_coords, z_coords = permute(
+                x_coords, y_coords, z_coords = permute(
                     input_coords, permutation_to_input)
                 assert chunk.size == ((x_coords[1] - x_coords[0])
                                       * (y_coords[1] - y_coords[0])
@@ -255,6 +252,7 @@ def convert_slices_in_directory(slice_dirs, input_orientation):
     slice_filename_lists = [sorted(d.iterdir()) for d in slice_dirs]
     slices_to_raw_chunks(info, slice_filename_lists,
                          input_axis_inversions, input_axis_permutation)
+
 
 def parse_command_line(argv):
     """Parse the script's command line."""

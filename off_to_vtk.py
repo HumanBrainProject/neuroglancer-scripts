@@ -16,6 +16,7 @@ import pyvtk
 # See description of OFF file format at
 # http://www.geomview.org/docs/html/OFF.html
 
+
 def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
                          coord_transform=None):
     """Convert a mesh file from OFF format to VTK format"""
@@ -57,7 +58,7 @@ def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
         if coord_transform.shape[0] == 4:
             assert np.all(coord_transform[3, :] == [0, 0, 0, 1])
         points = points.T
-        points = np.dot(coord_transform[:3, :3],points)
+        points = np.dot(coord_transform[:3, :3], points)
         points += coord_transform[:3, 3, np.newaxis]
         points = points.T
         if np.linalg.det(coord_transform[:3, :3]) < 0:

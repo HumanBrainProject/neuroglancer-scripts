@@ -42,7 +42,8 @@ def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     return ret
 
 
-def volume_to_raw_chunks(info, volume, chunk_transformer=None, flat_folder=False, compress=True):
+def volume_to_raw_chunks(info, volume, chunk_transformer=None,
+                         flat_folder=False, compress=True):
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
     size = info["scales"][0]["size"]  # in order x, y, z
@@ -83,8 +84,10 @@ def volume_to_raw_chunks(info, volume, chunk_transformer=None, flat_folder=False
                                       (z_slicing.stop - z_slicing.start) *
                                       num_channels)
 
-                if flat_folder: chunk_pattern = RAW_CHUNK_PATTERN_FLAT
-                else: chunk_pattern = RAW_CHUNK_PATTERN
+                if flat_folder:
+                    chunk_pattern = RAW_CHUNK_PATTERN_FLAT
+                else:
+                    chunk_pattern = RAW_CHUNK_PATTERN
                 chunk_name = chunk_pattern.format(
                     x_slicing.start, x_slicing.stop,
                     y_slicing.start, y_slicing.stop,
@@ -161,9 +164,9 @@ def volume_file_to_raw_chunks(volume_filename,
         }}
     ]
 }}""".format(num_channels=shape[3] if len(shape) >= 4 else 1,
-            data_type=guessed_dtype,
-            size=list(shape[:3]),
-            resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
+             data_type=guessed_dtype,
+             size=list(shape[:3]),
+             resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
 
         info = json.loads(header_info)  # ensure well-formed JSON
         print(header_info)
@@ -271,10 +274,11 @@ def volume_file_to_raw_chunks(volume_filename,
     if load_full_volume:
         logging.info("Loading full volume to memory... ")
         volume = img.get_data()
-    else: volume = proxy
+    else:
+        volume = proxy
     logging.info("Writing chunks... ")
     volume_to_raw_chunks(info, volume, chunk_transformer=chunk_transformer,
-                        flat_folder=flat_folder, compress=compress)
+                         flat_folder=flat_folder, compress=compress)
 
 
 def parse_command_line(argv):

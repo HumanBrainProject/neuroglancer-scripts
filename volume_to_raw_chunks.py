@@ -317,8 +317,16 @@ omitted, it is assumed to be zero.
                         "This will significantly speed up the conversion if the volume is "
                         "small enough to fit into the system memory")
     parser.add_argument("--flat", action="store_true", dest="flat_folder",
-                        help="store chunks for single resolution in one folder, as neuroglancer expects")
-    parser.add_argument("--no-compression", action="store_false", dest="compress",
+                        help="Store all chunks for each resolution with a "
+                        "flat layout, as neuroglancer expects. By default the "
+                        "chunks are stored in sub-directories, which requires "
+                        "a specially configured web server (see https://github"
+                        ".com/HumanBrainProject/neuroglancer-docker). Do not "
+                        "use this option for large images, or you risk "
+                        "running into problems with directories containing "
+                        "huge numbers of files.")
+    parser.add_argument("--no-compression", action="store_false",
+                        dest="compress",
                         help="Don't gzip the output.")
     args = parser.parse_args(argv[1:])
 

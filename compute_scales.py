@@ -215,13 +215,20 @@ Create lower scales in Neuroglancer precomputed raw format
 The list of scales is read from a file named "info" in the current directory.
 """)
     parser.add_argument("--outside-value", type=float, default=None,
-                        help="the volume is padded with this value for"
-                        " computing the voxels at the border. If not given, the"
-                        " volume is padded with its edge values.")
+                        help="padding value used by the 'average' downscaling "
+                        "method for computing the voxels at the border. If "
+                        "omitted, the volume is padded with its edge values.")
     parser.add_argument("--flat", action="store_true", dest="flat_folder",
-                        help="Chunks are stored in one folder per resolution, as neuroglancer expects. "
-                        "Store downscaled chunks for single resolution in one folder, as neuroglancer expects.")
-    parser.add_argument("--no-compression", action="store_false", dest="compress",
+                        help="Store all chunks for each resolution with a "
+                        "flat layout, as neuroglancer expects. By default the "
+                        "chunks are stored in sub-directories, which requires "
+                        "a specially configured web server (see https://github"
+                        ".com/HumanBrainProject/neuroglancer-docker). Do not "
+                        "use this option for large images, or you risk "
+                        "running into problems with directories containing "
+                        "huge numbers of files.")
+    parser.add_argument("--no-compression", action="store_false",
+                        dest="compress",
                         help="Don't gzip the output.")
     args = parser.parse_args(argv[1:])
     return args

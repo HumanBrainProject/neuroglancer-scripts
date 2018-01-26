@@ -19,41 +19,95 @@ RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 RAW_CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
 
-def downscale_by_averaging(chunk, downscaling_factors,
-                           padding_mode, pad_kwargs):
-    dtype = chunk.dtype
-    chunk = chunk.astype(np.float32)  # unbounded type for arithmetic
+class StridingDownscaler:
+    def check_factors(self, downscaling_factors):
+        return True
 
-    if downscaling_factors[2] == 2:
-        if chunk.shape[1] % 2 != 0:
-            chunk = np.pad(chunk, ((0, 0), (0, 1), (0, 0), (0, 0)),
-                           padding_mode, **pad_kwargs)
-        chunk = (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :]) * 0.5
-
-    if downscaling_factors[1] == 2:
-        if chunk.shape[2] % 2 != 0:
-            chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 1), (0, 0)),
-                           padding_mode, **pad_kwargs)
-        chunk = (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :]) * 0.5
-
-    if downscaling_factors[0] == 2:
-        if chunk.shape[3] % 2 != 0:
-            chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 0), (0, 1)),
-                           padding_mode, **pad_kwargs)
-        chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
-
-    return chunk.astype(dtype)
+    def downscale(self, chunk, downscaling_factors):
+        return chunk[:,
+                     ::downscaling_factors[2],
+                     ::downscaling_factors[1],
+                     ::downscaling_factors[0]
+        ]
 
 
-def create_next_scale(info, source_scale_index, outside_value=None,
+class AveragingDownscaler:
+    def __init__(self, outside_value=None):
+        if outside_value is None:
+            self.padding_mode = "edge"
+            self.pad_kwargs = {}
+        else:
+            self.padding_mode = "constant"
+            self.pad_kwargs = {"constant_values": outside_value}
+
+    def check_factors(self, downscaling_factors):
+        return all(f in (1, 2) for f in downscaling_factors)
+
+    def downscale(self, chunk, downscaling_factors):
+        dtype = chunk.dtype
+        chunk = chunk.astype(np.float32)  # unbounded type for arithmetic
+
+        if downscaling_factors[2] == 2:
+            if chunk.shape[1] % 2 != 0:
+                chunk = np.pad(chunk, ((0, 0), (0, 1), (0, 0), (0, 0)),
+                               self.padding_mode, **self.pad_kwargs)
+            chunk = (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :]) * 0.5
+
+        if downscaling_factors[1] == 2:
+            if chunk.shape[2] % 2 != 0:
+                chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 1), (0, 0)),
+                               self.padding_mode, **self.pad_kwargs)
+            chunk = (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :]) * 0.5
+
+        if downscaling_factors[0] == 2:
+            if chunk.shape[3] % 2 != 0:
+                chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 0), (0, 1)),
+                               self.padding_mode, **self.pad_kwargs)
+            chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
+
+        return chunk.astype(dtype)
+
+
+class ModeDownscaler:
+    def check_factors(self, downscaling_factors):
+        return True
+
+    def downscale(self, chunk, downscaling_factors):
+        # This could be optimized a lot (clever iteration with nditer, Cython)
+        new_chunk = np.empty(
+            (chunk.shape[0],
+             (chunk.shape[1] - 1) // downscaling_factors[2] + 1,
+             (chunk.shape[2] - 1) // downscaling_factors[1] + 1,
+             (chunk.shape[3] - 1) // downscaling_factors[0] + 1),
+            dtype=chunk.dtype
+        )
+        for t, z, y, x in np.ndindex(*new_chunk.shape):
+            zd = z * downscaling_factors[2]
+            yd = y * downscaling_factors[2]
+            xd = x * downscaling_factors[2]
+            block = chunk[t,
+                          zd:(zd + downscaling_factors[2]),
+                          yd:(yd + downscaling_factors[2]),
+                          xd:(xd + downscaling_factors[2])
+            ]
+
+            labels, counts = np.unique(block.flat, return_counts=True)
+            new_chunk[t, z, y, x] = labels[np.argsort(counts)[-1]]
+
+        return new_chunk
+
+
+def instantiate_downscaler(downscaling_method, outside_value):
+    if downscaling_method == "average":
+        return AveragingDownscaler(outside_value)
+    elif downscaling_method == "mode":
+        return ModeDownscaler()
+    elif downscaling_method == "stride":
+        return StridingDownscaler()
+
+
+def create_next_scale(info, source_scale_index, downscaler,
                       flat_folder=False, compress=True):
-    if outside_value is None:
-        padding_mode = "edge"
-        pad_kwargs = {}
-    else:
-        padding_mode = "constant"
-        pad_kwargs = {"constant_values": outside_value}
-
     # Key is the resolution in micrometres
     old_scale_info = info["scales"][source_scale_index]
     new_scale_info = info["scales"][source_scale_index + 1]
@@ -69,8 +123,11 @@ def create_next_scale(info, source_scale_index, outside_value=None,
                            for os, ns in zip(old_size, new_size)]
     if new_size != [(os - 1) // ds + 1
                     for os, ds in zip(old_size, downscaling_factors)]:
-        raise ValueError("Unsupported downscaling factor between scales {} and {}"
+        raise ValueError("Unsupported downscaling factor between scales "
+                         "{} and {} (only 1 and 2 are supported)"
                          .format(old_key, new_key))
+
+    downscaler.check_factors(downscaling_factors)
 
     half_chunk = [osz // f
                   for osz, f in zip(old_chunk_size, downscaling_factors)]
@@ -81,8 +138,6 @@ def create_next_scale(info, source_scale_index, outside_value=None,
         chunk_pattern = RAW_CHUNK_PATTERN_FLAT
     else:
         chunk_pattern = RAW_CHUNK_PATTERN
-
-    downscaling_function = downscale_by_averaging
 
     def load_and_downscale_old_chunk(z_idx, y_idx, x_idx):
         xmin = old_chunk_size[0] * x_idx
@@ -102,8 +157,7 @@ def create_next_scale(info, source_scale_index, outside_value=None,
             chunk = np.frombuffer(f.read(), dtype=dtype).reshape(
                 [num_channels, zmax - zmin, ymax - ymin, xmax - xmin])
 
-        return downscaling_function(chunk, downscaling_factors,
-                                    padding_mode, pad_kwargs)
+        return downscaler.downscale(chunk, downscaling_factors)
 
     progress_bar = tqdm(
         total=(((new_size[0] - 1) // new_chunk_size[0] + 1)
@@ -196,12 +250,14 @@ def create_next_scale(info, source_scale_index, outside_value=None,
                 progress_bar.update()
 
 
-def compute_scales(outside_value=None, flat_folder=False, compress=True):
+def compute_scales(downscaling_method="average", outside_value=None,
+                   flat_folder=False, compress=True):
     """Generate lower scales following an input info file"""
+    downscaler = instantiate_downscaler(downscaling_method, outside_value)
     with open("info") as f:
         info = json.load(f)
     for i in range(len(info["scales"]) - 1):
-        create_next_scale(info, i, outside_value=outside_value,
+        create_next_scale(info, i, downscaler,
                           flat_folder=flat_folder, compress=compress)
 
 
@@ -214,6 +270,12 @@ Create lower scales in Neuroglancer precomputed raw format
 
 The list of scales is read from a file named "info" in the current directory.
 """)
+    parser.add_argument("--downscaling-method", default="average",
+                        choices=("average", "mode", "stride"),
+                        help='"average" is recommended for grey-level images, '
+                        '"mode" for segmentation images. "stride" is fastest, '
+                        'but provides no protection against aliasing '
+                        'artefacts.')
     parser.add_argument("--outside-value", type=float, default=None,
                         help="padding value used by the 'average' downscaling "
                         "method for computing the voxels at the border. If "
@@ -237,8 +299,10 @@ The list of scales is read from a file named "info" in the current directory.
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return compute_scales(outside_value=args.outside_value,
-                          flat_folder=args.flat_folder, compress=args.compress) or 0
+    return compute_scales(downscaling_method=args.downscaling_method,
+                          outside_value=args.outside_value,
+                          flat_folder=args.flat_folder,
+                          compress=args.compress) or 0
 
 
 if __name__ == "__main__":

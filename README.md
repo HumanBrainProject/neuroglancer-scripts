@@ -24,8 +24,8 @@ Neuroglancer precomputed chunk format.
 
 Two types of data layout are accepted as input:
 - Volumes in NIfTI format (or any other format readable by Nibabel). See
-  `JuBrain` for an example.
-- Series of 2D slices. See `BigBrainRelease.2015` for an example.
+  [an example with the JuBrain dataset](examples/JuBrain).
+- Series of 2D slices. See [an example with the BigBrain dataset](examples/BigBrainRelease.2015).
 
 1. Write the metadata for the full-resolution image [in JSON
    format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md).

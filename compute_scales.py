@@ -92,7 +92,7 @@ class ModeDownscaler:
             ]
 
             labels, counts = np.unique(block.flat, return_counts=True)
-            new_chunk[t, z, y, x] = labels[np.argsort(counts)[-1]]
+            new_chunk[t, z, y, x] = labels[np.argmax(counts)]
 
         return new_chunk
 

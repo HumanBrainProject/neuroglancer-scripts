@@ -83,12 +83,12 @@ class ModeDownscaler:
         )
         for t, z, y, x in np.ndindex(*new_chunk.shape):
             zd = z * downscaling_factors[2]
-            yd = y * downscaling_factors[2]
-            xd = x * downscaling_factors[2]
+            yd = y * downscaling_factors[1]
+            xd = x * downscaling_factors[0]
             block = chunk[t,
                           zd:(zd + downscaling_factors[2]),
-                          yd:(yd + downscaling_factors[2]),
-                          xd:(xd + downscaling_factors[2])
+                          yd:(yd + downscaling_factors[1]),
+                          xd:(xd + downscaling_factors[0])
             ]
 
             labels, counts = np.unique(block.flat, return_counts=True)

@@ -74,14 +74,14 @@ Two types of data layout are accepted as input:
 
    At this point the raw-format data is ready to be displayed in Neuroglancer.
 
-5. Finally, you can convert the raw chunks to a compressed format using one of:
-   - `convert_chunks_to_jpeg.py` (lossy JPEG compression, see `--jpeg-quality`)
-   - `compress_segmentation_chunks.py` (lossless compression, recommended for
-      discrete labels).
-
-   You will need to generate these compressed chunks in a separate directory
-   from the raw chunks, and generate a suitable `info` file by using the
-   `--encoding` parameter to `generate_scales_info.py`.
+5. Finally, you can convert the raw chunks to a compressed format using
+   `convert_chunks.py`. You will need to generate these compressed chunks in a
+   separate directory from the raw chunks, and generate a suitable `info` file
+   by using the `--encoding` parameter to `generate_scales_info.py`. Two
+   compressed encodings are available:
+   - `compressed_segmentation`: lossless compression, recommended for discrete
+      labels;
+   - `jpeg`: lossy JPEG compression, see `--jpeg-quality` and `--jpeg-plane`.
 
 
 Converting surface meshes

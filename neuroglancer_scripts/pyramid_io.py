@@ -10,7 +10,7 @@ from . import chunk_encoding
 # iteration?
 class PrecomputedPyramidIo:
     def __init__(self, info, accessor, encoder_params={}):
-        self.info = info
+        self._info = info
         self.accessor = accessor
         self.scale_info = {
             scale_info["key"]: scale_info for scale_info in info["scales"]
@@ -20,6 +20,13 @@ class PrecomputedPyramidIo:
                                                           encoder_params)
             for scale_info in info["scales"]
         }
+
+    @property
+    def info(self):
+        return self._info
+
+    def scale_info(self, key):
+        return self.scale_info[key]
 
     def validate_chunk_coords(self, key, chunk_coords):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords

@@ -5,7 +5,6 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import gzip
 import json
 import logging
 import os
@@ -17,14 +16,15 @@ import nibabel
 import nibabel.orientations
 from tqdm import tqdm
 
+import neuroglancer_scripts.accessor
+import neuroglancer_scripts.chunk_encoding
+import neuroglancer_scripts.pyramid_io
+
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 
 NG_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
-
-RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
-RAW_CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
 
 def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
@@ -42,8 +42,8 @@ def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     return ret
 
 
-def volume_to_raw_chunks(info, volume, chunk_transformer=None,
-                         flat_folder=False, compress=True):
+def volume_to_raw_chunks(pyramid_writer, volume, chunk_transformer=None):
+    info = pyramid_writer.info
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in order x, y, z
     size = info["scales"][0]["size"]  # in order x, y, z
@@ -78,28 +78,19 @@ def volume_to_raw_chunks(info, volume, chunk_transformer=None,
                 if chunk_transformer is not None:
                     chunk = chunk_transformer(chunk)
 
+
                 chunk = np.moveaxis(chunk, (0, 1, 2, 3), (3, 2, 1, 0))
                 assert chunk.size == ((x_slicing.stop - x_slicing.start) *
                                       (y_slicing.stop - y_slicing.start) *
                                       (z_slicing.stop - z_slicing.start) *
                                       num_channels)
 
-                if flat_folder:
-                    chunk_pattern = RAW_CHUNK_PATTERN_FLAT
-                else:
-                    chunk_pattern = RAW_CHUNK_PATTERN
-                chunk_name = chunk_pattern.format(
-                    x_slicing.start, x_slicing.stop,
-                    y_slicing.start, y_slicing.stop,
-                    z_slicing.start, z_slicing.stop,
-                    key=info["scales"][0]["key"])
-                os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
-                if compress:
-                    with gzip.open(chunk_name + ".gz", "wb") as f:
-                        f.write(chunk.astype(dtype).tobytes())
-                else:
-                    with open(chunk_name, "wb") as f:
-                        f.write(chunk.astype(dtype).tobytes())
+                chunk_coords = (x_slicing.start, x_slicing.stop,
+                                y_slicing.start, y_slicing.stop,
+                                z_slicing.start, z_slicing.stop)
+                pyramid_writer.write_chunk(chunk.astype(dtype),
+                                           info["scales"][0]["key"],
+                                           chunk_coords)
                 progress_bar.update()
 
 
@@ -112,13 +103,13 @@ def matrix_as_compact_urlsafe_json(matrix):
 
 
 def volume_file_to_raw_chunks(volume_filename,
+                              dest_url,
                               generate_info=False,
                               ignore_scaling=False,
                               input_min=None,
                               input_max=None,
                               load_full_volume=False,
-                              flat_folder=False,
-                              compress=True):
+                              options={}):
     """Convert from neuro-imaging formats to pre-computed raw chunks"""
     img = nibabel.load(volume_filename)
     shape = img.header.get_data_shape()
@@ -208,9 +199,10 @@ def volume_file_to_raw_chunks(volume_filename,
         # return code indicating that ready-to-use info was output
         return 0
 
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        dest_url, options)
     try:
-        with open("info") as f:
-            info = json.load(f)
+        info = accessor.fetch_info()
     except OSError as exc:
         logging.error("No 'info' file was found in the current directory "
                       "({0}). You can generate one by running this program "
@@ -255,6 +247,7 @@ def volume_file_to_raw_chunks(volume_filename,
         proxy._inter = prescaling_inter * postscaling_slope + postscaling_inter
 
     # Transformations applied to the voxel values
+    # TODO put this in the library, for re-use in convert_chunks.py
     round_to_nearest = (
         np.issubdtype(output_dtype, np.integer)
         and not np.issubdtype(input_dtype, np.integer))
@@ -281,8 +274,10 @@ def volume_file_to_raw_chunks(volume_filename,
     else:
         volume = proxy
     logging.info("Writing chunks... ")
-    volume_to_raw_chunks(info, volume, chunk_transformer=chunk_transformer,
-                         flat_folder=flat_folder, compress=compress)
+    pyramid_writer = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
+        info, accessor, encoder_params=options)
+    volume_to_raw_chunks(pyramid_writer, volume,
+                         chunk_transformer=chunk_transformer)
 
 
 def parse_command_line(argv):
@@ -290,7 +285,7 @@ def parse_command_line(argv):
     import argparse
     parser = argparse.ArgumentParser(
         description="""\
-Convert from neuro-imaging formats to Neuroglancer pre-computed raw chunks
+Convert a volume from Nifti to Neuroglancer pre-computed format
 
 Chunks are saved with the same data orientation as the input volume.
 
@@ -298,36 +293,40 @@ The image values will be scaled (additionally to any slope/intercept scaling
 defined in the file header) if --input-max is specified. If --input-min is
 omitted, it is assumed to be zero.
 """)
-    parser.add_argument("volume_filename")
-    parser.add_argument("--ignore-scaling", action="store_true",
-                        help="read the values as stored on disk, without "
-                        "applying the data scaling (slope/intercept) from the "
-                        "volume header")
+    parser.add_argument("volume_filename",
+                        help="source Nifti file containing the data")
+    parser.add_argument("dest_url", help="directory/URL where the converted "
+                        "dataset will be written")
+
     parser.add_argument("--generate-info", action="store_true",
                         help="generate an 'info_fullres.json' file containing "
                         "the metadata read for this volume, then exit")
-    parser.add_argument("--input-min", type=float, default=None,
-                        help="input value that will be mapped to the minimum "
-                        "output value")
-    parser.add_argument("--input-max", type=float, default=None,
-                        help="input value that will be mapped to the maximum "
-                        "output value")
-    parser.add_argument("--load-full-volume", action="store_true",
-                        help="load full volume to memory. "
-                        "This will significantly speed up the conversion if the volume is "
-                        "small enough to fit into the system memory")
-    parser.add_argument("--flat", action="store_true", dest="flat_folder",
-                        help="Store all chunks for each resolution with a "
-                        "flat layout, as neuroglancer expects. By default the "
-                        "chunks are stored in sub-directories, which requires "
-                        "a specially configured web server (see https://github"
-                        ".com/HumanBrainProject/neuroglancer-docker). Do not "
-                        "use this option for large images, or you risk "
-                        "running into problems with directories containing "
-                        "huge numbers of files.")
-    parser.add_argument("--no-compression", action="store_false",
-                        dest="compress",
-                        help="Don't gzip the output.")
+
+    group = parser.add_argument_group("Option for reading the input file")
+    group.add_argument("--ignore-scaling", action="store_true",
+                       help="read the values as stored on disk, without "
+                       "applying the data scaling (slope/intercept) from the "
+                       "volume header")
+    group.add_argument("--load-full-volume", action="store_true",
+                       help="load full volume to memory. "
+                       "This will significantly speed up the conversion if "
+                       "the volume is small enough to fit into the system "
+                       "memory")
+
+    # TODO split into a module
+    group = parser.add_argument_group(
+        "Options for data type conversion and scaling")
+    group.add_argument("--input-min", type=float, default=None,
+                       help="input value that will be mapped to the minimum "
+                       "output value")
+    group.add_argument("--input-max", type=float, default=None,
+                       help="input value that will be mapped to the maximum "
+                       "output value")
+
+    neuroglancer_scripts.accessor.add_argparse_options(parser)
+    neuroglancer_scripts.chunk_encoding.add_argparse_options(parser,
+                                                             allow_lossy=False)
+
     args = parser.parse_args(argv[1:])
 
     if args.input_max is None and args.input_min is not None:
@@ -341,13 +340,13 @@ def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return volume_file_to_raw_chunks(args.volume_filename,
+                                     args.dest_url,
                                      generate_info=args.generate_info,
                                      ignore_scaling=args.ignore_scaling,
                                      input_min=args.input_min,
                                      input_max=args.input_max,
                                      load_full_volume=args.load_full_volume,
-                                     flat_folder=args.flat_folder,
-                                     compress=args.compress) or 0
+                                     options=args.__dict__) or 0
 
 
 if __name__ == "__main__":

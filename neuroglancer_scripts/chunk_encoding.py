@@ -26,14 +26,15 @@ def get_encoder(info, scale_info, encoder_params={}):
         return RuntimeError("Invalid encoding")  # TODO appropriate error type?
 
 
-def add_argparse_options(parser):
-    group = parser.add_argument_group("Options for JPEG compression")
-    group.add_argument("--jpeg-quality", type=int, default=95, metavar="Q",
-                       help="JPEG quality factor (from 0 to 100, values above "
-                       "95 provide little extra quality but increase file "
-                       "size)")
-    group.add_argument("--jpeg-plane", choices=("xy", "xz"), default="xy",
-                        help='plane of JPEG compression (default: xy)')
+def add_argparse_options(parser, allow_lossy):
+    if allow_lossy:
+        group = parser.add_argument_group("Options for JPEG compression")
+        group.add_argument("--jpeg-quality", type=int, default=95, metavar="Q",
+                           help="JPEG quality factor (from 0 to 100, values "
+                           "above 95 provide little extra quality but "
+                           "increase file size)")
+        group.add_argument("--jpeg-plane", choices=("xy", "xz"), default="xy",
+                           help='plane of JPEG compression (default: xy)')
 
 
 class IncompatibleEncoderError(Exception):

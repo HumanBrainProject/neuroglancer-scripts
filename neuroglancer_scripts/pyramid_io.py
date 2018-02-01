@@ -5,6 +5,7 @@
 
 from . import chunk_encoding
 
+
 # TODO decide what goes in this class: chunk layout + fetching into buffers +
 # iteration?
 class PrecomputedPyramidIo:

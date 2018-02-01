@@ -12,7 +12,10 @@ import sys
 import numpy as np
 from tqdm import tqdm
 
-from neuroglancer_scripts import accessor, pyramid_io, chunk_encoding
+import neuroglancer_scripts.accessor
+import neuroglancer_scripts.chunk_encoding
+import neuroglancer_scripts.pyramid_io
+
 
 
 def convert_chunks_for_scale(chunk_reader,
@@ -47,17 +50,20 @@ def convert_chunks_for_scale(chunk_reader,
 def convert_chunks(source_url, dest_url, copy_info=False,
                    options={}):
     """Convert precomputed chunks between different encodings"""
-    source_accessor = accessor.get_accessor_for_url(source_url)
+    source_accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        source_url)
     source_info = source_accessor.fetch_info()
-    chunk_reader = pyramid_io.PrecomputedPyramidIo(source_info, source_accessor)
-    dest_accessor = accessor.get_accessor_for_url(dest_url, options)
+    chunk_reader = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
+        source_info, source_accessor)
+    dest_accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        dest_url, options)
     if copy_info:
         dest_info = source_info
         dest_accessor.store_info(dest_info)
     else:
         dest_info = dest_accessor.fetch_info()
-    chunk_writer = pyramid_io.PrecomputedPyramidIo(dest_info, dest_accessor,
-                                                   encoder_params=options)
+    chunk_writer = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
+        dest_info, dest_accessor, encoder_params=options)
     if source_info["data_type"] != dest_info["data_type"]:
         print("WARNING: the data type will be cast from {0} to {1}, "
               "truncation and rounding are NOT checked."
@@ -75,7 +81,7 @@ def parse_command_line(argv):
 Convert Neuroglancer precomputed chunks between different encodings (raw,
 compressed_segmentation, or jpeg). The target encoding parameters is determined
 by a pre-existing info file in the destination directory (except in --copy-info
- mode). You can create such an info file with generate_scales_info.py.
+mode). You can create such an info file with generate_scales_info.py.
 """)
     parser.add_argument("source_url",
                         help="URL/directory where the input chunks are found")
@@ -88,8 +94,9 @@ by a pre-existing info file in the destination directory (except in --copy-info
                         "pre-existing. The data will be re-encoded with the "
                         "same encoding as the original")
 
-    accessor.add_argparse_options(parser)
-    chunk_encoding.add_argparse_options(parser)
+    neuroglancer_scripts.accessor.add_argparse_options(parser)
+    neuroglancer_scripts.chunk_encoding.add_argparse_options(parser,
+                                                             allow_lossy=True)
 
     args = parser.parse_args(argv[1:])
     return args

@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #
-# Copyright (c) 2016, 2017, Forschungszentrum Juelich GmbH
+# Copyright (c) 2016, 2017, 2018 Forschungszentrum Juelich GmbH
 # Author: Yann Leprince <y.leprince@fz-juelich.de>
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
@@ -12,7 +12,7 @@ import sys
 import numpy as np
 from tqdm import tqdm
 
-from neuroglancer_scripts import accessor, chunk_io, chunk_encoding
+from neuroglancer_scripts import accessor, pyramid_io, chunk_encoding
 
 
 def convert_chunks_for_scale(chunk_reader,
@@ -49,15 +49,15 @@ def convert_chunks(source_url, dest_url, copy_info=False,
     """Convert precomputed chunks between different encodings"""
     source_accessor = accessor.get_accessor_for_url(source_url)
     source_info = source_accessor.fetch_info()
-    chunk_reader = chunk_io.ChunkIo(source_info, source_accessor)
+    chunk_reader = pyramid_io.PrecomputedPyramidIo(source_info, source_accessor)
     dest_accessor = accessor.get_accessor_for_url(dest_url, options)
     if copy_info:
         dest_info = source_info
         dest_accessor.store_info(dest_info)
     else:
         dest_info = dest_accessor.fetch_info()
-    chunk_writer = chunk_io.ChunkIo(dest_info, dest_accessor,
-                                    encoder_params=options)
+    chunk_writer = pyramid_io.PrecomputedPyramidIo(dest_info, dest_accessor,
+                                                   encoder_params=options)
     if source_info["data_type"] != dest_info["data_type"]:
         print("WARNING: the data type will be cast from {0} to {1}, "
               "truncation and rounding are NOT checked."

@@ -5,7 +5,6 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import gzip
 import json
 import os
 from pathlib import Path
@@ -15,29 +14,11 @@ import numpy as np
 import skimage.io
 from tqdm import tqdm, trange
 
-
-SI_PREFIXES = [
-    (1, ""),
-    (1024, "ki"),
-    (1024 * 1024, "Mi"),
-    (1024 * 1024 * 1024, "Gi"),
-    (1024 * 1024 * 1024 * 1024, "Ti"),
-    (1024 * 1024 * 1024 * 1024 * 1024, "Pi"),
-    (1024 * 1024 * 1024 * 1024 * 1024 * 1024, "Ei"),
-]
-
-
-def readable_count(count):
-    for factor, prefix in SI_PREFIXES:
-        if count > 10 * factor:
-            num_str = format(count / factor, ".0f")
-        else:
-            num_str = format(count / factor, ".1f")
-        if len(num_str) <= 3:
-            return num_str + " " + prefix
-    # Fallback: use the last prefix
-    factor, prefix = SI_PREFIXES[-1]
-    return "{:,.0f} {}".format(count / factor, prefix)
+import neuroglancer_scripts.accessor
+import neuroglancer_scripts.chunk_encoding
+import neuroglancer_scripts.pyramid_io
+from neuroglancer_scripts.utils import (permute, invert_permutation,
+                                        readable_count)
 
 
 # Generated with the following Python expression:
@@ -72,26 +53,9 @@ AXIS_INVERSION_FOR_RAS = {
     "I": -1
 }
 
-RAW_CHUNK_PATTERN = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
-
-def permute(seq, p):
-    """Permute the elements of seq according to the permutation p"""
-    return tuple(seq[i] for i in p)
-
-
-def invert_permutation(p):
-    """The argument p is assumed to be some permutation of 0, 1, ..., len(p)-1.
-    Returns an array s, where s[i] gives the index of i in p.
-    """
-    p = np.asarray(p)
-    s = np.empty(p.size, p.dtype)
-    s[p] = np.arange(p.size)
-    return s
-
-
-def slices_to_raw_chunks(info, slice_filename_lists,
-                         input_axis_inversions, input_axis_permutation):
+def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
+                         options={}):
     """Convert a list of 2D slices to Neuroglancer pre-computed chunks
 
     Parameters:
@@ -112,11 +76,24 @@ def slices_to_raw_chunks(info, slice_filename_lists,
     - `input_axis_permutation`: a 3-tuple in (column, row, slice) order. Each
       value is 0 for X (L-R axis), 1 for Y (A-P axis), 2 for Z (I-S axis).
     """
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        dest_url, options)
+    info = accessor.fetch_info()
+    pyramid_writer = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
+        info, accessor, encoder_params=options)
+
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in RAS order (X, Y, Z)
     size = info["scales"][0]["size"]  # in RAS order (X, Y, Z)
+    key = info["scales"][0]["key"]
     dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
+
+    input_axis_permutation = tuple(AXIS_PERMUTATION_FOR_RAS[l]
+                                   for l in input_orientation)
+    input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
+                                  for l in input_orientation)
+
 
     # Here x, y, and z refer to the data orientation in output chunks (which
     # should correspond to RAS+ anatomical axes). For the data orientation in
@@ -224,34 +201,23 @@ def slices_to_raw_chunks(info, slice_filename_lists,
                                       * (y_coords[1] - y_coords[0])
                                       * (z_coords[1] - z_coords[0])
                                       * num_channels)
-
-                chunk_name = RAW_CHUNK_PATTERN.format(
-                    x_coords[0], x_coords[1],
-                    y_coords[0], y_coords[1],
-                    z_coords[0], z_coords[1],
-                    key=info["scales"][0]["key"])
-                os.makedirs(os.path.dirname(chunk_name), exist_ok=True)
-                with gzip.open(chunk_name + ".gz", "wb") as f:
-                    f.write(chunk.astype(dtype).tobytes())
+                chunk_coords = (x_coords[0], x_coords[1],
+                                y_coords[0], y_coords[1],
+                                z_coords[0], z_coords[1])
+                pyramid_writer.write_chunk(chunk.astype(dtype), key,
+                                           chunk_coords)
                 progress_bar.update()
         # free up memory before reading next block (prevent doubled memory
         # usage)
         del block
 
 
-def convert_slices_in_directory(slice_dirs, input_orientation):
+def convert_slices_in_directory(slice_dirs, dest_url, input_orientation="RAS",
+                                options={}):
     """Load slices from a directory and convert them to Neuroglancer chunks"""
-    with open("info") as f:
-        info = json.load(f)
-
-    input_axis_permutation = tuple(AXIS_PERMUTATION_FOR_RAS[l]
-                                   for l in input_orientation)
-    input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
-                                  for l in input_orientation)
-
     slice_filename_lists = [sorted(d.iterdir()) for d in slice_dirs]
-    slices_to_raw_chunks(info, slice_filename_lists,
-                         input_axis_inversions, input_axis_permutation)
+    slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
+                         options={})
 
 
 def parse_command_line(argv):
@@ -298,10 +264,21 @@ A few examples:
                         " concatenated in lexicographic order, stacks from"
                         " different directories will be concatenated as"
                         " different channels")
-    parser.add_argument("input_orientation",
+    parser.add_argument("dest_url", help="directory/URL where the converted "
+                        "dataset will be written")
+
+    parser.add_argument("--input-orientation", default="RAS",
                         help="A 3-character code describe the anatomical"
                         " orientation of the input axes (see below)")
+
+    # TODO add options for data conversion and scaling, like
+    # volume_to_raw_chunks.py
+    neuroglancer_scripts.accessor.add_argparse_options(parser)
+    neuroglancer_scripts.chunk_encoding.add_argparse_options(parser,
+                                                             allow_lossy=False)
+
     args = parser.parse_args(argv[1:])
+
     args.input_orientation = args.input_orientation.upper()
     if args.input_orientation not in POSSIBLE_AXIS_ORIENTATIONS:
         parser.error("input_orientation is invalid")
@@ -312,7 +289,9 @@ def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return convert_slices_in_directory(args.slice_dirs,
-                                       args.input_orientation) or 0
+                                       args.dest_url,
+                                       args.input_orientation,
+                                       options=args.__dict__) or 0
 
 
 if __name__ == "__main__":

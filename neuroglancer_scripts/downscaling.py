@@ -12,18 +12,19 @@ def get_downscaler(downscaling_method, options={}):
     if downscaling_method == "average":
         outside_value = options.get("outside_value")
         return AveragingDownscaler(outside_value)
-    elif downscaling_method == "mode":
-        return ModeDownscaler()
+    elif downscaling_method == "majority":
+        return MajorityDownscaler()
     elif downscaling_method == "stride":
         return StridingDownscaler()
+
 
 def add_argparse_options(parser):
     group = parser.add_argument_group("Options for downscaling")
     group.add_argument("--downscaling-method", default="average",
-                       choices=("average", "majority", "mode", "stride"),
+                       choices=("average", "majority", "stride"),
                        help='"average" is recommended for grey-level images, '
-                       '"majority" for segmentation images. "stride" is fastest, '
-                       'but provides no protection against aliasing '
+                       '"majority" for segmentation images. "stride" is the '
+                       'fastest, but provides no protection against aliasing '
                        'artefacts.')
     group.add_argument("--outside-value", type=float, default=None,
                        help="padding value used by the 'average' downscaling "
@@ -80,7 +81,7 @@ class AveragingDownscaler:
         return chunk.astype(dtype)
 
 
-class ModeDownscaler:
+class MajorityDownscaler:
     def check_factors(self, downscaling_factors):
         return True
 

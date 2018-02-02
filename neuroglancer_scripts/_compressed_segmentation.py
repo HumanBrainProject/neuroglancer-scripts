@@ -9,7 +9,7 @@ import struct
 
 import numpy as np
 
-from .utils import ceil_div
+from neuroglancer_scripts.utils import ceil_div
 
 class InvalidFormatError(Exception):
     pass

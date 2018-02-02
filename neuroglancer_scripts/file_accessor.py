@@ -7,7 +7,7 @@ import gzip
 import json
 import os.path
 
-from .accessor import _CHUNK_PATTERN_FLAT, DataAccessError
+from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT, DataAccessError
 
 
 __all__ = [

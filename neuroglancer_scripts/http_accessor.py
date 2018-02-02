@@ -7,8 +7,7 @@ import urllib.parse
 
 import requests
 
-
-from .accessor import CHUNK_PATTERN_FLAT
+from neuroglancer_scripts.accessor import CHUNK_PATTERN_FLAT
 
 
 class HttpAccessor:

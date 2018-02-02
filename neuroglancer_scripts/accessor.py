@@ -21,13 +21,13 @@ def get_accessor_for_url(url, accessor_options={}):
         url = url[len("precomputed://"):]
     r = urllib.parse.urlsplit(url)
     if r.scheme in ("", "file"):
-        from . import file_accessor
+        from neuroglancer_scripts import file_accessor
         flat = accessor_options.get("flat", False)
         gzip = accessor_options.get("gzip", True)
         pathname = convert_split_file_url_to_pathname(r)
         return file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip)
     elif r.scheme in ("http", "https"):
-        from . import http_accessor
+        from neuroglancer_scripts import http_accessor
         return http_accessor.HttpAccessor(url)
     else:
         # TODO better error handling

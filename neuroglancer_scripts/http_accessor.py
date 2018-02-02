@@ -7,7 +7,7 @@ import urllib.parse
 
 import requests
 
-from neuroglancer_scripts.accessor import CHUNK_PATTERN_FLAT
+from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT
 
 
 class HttpAccessor:
@@ -24,7 +24,7 @@ class HttpAccessor:
 
     def chunk_url(self, key, chunk_coords):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
-        url_suffix = CHUNK_PATTERN_FLAT.format(
+        url_suffix = _CHUNK_PATTERN_FLAT.format(
             xmin, xmax, ymin, ymax, zmin, zmax, key=key)
         return self.base_url + url_suffix
 

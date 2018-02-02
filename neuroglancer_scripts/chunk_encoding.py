@@ -113,7 +113,7 @@ class JpegChunkEncoder(ChunkEncoder):
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
         buf = jpeg.encode_chunk(chunk, self.jpeg_quality, self.jpeg_plane)
-        self.accessor.store_chunk(buf, key, xmin, xmax, ymin, ymax, zmin, zmax)
+        return buf
 
     def decode(self, buf, chunk_size):
         raise NotImplementedError("Decoding JPEG chunks is unsupported, "

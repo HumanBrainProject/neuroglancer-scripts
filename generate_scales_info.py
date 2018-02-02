@@ -16,6 +16,8 @@ import sys
 
 import numpy as np
 
+import neuroglancer_scripts.accessor
+
 
 KEY_UNITS = collections.OrderedDict([
     ("km", 1e-12),
@@ -75,7 +77,9 @@ def create_info_json_scales(info, target_chunk_size=64,
     }
 
     """
-    assert len(info["scales"]) == 1
+    if len(info["scales"]) != 1:
+        print("WARNING: the source info JSON contains multiple scales, only "
+              "the first one will be used.")
     full_scale_info = info["scales"][0]
 
     if encoding:
@@ -161,6 +165,7 @@ def create_info_json_scales(info, target_chunk_size=64,
 
 
 def generate_scales_info(input_fullres_info_filename,
+                         dest_url,
                          target_chunk_size=64,
                          dataset_type=None,
                          encoding=None,
@@ -171,8 +176,8 @@ def generate_scales_info(input_fullres_info_filename,
     create_info_json_scales(info, target_chunk_size=target_chunk_size,
                             dataset_type=dataset_type, encoding=encoding,
                             max_scales=max_scales)
-    with open("info", "w") as f:
-        json.dump(info, f, separators=(",", ":"), sort_keys=True)
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(dest_url)
+    accessor.store_info(info)
 
 
 def parse_command_line(argv):
@@ -186,6 +191,8 @@ Output is written to a file named "info" in the current directory.
 """)
     parser.add_argument("fullres_info",
                         help="JSON file containing the full-resolution info")
+    parser.add_argument("dest_url", help="directory/URL where the converted "
+                        "dataset will be written")
     parser.add_argument("--max-scales", type=int, default=None,
                         help="maximum number of scales to generate"
                         " (default: unlimited)")
@@ -213,6 +220,7 @@ def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return generate_scales_info(args.fullres_info,
+                                args.dest_url,
                                 target_chunk_size=args.target_chunk_size,
                                 dataset_type=args.type,
                                 encoding=args.encoding,

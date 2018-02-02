@@ -26,10 +26,13 @@ def encode_chunk(chunk, jpeg_quality, jpeg_plane):
         reshaped_chunk = np.squeeze(reshaped_chunk, 0)
     else:
         # Channels (RGB) need to be along the last axis for PIL
-        reshaped_chunk = np.swapaxes(reshaped_chunk, 0, 3)
+        reshaped_chunk = np.moveaxis(reshaped_chunk, 0, -1)
 
     img = PIL.Image.fromarray(reshaped_chunk)
     io_buf = io.BytesIO()
+    # Chroma sub-sampling is disabled because it can create strong artefacts at
+    # the border where the chunk size is odd. Progressive is enabled because it
+    # generally creates smaller JPEG files.
     img.save(io_buf, format="jpeg", quality=jpeg_quality,
-             optimize=True, progressive=True)
+             optimize=True, progressive=True, subsampling=0)
     return io_buf.getvalue()

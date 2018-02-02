@@ -38,6 +38,9 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Sphinx documentation
+docs/_build/
+
 # Environments
 .env
 .venv

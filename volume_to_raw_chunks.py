@@ -17,6 +17,7 @@ import nibabel.orientations
 from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
+from neuroglancer_scripts.accessor import convert_file_url_to_pathname
 import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.pyramid_io
 
@@ -161,8 +162,15 @@ def volume_file_to_raw_chunks(volume_filename,
 
         info = json.loads(header_info)  # ensure well-formed JSON
         print(header_info)
-        with open("info_fullres.json", "w") as f:
-            f.write(header_info)
+        dest_dir = convert_file_url_to_pathname(dest_url)
+        try:
+            os.makedirs(dest_dir, exist_ok=True)
+            with open(os.path.join(dest_dir, "info_fullres.json"), "w") as f:
+                f.write(header_info)
+        except OSError as exc:
+            logging.critical("cannot write info_fullres.json to {0}: {1}"
+                             .format(dest_dir, exc))
+            return 1
         logging.info("The metadata above was written to info_fullres.json. "
                      "Please run generate_scales_info.py on that file "
                      "to generate the 'info' file, then run this program "
@@ -181,8 +189,12 @@ def volume_file_to_raw_chunks(volume_filename,
         transform = nifti_to_neuroglancer_transform(
             transform, np.asarray(info["scales"][0]["resolution"]))
         json_transform = [list(row) for row in transform]
-        with open("transform.json", "w") as f:
-            json.dump(json_transform, f)
+        try:
+            with open(os.path.join(dest_dir, "transform.json"), "w") as f:
+                json.dump(json_transform, f)
+        except OSError as exc:
+            logging.error("cannot write transform.json to {0}: {1}"
+                          .format(dest_dir, exc))
         logging.info("Neuroglancer transform of the converted volume "
                      "(written to transform.json):\n%s",
                      matrix_as_compact_urlsafe_json(json_transform))

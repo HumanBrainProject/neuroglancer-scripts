@@ -5,9 +5,18 @@
 
 import urllib.parse
 
-CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
+__all__ = [
+    "get_accessor_for_url",
+    "add_argparse_options",
+    "convert_file_url_to_pathname",
+    "convert_split_file_url_to_pathname",
+    "URLError",
+]
+
+_CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
 def get_accessor_for_url(url, accessor_options={}):
+    """Create an Accessor object for a URL or pathname."""
     if url.startswith("precomputed://"):
         url = url[len("precomputed://"):]
     r = urllib.parse.urlsplit(url)

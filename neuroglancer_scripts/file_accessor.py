@@ -7,50 +7,113 @@ import gzip
 import json
 import os.path
 
-from .accessor import CHUNK_PATTERN_FLAT
+from .accessor import _CHUNK_PATTERN_FLAT, DataAccessError
 
-CHUNK_PATTERN_SUBDIR = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+
+__all__ = [
+    "FileAccessor",
+]
+
+_CHUNK_PATTERN_SUBDIR = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 
 
 class FileAccessor:
+    """Access a Neuroglancer pre-computed pyramid on the local file system."""
+    can_read = True
+    can_write = True
+
     def __init__(self, base_dir=".", flat=False, gzip=True):
+        """Create an accessor for the pyramid located locally at base_dir.
+
+        :param base_dir: the directory containing the pyramid
+        :param flat: use a flat file layout (see :ref:`layouts`)
+        :param gzip: compress chunks losslessly with gzip
+        """
         self.base_dir = base_dir
         if flat:
-            self.chunk_pattern = CHUNK_PATTERN_FLAT
+            self.chunk_pattern = _CHUNK_PATTERN_FLAT
         else:
-            self.chunk_pattern = CHUNK_PATTERN_SUBDIR
+            self.chunk_pattern = _CHUNK_PATTERN_SUBDIR
         self.gzip = gzip
 
     def fetch_info(self):
-        with open(os.path.join(self.base_dir, "info")) as f:
-            return json.load(f)
+        """Fetch the JSON 'info' file from the pyramid.
+
+        .. todo:: raises
+        """
+        try:
+            with open(os.path.join(self.base_dir, "info")) as f:
+                return json.load(f)
+        except OSError as exc:
+            raise DataAccessError(
+                "error fetching the 'info' file from {0}: {1}" .format(
+                    self.base_dir, exc))
+
 
     def store_info(self, info):
-        os.makedirs(self.base_dir, exist_ok=True)
-        with open(os.path.join(self.base_dir, "info"), "w") as f:
-            json.dump(info, f, separators=(",", ":"), sort_keys=True)
+        """Store the JSON 'info' file into the pyramid."""
+        try:
+            os.makedirs(self.base_dir, exist_ok=True)
+            with open(os.path.join(self.base_dir, "info"), "w") as f:
+                json.dump(info, f, separators=(",", ":"), sort_keys=True)
+        except OSError as exc:
+            raise DataAccessError(
+                "error storing the 'info' file in {0}: {1}" .format(
+                    self.base_dir, exc))
 
-    def chunk_filename(self, key, chunk_coords):
+
+    def fetch_chunk(self, key, chunk_coords):
+        """Fetch a chunk from the pyramid as a bytes buffer."""
+        f = None
+        for pattern in _CHUNK_PATTERN_FLAT, _CHUNK_PATTERN_SUBDIR:
+            chunk_path = self._chunk_filename(key, chunk_coords, pattern)
+            if os.path.isfile(chunk_path):
+                f = open(chunk_path, "rb")
+            elif os.path.isfile(chunk_path + ".gz"):
+                f = gzip.open(chunk_path + ".gz", "rb")
+        if f is None:
+            raise DataAccessError("cannot find chunk {0} in {1}".format(
+                self._flat_chunk_basename(key, chunk_coords), self.base_dir))
+        try:
+            with f:
+                return f.read()
+        except OSError as exc:
+            raise DataAccessError(
+                "error accessing chunk {0} in {1}: {2}" .format(
+                    self._flat_chunk_basename(key, chunk_coords),
+                    self.base_dir, exc))
+
+    def store_chunk(self, buf, key, chunk_coords, already_compressed=False):
+        """Store a chunk in the pyramid from a bytes buffer.
+
+        Chunks are never compressed if already_compressed is True, even if the
+        gzip option is used.
+        """
+        chunk_path = self._chunk_filename(key, chunk_coords)
+        try:
+            os.makedirs(os.path.dirname(chunk_path), exist_ok=True)
+            if self.gzip and not already_compressed:
+                with gzip.open(chunk_path + ".gz", "wb") as f:
+                    f.write(buf)
+            else:
+                with open(chunk_path, "wb") as f:
+                    f.write(buf)
+        except OSError as e:
+            raise DataAccessError(
+                "cannot store chunk {0} in {1}: {2}" .format(
+                    self._flat_chunk_basename(key, chunk_coords),
+                    self.base_dir, exc))
+
+    def _chunk_filename(self, key, chunk_coords, pattern=None):
+        if pattern is None:
+            pattern = self.chunk_pattern
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
-        chunk_filename = self.chunk_pattern.format(
+        chunk_filename = pattern.format(
             xmin, xmax, ymin, ymax, zmin, zmax, key=key)
         return os.path.join(self.base_dir, chunk_filename)
 
-    def fetch_chunk(self, key, chunk_coords):
-        chunk_path = self.chunk_filename(key, chunk_coords)
-        try:
-            f = gzip.open(chunk_path + ".gz", "rb")
-        except OSError:
-            f = open(chunk_path, "rb")
-        with f:
-            return f.read()
-
-    def store_chunk(self, buf, key, chunk_coords, already_compressed):
-        chunk_path = self.chunk_filename(key, chunk_coords)
-        os.makedirs(os.path.dirname(chunk_path), exist_ok=True)
-        if self.gzip and not already_compressed:
-            with gzip.open(chunk_path + ".gz", "wb") as f:
-                f.write(buf)
-        else:
-            with open(chunk_path, "wb") as f:
-                f.write(buf)
+    def _flat_chunk_basename(self, key, chunk_coords):
+        xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
+        chunk_filename = _CHUNK_PATTERN_FLAT.format(
+            xmin, xmax, ymin, ymax, zmin, zmax, key=key)
+        return chunk_filename

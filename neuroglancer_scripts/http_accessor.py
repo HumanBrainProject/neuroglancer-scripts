@@ -12,6 +12,9 @@ from .accessor import CHUNK_PATTERN_FLAT
 
 
 class HttpAccessor:
+    can_read = True
+    can_write = False
+
     def __init__(self, base_url):
         # Fix the base URL to end with a slash, discard query and fragment
         r = urllib.parse.urlsplit(base_url)

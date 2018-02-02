@@ -36,3 +36,18 @@ def encode_chunk(chunk, jpeg_quality, jpeg_plane):
     img.save(io_buf, format="jpeg", quality=jpeg_quality,
              optimize=True, progressive=True, subsampling=0)
     return io_buf.getvalue()
+
+
+def decode_chunk(buf, chunk_size, num_channels):
+    io_buf = io.BytesIO(buf)
+    img = PIL.Image.open(io_buf)
+    flat_chunk = np.asarray(img)
+    if num_channels == 1:
+        assert img.mode == "L"
+    elif num_channels == 3:
+        assert img.mode == "RGB"
+        # RGB channels are read by PIL along the last axis
+        flat_chunk = np.moveaxis(flat_chunk, -1, 0)
+    chunk = flat_chunk.reshape(num_channels,
+                               chunk_size[2], chunk_size[1], chunk_size[0])
+    return chunk

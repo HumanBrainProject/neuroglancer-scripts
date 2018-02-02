@@ -116,6 +116,5 @@ class JpegChunkEncoder(ChunkEncoder):
         return buf
 
     def decode(self, buf, chunk_size):
-        raise NotImplementedError("Decoding JPEG chunks is unsupported, "
-                                  "please process your data in raw format and "
-                                  "convert to JPEG as a last step")
+        from . import jpeg
+        return jpeg.decode_chunk(buf, chunk_size, self.num_channels)

@@ -68,7 +68,7 @@ def convert_chunks(source_url, dest_url, copy_info=False,
         print("WARNING: the data type will be cast from {0} to {1}, "
               "truncation and rounding are NOT checked."
               .format(source_info["data_type"], dest_info["data_type"]))
-    for scale_index in range(len(dest_info["scales"])):
+    for scale_index in reversed(range(len(dest_info["scales"]))):
         convert_chunks_for_scale(chunk_reader,
                                  dest_info, chunk_writer, scale_index)
 

@@ -11,7 +11,7 @@ from neuroglancer_scripts.chunk_encoding import *
 
 @pytest.mark.parametrize("encoder_options", [
     {},
-    {"jpeg_quality": 0, "jpeg_plane": "xy", "unknown_option": None},
+    {"jpeg_quality": 1, "jpeg_plane": "xy", "unknown_option": None},
 ])
 def test_get_encoder_raw(encoder_options):
     info = {
@@ -29,7 +29,7 @@ def test_get_encoder_raw(encoder_options):
 
 @pytest.mark.parametrize("encoder_options", [
     {},
-    {"jpeg_quality": 0, "jpeg_plane": "xy", "unknown_option": None},
+    {"jpeg_quality": 1, "jpeg_plane": "xy", "unknown_option": None},
 ])
 def test_get_encoder_compressed_segmentation(encoder_options):
     info = {
@@ -62,7 +62,7 @@ def test_get_encoder_cseg_incomplete_info():
 
 @pytest.mark.parametrize("encoder_options", [
     {},
-    {"jpeg_quality": 0, "jpeg_plane": "xy", "unknown_option": None},
+    {"jpeg_quality": 1, "jpeg_plane": "xy", "unknown_option": None},
 ])
 def test_get_encoder_jpeg(encoder_options):
     info = {
@@ -112,6 +112,36 @@ def test_get_encoder_invalid_info():
     }
     with pytest.raises(InvalidInfoError):
         get_encoder(info, info["scales"][0])
+    with pytest.raises(InvalidInfoError):
+        get_encoder(info, {})
+    with pytest.raises(InvalidInfoError):
+        get_encoder({}, {})
+
+
+def test_get_encoder_incompatible_dtype():
+    info = {
+        "data_type": "uint8",
+        "num_channels": 4,
+        "scales": [
+            {
+                "encoding": "jpeg"
+            }
+        ]
+    }
+    with pytest.raises(InvalidInfoError):
+        get_encoder(info, info["scales"][0])
+    info = {
+        "data_type": "uint16",
+        "num_channels": 1,
+        "scales": [
+            {
+                "encoding": "compressed_segmentation",
+                "compressed_segmentation_block_size": [8, 8, 8]
+            }
+        ]
+    }
+    with pytest.raises(InvalidInfoError):
+        get_encoder(info, info["scales"][0])
 
 
 def test_raw_encoder_roundtrip():
@@ -120,6 +150,29 @@ def test_raw_encoder_roundtrip():
     buf = encoder.encode(test_chunk)
     decoded_chunk = encoder.decode(buf, (11, 50, 64))
     assert np.array_equal(decoded_chunk, test_chunk)
+
+
+def test_raw_encoder_unsafe_cast():
+    encoder = RawChunkEncoder("uint8", 2)
+    test_chunk = np.ones((1, 1, 1, 1), dtype="uint16")
+    with pytest.raises(Exception):
+        encoder.encode(test_chunk)
+
+
+def test_raw_encoder_invalid_size():
+    encoder = RawChunkEncoder("uint8", 1)
+    test_chunk = np.zeros((1, 1, 1, 11), dtype="uint8")
+    buf = encoder.encode(test_chunk)
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf, (12, 1, 1))
+    decoder = RawChunkEncoder("uint16", 1)
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf, (6, 1, 1))
+
+
+def test_compressed_segmentation_invalid_data_type():
+    with pytest.raises(IncompatibleEncoderError):
+        CompressedSegmentationEncoder("uint8", 1, [8, 8, 8])
 
 
 def test_compressed_segmentation_0bit_roundtrip():
@@ -194,6 +247,29 @@ def test_compressed_segmentation_roundtrip_uint64(block_size):
     assert np.array_equal(decoded_chunk, test_chunk)
 
 
+def test_cseg_decoder_invalid_data():
+    encoder = CompressedSegmentationEncoder("uint32", 1, [8, 8, 8])
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(b"", (1, 1, 1))
+
+    test_chunk = np.ones((1, 1, 1, 11), dtype="uint8")
+    buf = encoder.encode(test_chunk)
+    encoder64 = CompressedSegmentationEncoder("uint64", 1, [8, 8, 8])
+    test_chunk = np.ones((1, 1, 1, 11), dtype="uint8")
+    with pytest.raises(InvalidFormatError):
+        encoder64.decode(buf, (1, 1, 1))
+
+
+def test_jpeg_invalid_data_type():
+    with pytest.raises(IncompatibleEncoderError):
+        JpegChunkEncoder("uint16", 1, 95, "xy")
+
+
+def test_jpeg_invalid_num_channels():
+    with pytest.raises(IncompatibleEncoderError):
+        JpegChunkEncoder("uint8", 4, 95, "xy")
+
+
 @pytest.mark.parametrize("plane", ["xy", "xz"])
 def test_jpeg_roundtrip_greyscale(plane):
     encoder = JpegChunkEncoder("uint8", 1, 95, plane)
@@ -221,3 +297,16 @@ def test_jpeg_roundtrip_rgb(plane):
     assert decoded_chunk.shape == test_chunk.shape
     assert (np.mean(np.square(decoded_chunk.astype("f") - test_chunk))
             < 1.36 * 1.1)
+
+def test_jpeg_decoder_invalid_data():
+    encoder = JpegChunkEncoder("uint8", 1)
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(b"", (1, 1, 1))
+
+    encoder_3ch = JpegChunkEncoder("uint8", 3)
+    test_chunk = np.ones((1, 1, 1, 11), dtype="uint8")
+    buf = encoder.encode(test_chunk)
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf, (2, 1, 1))
+    with pytest.raises(InvalidFormatError):
+        encoder_3ch.decode(buf, (1, 1, 1))

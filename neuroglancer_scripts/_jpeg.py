@@ -11,6 +11,9 @@ import numpy as np
 import PIL.Image
 
 
+from neuroglancer_scripts.chunk_encoding import InvalidFormatError
+
+
 def encode_chunk(chunk, jpeg_quality, jpeg_plane):
     assert 0 <= jpeg_quality <= 100
     assert jpeg_plane in ("xy", "xz")
@@ -40,14 +43,32 @@ def encode_chunk(chunk, jpeg_quality, jpeg_plane):
 
 def decode_chunk(buf, chunk_size, num_channels):
     io_buf = io.BytesIO(buf)
-    img = PIL.Image.open(io_buf)
+    try:
+        img = PIL.Image.open(io_buf)
+    except Exception as exc:
+        raise InvalidFormatError(
+            "The JPEG-encoded chunk could not be decoded: {0}"
+            .format(exc)) from exc
+
+    if num_channels == 1 and img.mode != "L":
+        raise InvalidFormatError(
+            "The JPEG chunk is encoded with mode={0} instead of L"
+            .format(img.mode))
+    if num_channels == 3 and img.mode != "RGB":
+        raise InvalidFormatError(
+            "The JPEG chunk is encoded with mode={0} instead of RGB"
+            .format(img.mode))
+
     flat_chunk = np.asarray(img)
-    if num_channels == 1:
-        assert img.mode == "L"
-    elif num_channels == 3:
-        assert img.mode == "RGB"
+    if num_channels == 3:
         # RGB channels are read by PIL along the last axis
         flat_chunk = np.moveaxis(flat_chunk, -1, 0)
-    chunk = flat_chunk.reshape(num_channels,
-                               chunk_size[2], chunk_size[1], chunk_size[0])
+    try:
+        chunk = flat_chunk.reshape(num_channels,
+                                   chunk_size[2], chunk_size[1], chunk_size[0])
+    except Exception as exc:
+        raise InvalidFormatError("The JPEG-encoded chunk has an incompatible "
+                                 "shape ({0} elements, expecting {1})"
+                                 .format(flat_chunk.size // num_channels,
+                                         np.prod(chunk_size)))
     return chunk

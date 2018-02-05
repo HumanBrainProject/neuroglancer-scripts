@@ -10,9 +10,7 @@ import struct
 import numpy as np
 
 from neuroglancer_scripts.utils import ceil_div
-
-class InvalidFormatError(Exception):
-    pass
+from neuroglancer_scripts.chunk_encoding import InvalidFormatError
 
 
 def pad_block(block, block_size):
@@ -157,22 +155,28 @@ def _decode_channel_into(chunk, channel, buf, block_size):
         lookup_table_offset = 4 * (res[0] & 0x00FFFFFF)
         bits = res[0] >> 24
         if bits not in (0, 1, 2, 4, 8, 16, 32):
-            raise InvalidFormatError("invalid number of encoding bits for "
+            raise InvalidFormatError("Invalid number of encoding bits for "
                                      "compressed_segmentation block ({0})"
                                      .format(bits))
         encoded_values_offset = 4 * res[1]
         if bits != 0 and encoded_values_offset > len(buf):
-            raise InvalidFormatError("invalid offset for encoded values in "
+            raise InvalidFormatError("Invalid offset for encoded values in "
                                      "compressed_segmentation block "
                                      "(truncated file?)")
-        lookup_table_past_end = (
-            lookup_table_offset + (2 ** bits) * chunk.itemsize
+        lookup_table_past_end = lookup_table_offset + min(
+            (2 ** bits) * chunk.itemsize,
+            ((len(buf) - lookup_table_offset) // chunk.itemsize) * chunk.itemsize
         )
         lookup_table = np.frombuffer(
             buf[lookup_table_offset:lookup_table_past_end], dtype=chunk.dtype)
         if bits == 0:
             block = np.empty(block_size, dtype=chunk.dtype)
-            block[...] = lookup_table[0]
+            try:
+                block[...] = lookup_table[0]
+            except IndexError as exc:
+                raise InvalidFormatError(
+                    "Invalid compressed_segmentation data: indexing out of "
+                    "the lookup table") from exc
         else:
             values_per_32bit = 32 // bits
             encoded_values_end = encoded_values_offset + 4 * (
@@ -183,7 +187,12 @@ def _decode_channel_into(chunk, channel, buf, block_size):
             encoded_values = _unpack_encoded_values(packed_values, bits,
                                                     block_num_elem)
             # Apply the lookup table
-            decoded_values = lookup_table[encoded_values]
+            try:
+                decoded_values = lookup_table[encoded_values]
+            except IndexError as exc:
+                raise InvalidFormatError(
+                    "Invalid compressed_segmentation data: indexing out of "
+                    "the lookup table") from exc
             block = decoded_values.reshape((block_size[2],
                                             block_size[1],
                                             block_size[0]))

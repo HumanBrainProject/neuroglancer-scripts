@@ -7,10 +7,20 @@ import urllib.parse
 
 import requests
 
-from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT
+import neuroglancer_scripts.accessor
+from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT, DataAccessError
 
 
-class HttpAccessor:
+# TODO DataAccessError
+class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
+    """Access a Neuroglancer pre-computed pyramid with HTTP.
+
+    .. note::
+       This is a read-only accessor.
+
+    :param str base_url: the URL containing the pyramid
+    """
+
     can_read = True
     can_write = False
 
@@ -30,12 +40,20 @@ class HttpAccessor:
 
     def fetch_chunk(self, key, chunk_coords):
         chunk_url = self.chunk_url(key, chunk_coords)
-        r = requests.get(chunk_url)
-        r.raise_for_status()
+        try:
+            r = requests.get(chunk_url)
+            r.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            raise DataAccessError(
+                "cannot read chunk from {0}".format(chunk_url), exc)
         return r.content
 
     def fetch_info(self):
         info_url = self.base_url + "info"
-        r = requests.get(info_url)
-        r.raise_for_status()
+        try:
+            r = requests.get(info_url)
+            r.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            raise DataAccessError(
+                "cannot read from {0}".format(info_url), exc)
         return r.json()

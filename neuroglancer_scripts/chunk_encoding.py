@@ -6,24 +6,61 @@
 import numpy as np
 
 
-def get_encoder(info, scale_info, encoder_params={}):
+__all__ = [
+    "get_encoder",
+    "add_argparse_options",
+    "IncompatibleEncoderError",
+    "InvalidInfoError",
+    "RawChunkEncoder",
+    "CompressedSegmentationEncoder",
+    "JpegChunkEncoder",
+]
+
+
+# TODO move to a data_type module
+"""List of possible values for ``data_type``."""
+NEUROGLANCER_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
+
+
+def get_encoder(info, scale_info, encoder_options={}):
+    """Create an Encoder object for the provided scale.
+
+    :param dict info: a Neuroglancer *info* dictionary (:ref:`info`) containing
+                      general encoding parameters (:attr:`data_type` and
+                      :attr:`num_channels`)
+    :param dict scale_info: an element of (``info["scales"]``) containing
+                            scale-specific encoding parameters
+                            (:attr:`encoding` and encoding-specific parameters)
+    :param dict encoder_params: extrinsic encoder parameters
+    """
     data_type = info["data_type"]
     num_channels = info["num_channels"]
     encoding = scale_info["encoding"]
+    if not isinstance(num_channels, int) or not num_channels > 0:
+        raise InvalidInfoError("invalid value {0} for num_channels (must be "
+                               "a positive integer)".format(num_channels))
+    if data_type not in NEUROGLANCER_DATA_TYPES:
+        raise InvalidInfoError("invalid data_type {0} (should be one of {1})"
+                               .format(data_type, NEUROGLANCER_DATA_TYPES))
     if encoding == "raw":
         return RawChunkEncoder(data_type, num_channels)
     elif encoding == "compressed_segmentation":
-        block_size = scale_info["compressed_segmentation_block_size"]
+        try:
+            block_size = scale_info["compressed_segmentation_block_size"]
+        except KeyError:
+            raise InvalidInfoError(
+                'encoding is set to "compressed_segmentation" but '
+                '"compressed_segmentation_block_size" is missing')
         return CompressedSegmentationEncoder(data_type, num_channels,
                                              block_size)
     elif encoding == "jpeg":
-        # TODO properly handle missing params
-        jpeg_quality = encoder_params["jpeg_quality"]
-        jpeg_plane = encoder_params["jpeg_plane"]
+        jpeg_plane = encoder_options.get("jpeg_plane", "xy")
+        jpeg_quality = encoder_options.get("jpeg_quality", 95)
         return JpegChunkEncoder(data_type, num_channels,
-                                jpeg_quality, jpeg_plane)
+                                jpeg_plane=jpeg_plane,
+                                jpeg_quality=jpeg_quality)
     else:
-        return RuntimeError("Invalid encoding")  # TODO appropriate error type?
+        raise InvalidInfoError("Invalid encoding {0}".format(encoding))
 
 
 def add_argparse_options(parser, allow_lossy):
@@ -38,6 +75,10 @@ def add_argparse_options(parser, allow_lossy):
 
 
 class IncompatibleEncoderError(Exception):
+    pass
+
+
+class InvalidInfoError(Exception):
     pass
 
 

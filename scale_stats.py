@@ -6,6 +6,7 @@
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 
+
 import collections
 import json
 import math
@@ -15,28 +16,8 @@ import sys
 
 import numpy as np
 
-SI_PREFIXES = [
-    (1, ""),
-    (1024, "ki"),
-    (1024 * 1024, "Mi"),
-    (1024 * 1024 * 1024, "Gi"),
-    (1024 * 1024 * 1024 * 1024, "Ti"),
-    (1024 * 1024 * 1024 * 1024 * 1024, "Pi"),
-    (1024 * 1024 * 1024 * 1024 * 1024 * 1024, "Ei"),
-]
-
-
-def readable(count):
-    for factor, prefix in SI_PREFIXES:
-        if count > 10 * factor:
-            num_str = format(count / factor, ".0f")
-        else:
-            num_str = format(count / factor, ".1f")
-        if len(num_str) <= 3:
-            return num_str + " " + prefix
-    # Fallback: use the last prefix
-    factor, prefix = SI_PREFIXES[-1]
-    return "{:,.0f} {}".format(count / factor, prefix)
+import neuroglancer_scripts.accessor
+from neuroglancer_scripts.utils import readable_count
 
 
 def show_scales_info(info):
@@ -57,19 +38,21 @@ def show_scales_info(info):
             print("Scale {}, chunk size {}:"
                   " {:,d} chunks, {:,d} directories, raw uncompressed size {}B"
                   .format(scale_name, chunk_size,
-                          num_chunks, num_directories, readable(size_bytes)))
+                          num_chunks, num_directories,
+                          readable_count(size_bytes)))
             total_size += size_bytes
             total_chunks += num_chunks
             total_directories += num_directories
     print("---")
     print("Total: {:,d} chunks, {:,d} directories, raw uncompressed size {}B"
-          .format(total_chunks, total_directories, readable(total_size)))
+          .format(total_chunks, total_directories,
+                  readable_count(total_size)))
 
 
-def show_scale_file_info(input_info_filename):
-    """Show information about a list of scales from an input JSON file"""
-    with open(input_info_filename) as f:
-        info = json.load(f)
+def show_scale_file_info(url, options={}):
+    """Show information about a list of scales."""
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(url, options)
+    info = accessor.fetch_info()
     show_scales_info(info)
 
 
@@ -80,8 +63,10 @@ def parse_command_line(argv):
         description="""\
 Show information about a list of scales in Neuroglancer "info" JSON file format
 """)
-    parser.add_argument("info_file", nargs="?", default="./info",
-                        help="JSON file containing the information")
+    parser.add_argument("url", default=".",
+                        help='directory/URL containing the "info" file')
+
+    neuroglancer_scripts.accessor.add_argparse_options(parser, write=False)
     args = parser.parse_args(argv[1:])
     return args
 
@@ -89,7 +74,7 @@ Show information about a list of scales in Neuroglancer "info" JSON file format
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return show_scale_file_info(args.info_file) or 0
+    return show_scale_file_info(args.url, options=args.__dict__) or 0
 
 
 if __name__ == "__main__":

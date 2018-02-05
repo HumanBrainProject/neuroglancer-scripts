@@ -40,10 +40,12 @@ def get_accessor_for_url(url, accessor_options={}):
                        "https)".format(r.scheme))
 
 
-def add_argparse_options(parser):
+def add_argparse_options(parser, read=True, write=True):
     """Add command-line options for file access.
 
-    :param parser: an instance of :class:`argparse.ArgumentParser`
+    :param argparse.ArgumentParser parser: an argument parser
+    :param bool read: whether to add options for file reading
+    :param bool write: whether to add options for file writing
 
     The accesor options can be obtained from command-line arguments with
     :func:`add_argparse_options` and passed to :func:`get_accessor_for_url`::
@@ -55,18 +57,20 @@ def add_argparse_options(parser):
         get_accessor_for_url(url, args.__dict__)
 
     """
-    group = parser.add_argument_group("Options for file storage")
-    group.add_argument(
-        "--flat", action="store_true",
-        help="Store all chunks for each resolution with a flat layout, as "
-        "Neuroglancer expects. By default the chunks are stored in "
-        "sub-directories, which requires a specially configured web server "
-        "(see https://github.com/HumanBrainProject/neuroglancer-docker). "
-        "Do not use this option for large images, or you risk running into "
-        "problems with directories containing huge numbers of files.")
-    group.add_argument("--no-gzip", "--no-compression",
-                       action="store_false", dest="gzip",
-                       help="Don't gzip the output.")
+    if write:
+        group = parser.add_argument_group("Options for file storage")
+        group.add_argument(
+            "--flat", action="store_true",
+            help="Store all chunks for each resolution with a flat layout, as "
+            "Neuroglancer expects. By default the chunks are stored in "
+            "sub-directories, which requires a specially configured web "
+            "server (see https://github.com/HumanBrainProject/neuroglancer-"
+            "docker). " "Do not use this option for large images, or you risk "
+            "running into problems with directories containing huge numbers "
+            "of files.")
+        group.add_argument("--no-gzip", "--no-compression",
+                           action="store_false", dest="gzip",
+                           help="Don't gzip the output.")
 
 
 class Accessor:

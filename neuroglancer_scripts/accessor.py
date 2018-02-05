@@ -76,7 +76,8 @@ class Accessor:
     .. todo:: add I/O for auxiliary files (e.g. mesh fragments)
 
     You can inherit from this class in order to implement a new accessor (see
-    :class:`neuroglancer_scripts.file_accessor.FileAccessor`).
+    :class:`~neuroglancer_scripts.file_accessor.FileAccessor`,
+    :class:`~neuroglancer_scripts.http_accessor.HttpAccessor`).
     """
 
     can_read = False
@@ -86,20 +87,20 @@ class Accessor:
     """This accessor is able to write data."""
 
     def fetch_info(self):
-        """Fetch the pyramid's JSON 'info' file.
+        """Fetch the pyramid's JSON *info* file.
 
-        :returns: the parsed 'info' info file
+        :returns: the parsed *info* file
         :rtype: dict
-        :raises DataAccessError: if the info file cannot be retrieved
+        :raises DataAccessError: if the *info* file cannot be retrieved
         :raises NotImplementedError: if :attr:`can_read` is False
         """
         raise NotImplementedError
 
     def store_info(self, info):
-        """Store the pyramid's JSON 'info' file.
+        """Store the pyramid's JSON *info* file.
 
-        :param dict info: the pyramid's info
-        :raises DataAccessError: if the info file cannot be retrieved
+        :param dict info: the *info* to be stored
+        :raises DataAccessError: if the *info* file cannot be retrieved
         :raises NotImplementedError: if :attr:`can_write` is False
         """
         raise NotImplementedError

@@ -77,20 +77,20 @@ class CompressedSegmentationEncoder(ChunkEncoder):
         self.block_size = block_size
 
     def encode(self, chunk):
-        from . import compressed_segmentation
+        from neuroglancer_scripts import _compressed_segmentation
         assert chunk.dtype == self.dtype
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
-        buf = compressed_segmentation.encode_chunk(chunk, self.block_size)
+        buf = _compressed_segmentation.encode_chunk(chunk, self.block_size)
         return buf
 
     def decode(self, buf, chunk_size):
-        from . import compressed_segmentation
+        from neuroglancer_scripts import _compressed_segmentation
         chunk = np.empty(
             (self.num_channels, chunk_size[2], chunk_size[1], chunk_size[0]),
             dtype=self.dtype
         )
-        compressed_segmentation.decode_chunk_into(chunk, buf, self.block_size)
+        _compressed_segmentation.decode_chunk_into(chunk, buf, self.block_size)
         return chunk
 
 
@@ -108,13 +108,13 @@ class JpegChunkEncoder(ChunkEncoder):
         self.jpeg_plane = jpeg_plane
 
     def encode(self, chunk):
-        from . import jpeg
+        from neuroglancer_scripts import _jpeg
         assert chunk.dtype == self.dtype
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
-        buf = jpeg.encode_chunk(chunk, self.jpeg_quality, self.jpeg_plane)
+        buf = _jpeg.encode_chunk(chunk, self.jpeg_quality, self.jpeg_plane)
         return buf
 
     def decode(self, buf, chunk_size):
-        from . import jpeg
-        return jpeg.decode_chunk(buf, chunk_size, self.num_channels)
+        from neuroglancer_scripts import _jpeg
+        return _jpeg.decode_chunk(buf, chunk_size, self.num_channels)

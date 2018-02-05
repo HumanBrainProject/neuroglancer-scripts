@@ -45,14 +45,15 @@ def add_argparse_options(parser):
 
     :param parser: an instance of :class:`argparse.ArgumentParser`
 
-    The accessor options can be obtained from command-line arguments with
-    :func:`add_argparse_options`::
+    The accesor options can be obtained from command-line arguments with
+    :func:`add_argparse_options` and passed to :func:`get_accessor_for_url`::
 
         import argparse
         parser = argparse.ArgumentParser()
         add_argparse_options(parser)
         args = parser.parse_args()
         get_accessor_for_url(url, args.__dict__)
+
     """
     group = parser.add_argument_group("Options for file storage")
     group.add_argument(
@@ -170,8 +171,8 @@ def _convert_split_file_url_to_pathname(r):
                            "forget the triple slash?")
         try:
             pathname = urllib.parse.unquote(r.path, errors="strict")
-        except ValueError:
-            raise URLError("The file:/// URL could not be decoded")
+        except ValueError as exc:
+            raise URLError("The file:/// URL could not be decoded") from exc
         return pathname
     else:
         raise URLError("A local path or file:/// URL is required")

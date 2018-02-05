@@ -44,8 +44,8 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
             r = requests.get(chunk_url)
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            raise DataAccessError(
-                "cannot read chunk from {0}".format(chunk_url), exc)
+            raise DataAccessError("Error reading chunk from {0}:"
+                                  .format(chunk_url, exc)) from exc
         return r.content
 
     def fetch_info(self):
@@ -54,6 +54,6 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
             r = requests.get(info_url)
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            raise DataAccessError(
-                "cannot read from {0}".format(info_url), exc)
+            raise DataAccessError("Error reading {0}: {1}"
+                                  .format(info_url, exc)) from exc
         return r.json()

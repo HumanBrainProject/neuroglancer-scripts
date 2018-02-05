@@ -28,11 +28,13 @@ def get_accessor_for_url(url, accessor_options={}):
     r = urllib.parse.urlsplit(url)
     if r.scheme in ("", "file"):
         from neuroglancer_scripts import file_accessor
+        flat = accessor_options.get("flat", False)
+        gzip = accessor_options.get("gzip", True)
         pathname = _convert_split_file_url_to_pathname(r)
-        return file_accessor.FileAccessor(pathname, **accessor_options)
+        return file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip)
     elif r.scheme in ("http", "https"):
         from neuroglancer_scripts import http_accessor
-        return http_accessor.HttpAccessor(url, **accessor_options)
+        return http_accessor.HttpAccessor(url)
     else:
         raise URLError("Unsupported URL scheme {0} (must be file, http, or "
                        "https)".format(r.scheme))

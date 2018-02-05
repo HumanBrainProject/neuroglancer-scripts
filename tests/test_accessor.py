@@ -16,13 +16,13 @@ from neuroglancer_scripts.http_accessor import HttpAccessor
 ])
 def test_get_accessor_for_url(accessor_options):
     assert isinstance(get_accessor_for_url(""), Accessor)
-    a = get_accessor_for_url(".")
+    a = get_accessor_for_url(".", accessor_options)
     assert isinstance(a, FileAccessor)
     assert a.base_dir == "."
-    a = get_accessor_for_url("file:///absolute")
+    a = get_accessor_for_url("file:///absolute", accessor_options)
     assert isinstance(a, FileAccessor)
     assert a.base_dir == "/absolute"
-    a = get_accessor_for_url("http://example/")
+    a = get_accessor_for_url("http://example/", accessor_options)
     assert isinstance(a, HttpAccessor)
     assert a.base_url == "http://example/"
 

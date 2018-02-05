@@ -90,7 +90,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
             else:
                 with open(chunk_path, "wb") as f:
                     f.write(buf)
-        except OSError as e:
+        except OSError as exc:
             raise DataAccessError(
                 "cannot store chunk {0} in {1}" .format(
                     self._flat_chunk_basename(key, chunk_coords),

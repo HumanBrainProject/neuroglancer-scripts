@@ -94,7 +94,7 @@ class RawChunkEncoder(ChunkEncoder):
     already_compressed = False
 
     def encode(self, chunk):
-        assert chunk.dtype == self.dtype
+        assert np.can_cast(chunk.dtype, self.dtype, casting="safe")
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
         buf = chunk.tobytes()
@@ -119,7 +119,7 @@ class CompressedSegmentationEncoder(ChunkEncoder):
 
     def encode(self, chunk):
         from neuroglancer_scripts import _compressed_segmentation
-        assert chunk.dtype == self.dtype
+        assert np.can_cast(chunk.dtype, self.dtype, casting="safe")
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
         buf = _compressed_segmentation.encode_chunk(chunk, self.block_size)
@@ -150,7 +150,7 @@ class JpegChunkEncoder(ChunkEncoder):
 
     def encode(self, chunk):
         from neuroglancer_scripts import _jpeg
-        assert chunk.dtype == self.dtype
+        assert np.can_cast(chunk.dtype, self.dtype, casting="safe")
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
         buf = _jpeg.encode_chunk(chunk, self.jpeg_quality, self.jpeg_plane)

@@ -32,12 +32,12 @@ to re-install anything when changing existing files:
 
    python3 -m venv venv/
    . venv/bin/activate
-   pip install -e .
+   pip install -e .[dev]
    pytest --cov=neuroglancer_scripts --cov-report=html --cov-report=term
 
 
-Using ``tox`` for testing changes against multiple Python versions is advised.
-This is will run the same tests as the Travis continuous integration:
+It is advisde to use ``tox`` for testing changes against all supported Python
+versions. This is will run the same tests as the Travis continuous integration:
 
 .. code-block:: shell
 

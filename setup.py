@@ -45,8 +45,7 @@ Tools for conversion of images to the Neuroglancer pre-computed format.
         "tqdm >= 4",
     ],
     extras_require={
-        "dev": ["check-manifest"],
-        "test": ["pytest", "pytest-cov", "tox"],
+        "dev": ["check-manifest", "pytest", "pytest-cov", "sphinx", "tox"],
     },
     setup_requires=[
         "pytest-runner",

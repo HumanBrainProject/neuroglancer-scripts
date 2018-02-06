@@ -102,7 +102,7 @@ mode). You can create such an info file with generate_scales_info.py.
     return args
 
 
-def main(argv):
+def main(argv=sys.argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return convert_chunks(args.source_url, args.dest_url,
@@ -111,4 +111,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

@@ -21,7 +21,7 @@ Two types of data layout are accepted as input:
 1. Write the metadata for the full-resolution image `in JSON format
    <https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md>`_.
    If your input data is readable by Nibabel, you can use
-   ``volume_to_raw_chunks.py --generate-info`` do do the job. Here is an example
+   ``volume-to-precomputed --generate-info`` do do the job. Here is an example
    with minimal metadata (note that the resolution is expressed in
    *nanometres*):
 
@@ -40,7 +40,7 @@ Two types of data layout are accepted as input:
        ]
      }
 
-2. Create metadata for all scales using ``generate_scales_info.py`` on the
+2. Create metadata for all scales using ``generate-scales-info`` on the
    previously created JSON file. This step writes a file named ``info`` in the
    current directory, which is needed by Neuroglancer as well as by all the
    subsequent steps. You are advised to create a fresh directory for each
@@ -49,16 +49,16 @@ Two types of data layout are accepted as input:
    You can use any lossless encoding for the following steps (i.e. ``raw`` or
    ``compressed_segmentation``).
 
-   At this stage you may want to run ``scale_stats.py``, which displays the
+   At this stage you may want to run ``scale-stats``, which displays the
    number of chunks that will be created, and their uncompressed size. Thus,
    you can make sure that you have enough disk space before proceeding.
 
 3. Convert your data to raw full-resolution chunks by using one of these
    scripts:
-   - ``slices_to_raw_chunks.py``
-   - ``volume_to_raw_chunks.py``
+   - ``slices-to-precomputed``
+   - ``volume-to-precomputed``
 
-4. Compute downscaled pyramid levels using ``compute_scales.py``. Make sure to
+4. Compute downscaled pyramid levels using ``compute-scales``. Make sure to
    use the correct downscaling method (``average`` for greyscale images,
    ``majority`` for segmentations, or ``stride`` for a fast low-quality
    downsampling).
@@ -66,9 +66,9 @@ Two types of data layout are accepted as input:
    At this point the raw-format data is ready to be displayed in Neuroglancer.
 
 5. Optionally, you can convert the raw chunks to a compressed format using
-   ``convert_chunks.py``. You will need to generate these compressed chunks in
+   ``convert-chunks``. You will need to generate these compressed chunks in
    a separate directory from the raw chunks, and generate a suitable ``info``
-   file by using the ``--encoding`` parameter to ``generate_scales_info.py``.
+   file by using the ``--encoding`` parameter to ``generate-scales-info``.
    Two compressed encodings are available:
 
    - ``compressed_segmentation``: lossless compression, recommended for images
@@ -85,7 +85,7 @@ segmentation label as part of a ``segmentation`` type layer, or as a standalone
 mesh layer.
 
 A mesh associated with a segmentation label needs to be in a
-Neuroglancer-specific binary precomputed format. ``mesh_to_precomputed.py`` can
+Neuroglancer-specific binary precomputed format. ``mesh-to-precomputed`` can
 be used to convert meshes to this format. Additionally, you need to add a
 ``mesh`` key to the ``info`` file of the segmentation volume, and provide one
 JSON file per segment, as described in `the Neuroglancer documentation of the

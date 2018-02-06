@@ -178,7 +178,7 @@ pyramid scheme created by generate_scales_info.py is appropriate).
     return args
 
 
-def main(argv):
+def main(argv=sys.argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return compute_scales(args.work_dir,
@@ -187,4 +187,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

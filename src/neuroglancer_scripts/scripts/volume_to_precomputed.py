@@ -25,6 +25,7 @@ import neuroglancer_scripts.pyramid_io
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 
+# TODO import from library
 NG_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
 
 
@@ -348,7 +349,7 @@ omitted, it is assumed to be zero.
     return args
 
 
-def main(argv):
+def main(argv=sys.argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return volume_file_to_raw_chunks(args.volume_filename,
@@ -362,4 +363,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

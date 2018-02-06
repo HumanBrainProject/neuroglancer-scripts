@@ -22,7 +22,7 @@ Conversion of the grey-level template image (MNI Colin27 T1 MRI)
 
 .. code-block:: sh
 
-  volume_to_raw_chunks.py \
+  volume-to-precomputed \
       --generate-info \
       colin27T1_seg.nii.gz \
       colin27T1_seg/
@@ -34,9 +34,9 @@ though only integers between 0 and 255 are encoded.
 
 .. code-block:: sh
 
-  generate_scales_info.py colin27T1_seg/info_fullres.json colin27T1_seg/
-  volume_to_raw_chunks.py colin27T1_seg.nii.gz colin27T1_seg/
-  compute_scales.py colin27T1_seg/
+  generate-scales-info colin27T1_seg/info_fullres.json colin27T1_seg/
+  volume-to-precomputed colin27T1_seg.nii.gz colin27T1_seg/
+  compute-scales colin27T1_seg/
 
 
 Conversion of the Maximum Probability Map
@@ -44,14 +44,14 @@ Conversion of the Maximum Probability Map
 
 .. code-block:: sh
 
-   volume_to_raw_chunks.py --generate-info MPM.nii.gz MPM/
-   generate_scales_info.py \
+   volume-to-precomputed --generate-info MPM.nii.gz MPM/
+   generate-scales-info \
        --type=segmentation \
        --encoding=compressed_segmentation \
        MPM/info_fullres.json \
        MPM/
-   volume_to_raw_chunks.py MPM.nii.gz MPM/
-   compute_scales.py --downscaling-method=majority MPM/
+   volume-to-precomputed MPM.nii.gz MPM/
+   compute-scales --downscaling-method=majority MPM/
 
 
 .. _BigBrain:
@@ -89,16 +89,16 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
 
 .. code-block:: sh
 
-   generate_scales_info.py info_fullres.json 8bit/
-   slices_to_raw_chunks.py --input-orientation RIA <path/to/slices> 8bit/
-   compute_scales.py --outside-value=255 8bit/
+   generate-scales-info info_fullres.json 8bit/
+   slices-to-precomputed --input-orientation RIA <path/to/slices> 8bit/
+   compute-scales --outside-value=255 8bit/
 
 4. Optionally, convert raw chunks to JPEG:
 
 .. code-block:: sh
 
-   generate_scales_info.py --encoding=jpeg 8bit/info jpeg/
-   convert_chunks.py --jpeg-plane=xz 8bit/ jpeg/
+   generate-scales-info --encoding=jpeg 8bit/info jpeg/
+   convert-chunks --jpeg-plane=xz 8bit/ jpeg/
 
 5. Convert the segmentation volume
    (``examples/BigBrainRelease.2015/classif.nii.gz`` in the source
@@ -106,13 +106,13 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
 
 .. code-block:: sh
 
-   volume_to_raw_chunks.py --generate-info classif.nii.gz classif/
-   generate_scales_info.py \
+   volume-to-precomputed --generate-info classif.nii.gz classif/
+   generate-scales-info \
        --encoding=compressed_segmentation \
        classif/info_fullres.json \
        classif/
-   volume_to_raw_chunks.py --load-full-volume classif.nii.gz classif/
-   compute_scales.py --downscaling-method=majority classif/
+   volume-to-precomputed --load-full-volume classif.nii.gz classif/
+   compute-scales --downscaling-method=majority classif/
 
 6. Add the cortical meshes to the segmentation (downloaded from
    ftp://bigbrain.loris.ca/BigBrainRelease.2015/3D_Surfaces/Apr7_2016/gii/).
@@ -126,7 +126,7 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
    fragments. The coordinate transformation is needed for two reasons:
 
    - the translation is the inverted transform of the classification volume (as
-     output by ``volume_to_raw_chunks.py``, it is needed to bring the mesh into
+     output by ``volume-to-precomputed``, it is needed to bring the mesh into
      alignment with the volume;
 
    - the -1 coefficients on the diagonal are needed because the X and Y axes
@@ -135,19 +135,19 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
 .. code-block:: sh
 
    mkdir classif/mesh
-   mesh_to_precomputed.py \
+   mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
        gray_left_327680.gii \
        classif/mesh/grey-left
-   mesh_to_precomputed.py \
+   mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
        gray_right_327680.gii \
        classif/mesh/grey-right
-   mesh_to_precomputed.py \
+   mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
        white_left_327680.gii \
        classif/mesh/white-left
-   mesh_to_precomputed.py \
+   mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
        white_right_327680.gii \
        classif/mesh/white-right

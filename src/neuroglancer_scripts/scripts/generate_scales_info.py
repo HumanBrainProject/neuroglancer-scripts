@@ -216,7 +216,7 @@ Output is written to a file named "info" in the current directory.
     return args
 
 
-def main(argv):
+def main(argv=sys.argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return generate_scales_info(args.fullres_info,
@@ -228,4 +228,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

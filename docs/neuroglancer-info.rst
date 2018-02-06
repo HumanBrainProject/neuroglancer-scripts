@@ -31,4 +31,4 @@ can be achieved by using the ``--coord-transform`` option.
 Please note that if you want to display images correctly with respect to
 physical coordinates (e.g. stereotaxic coordinates), you have to use the
 ``transform`` parameter as well. The ``transform.json`` which is output by
-``volume_to_raw_chunks.py`` *does* take the half-voxel shift into account.
+``volume-to-precomputed`` *does* take the half-voxel shift into account.

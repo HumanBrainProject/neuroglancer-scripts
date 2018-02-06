@@ -104,7 +104,7 @@ pre-computed mesh format
     return args
 
 
-def main(argv):
+def main(argv=sys.argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return mesh_file_to_precomputed(args.input_filename, args.output_filename,
@@ -112,4 +112,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

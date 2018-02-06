@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="neuroglancer-scripts",
@@ -31,6 +31,7 @@ Tools for conversion of images to the Neuroglancer pre-computed format.
         "Topic :: Scientific/Engineering :: Visualization",
     ],
     keywords="neuroimaging",
+    package_dir={"": "src"},
     packages=["neuroglancer_scripts"],
     install_requires=[
         "nibabel >= 2",

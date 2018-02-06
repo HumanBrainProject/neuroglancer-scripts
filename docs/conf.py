@@ -19,7 +19,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../src/'))
 
 
 # -- General configuration ------------------------------------------------
@@ -58,7 +58,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'neuroglancer-scripts'
-copyright = '2018, Yann Leprince'
+copyright = '2016–2018, Forschungszentrum Jülich GmbH'
 author = 'Yann Leprince'
 
 # The version info for the project you're documenting, acts as replacement for

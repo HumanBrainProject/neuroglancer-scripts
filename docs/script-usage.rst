@@ -89,7 +89,7 @@ Neuroglancer-specific binary precomputed format. ``mesh_to_precomputed.py`` can
 be used to convert meshes to this format. Additionally, you need to add a
 ``mesh`` key to the ``info`` file of the segmentation volume, and provide one
 JSON file per segment, as described in `the Neuroglancer documentation of the
-precomputed format`
+precomputed format
 <https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md>`_.
 At the moment this must be done manually. Note that you may omit the ``:0``
 suffix from the file name if you are serving the files using nginx or Apache as

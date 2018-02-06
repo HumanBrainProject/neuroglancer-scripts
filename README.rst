@@ -14,20 +14,31 @@ neuroglancer-scripts
 
 Conversion of images to the Neuroglancer pre-computed format.
 
-Documentation
--------------
+How to use
+----------
 
-http://neuroglancer-scripts.readthedocs.io/
+See the user documentation at http://neuroglancer-scripts.readthedocs.io/
+
 
 Development
 -----------
 
-This project uses ``pytest`` and ``tox`` for testing. Useful commands:
+This project uses ``pytest`` and ``tox`` for testing. You will need to install
+the project (a virtual environment is recommended) before you can use it or run
+the tests. ``pip install -e`` will install in editable mode, so you do not need
+to re-install anything when changing existing files:
 
 .. code-block:: shell
 
-   pytest
-   pytest <pytest options>
-   pytest --cov=neuroglancer_scripts
+   python3 -m venv venv/
+   . venv/bin/activate
+   pip install -e .
+   pytest --cov=neuroglancer_scripts --cov-report=html --cov-report=term
+
+
+Using ``tox`` for testing changes against multiple Python versions is advised.
+This is will run the same tests as the Travis continuous integration:
+
+.. code-block:: shell
+
    tox
-   tox -e docs

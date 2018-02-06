@@ -7,8 +7,27 @@
 
 import numpy as np
 
+from neuroglancer_scripts.utils import ceil_div
+
+
+__all__ = [
+    "get_downscaler",
+    "add_argparse_options",
+    "Downscaler",
+    "StridingDownscaler",
+    "AveragingDownscaler",
+    "MajorityDownscaler",
+]
 
 def get_downscaler(downscaling_method, options={}):
+    """Create a downscaler object.
+
+    :param str downscaling_method: one of ``"average"``, ``"majority"``, or
+                                   ``"stride"``
+    :param dict options: options passed to the downscaler as kwargs.
+    :returns: an instance of a sub-class of :class:`Downscaler`
+    :rtype: Downscaler
+    """
     if downscaling_method == "average":
         outside_value = options.get("outside_value")
         return AveragingDownscaler(outside_value)
@@ -16,9 +35,25 @@ def get_downscaler(downscaling_method, options={}):
         return MajorityDownscaler()
     elif downscaling_method == "stride":
         return StridingDownscaler()
+    else:
+        RuntimeError("invalid downscaling method {0}"
+                     .format(downscaling_method))
 
 
 def add_argparse_options(parser):
+    """Add command-line options for downscaling.
+
+    :param argparse.ArgumentParser parser: an argument parser
+
+    The downscaling options can be obtained from command-line arguments with
+    :func:`add_argparse_options` and passed to :func:`get_downscaler`::
+
+        import argparse
+        parser = argparse.ArgumentParser()
+        add_argparse_options(parser)
+        args = parser.parse_args()
+        get_downscaler(args.downscaling_method, vars(args))
+    """
     group = parser.add_argument_group("Options for downscaling")
     group.add_argument("--downscaling-method", default="average",
                        choices=("average", "majority", "stride"),
@@ -27,16 +62,55 @@ def add_argparse_options(parser):
                        'fastest, but provides no protection against aliasing '
                        'artefacts.')
     group.add_argument("--outside-value", type=float, default=None,
-                       help="padding value used by the 'average' downscaling "
+                       help='padding value used by the "average" downscaling '
                        "method for computing the voxels at the border. If "
                        "omitted, the volume is padded with its edge values.")
 
 
-class StridingDownscaler:
+class Downscaler:
+    """Base class for downscaling algorithms."""
+
     def check_factors(self, downscaling_factors):
-        return True
+        """Test support for given downscaling factors.
+
+        Subclasses must override this method if they do not support any
+        combination of integer downscaling factors.
+
+        :param downscaling_factors: sequence of integer downscaling factors
+                                    (Dx, Dy, Dz)
+        :type downscaling_factors: :class:`tuple` of :class:`int`
+        :returns: whether the provided downscaling factors are supported
+        :rtype: bool
+        """
+        return (
+            len(downscaling_factors) == 3
+            and all(isinstance(f, int) and 1 <= f for f in downscaling_factors)
+        )
 
     def downscale(self, chunk, downscaling_factors):
+        """Downscale a chunk according to the provided factors.
+
+        :param numpy.ndarray chunk: chunk with (C, Z, Y, X) indexing
+        :param downscaling_factors: sequence of integer downscaling factors
+                                    (Dx, Dy, Dz)
+        :type downscaling_factors: tuple
+        :returns: the downscaled chunk, with shape ``(C, ceil_div(Z, Dz),
+                  ceil_div(Y, Dy), ceil_div(X, Dx))``
+        :rtype: numpy.ndarray
+        :raises NotImplementedError: if the downscaling factors are unsupported
+        """
+        raise NotImplementedError
+
+
+class StridingDownscaler(Downscaler):
+    """Downscale using striding.
+
+    This is a fast, low-quality downscaler that provides no protection against
+    aliasing artefacts. It supports arbitrary downscaling factors.
+    """
+    def downscale(self, chunk, downscaling_factors):
+        if not self.check_factors(downscaling_factors):
+            raise NotImplementedError
         return chunk[:,
                      ::downscaling_factors[2],
                      ::downscaling_factors[1],
@@ -44,7 +118,14 @@ class StridingDownscaler:
         ]
 
 
-class AveragingDownscaler:
+class AveragingDownscaler(Downscaler):
+    """Downscale by a factor of two in any given direction, with averaging.
+
+    This downscaler is suitable for grey-level images.
+
+    .. todo::
+       Use code from the neuroglancer module to support arbitrary factors.
+    """
     def __init__(self, outside_value=None):
         if outside_value is None:
             self.padding_mode = "edge"
@@ -54,11 +135,17 @@ class AveragingDownscaler:
             self.pad_kwargs = {"constant_values": outside_value}
 
     def check_factors(self, downscaling_factors):
-        return all(f in (1, 2) for f in downscaling_factors)
+        return (
+            len(downscaling_factors) == 3
+            and all(f in (1, 2) for f in downscaling_factors)
+        )
 
     def downscale(self, chunk, downscaling_factors):
+        if not self.check_factors(downscaling_factors):
+            raise NotImplementedError
         dtype = chunk.dtype
-        chunk = chunk.astype(np.float32)  # unbounded type for arithmetic
+        # unbounded type for arithmetic
+        chunk = chunk.astype(np.float32, casting="safe")
 
         if downscaling_factors[2] == 2:
             if chunk.shape[1] % 2 != 0:
@@ -78,20 +165,26 @@ class AveragingDownscaler:
                                self.padding_mode, **self.pad_kwargs)
             chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
 
+        # TODO proper rounding for integer target types
         return chunk.astype(dtype)
 
 
-class MajorityDownscaler:
-    def check_factors(self, downscaling_factors):
-        return True
+class MajorityDownscaler(Downscaler):
+    """Downscaler using majority voting.
 
+    This downscaler is suitable for label images.
+
+    .. todo:: the majority downscaler could be *really* optimized (clever
+    iteration with nditer, Cython, countless for appropriate cases)
+    """
     def downscale(self, chunk, downscaling_factors):
-        # This could be optimized a lot (clever iteration with nditer, Cython)
+        if not self.check_factors(downscaling_factors):
+            raise NotImplementedError
         new_chunk = np.empty(
             (chunk.shape[0],
-             (chunk.shape[1] - 1) // downscaling_factors[2] + 1,
-             (chunk.shape[2] - 1) // downscaling_factors[1] + 1,
-             (chunk.shape[3] - 1) // downscaling_factors[0] + 1),
+             ceil_div(chunk.shape[1], downscaling_factors[2]),
+             ceil_div(chunk.shape[2], downscaling_factors[1]),
+             ceil_div(chunk.shape[3], downscaling_factors[0])),
             dtype=chunk.dtype
         )
         for t, z, y, x in np.ndindex(*new_chunk.shape):

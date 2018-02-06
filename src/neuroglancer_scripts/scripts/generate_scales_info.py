@@ -185,9 +185,9 @@ def parse_command_line(argv):
     import argparse
     parser = argparse.ArgumentParser(
         description="""\
-Create a list of scales in Neuroglancer "info" JSON file format
+Create a list of scales in Neuroglancer "info" JSON file format.
 
-Output is written to a file named "info" in the current directory.
+Output is written to a file named "info" at dest_url.
 """)
     parser.add_argument("fullres_info",
                         help="JSON file containing the full-resolution info")

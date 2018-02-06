@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="neuroglancer-scripts",
@@ -35,13 +35,14 @@ Tools for conversion of images to the Neuroglancer pre-computed format.
     ],
     keywords="neuroimaging",
     package_dir={"": "src"},
-    packages=["neuroglancer_scripts"],
+    packages=find_packages("src"),
     install_requires=[
         "nibabel >= 2",
         "numpy >= 1.11.0",
         "pillow >= 1.1.6",
         "requests >= 2",
-        "tqdm >= 4"
+        "scikit-image",  # TODO use pillow instead
+        "tqdm >= 4",
     ],
     extras_require={
         "dev": ["check-manifest"],

@@ -216,14 +216,14 @@ def volume_file_to_raw_chunks(volume_filename,
         dest_url, options)
     try:
         info = accessor.fetch_info()
-    except OSError as exc:
+    except neuroglancer_scripts.accessor.DataAccessError as exc:
         logging.error("No 'info' file was found in the current directory "
                       "({0}). You can generate one by running this program "
                       "with the --generate-info option, then using "
                       "generate_scales_info.py on the result"
                       .format(exc))
         return 1
-    except ValueError as e:
+    except ValueError as e:  # TODO use specific exception for invalid JSON
         logging.error("Invalid 'info' file: {0}".format(e))
         return 1
 

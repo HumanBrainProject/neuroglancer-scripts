@@ -291,7 +291,7 @@ def main(argv):
     return convert_slices_in_directory(args.slice_dirs,
                                        args.dest_url,
                                        args.input_orientation,
-                                       options=args.__dict__) or 0
+                                       options=vars(args)) or 0
 
 
 if __name__ == "__main__":

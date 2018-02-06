@@ -107,7 +107,7 @@ def main(argv):
     args = parse_command_line(argv)
     return convert_chunks(args.source_url, args.dest_url,
                           copy_info=args.copy_info,
-                          options=args.__dict__) or 0
+                          options=vars(args)) or 0
 
 
 if __name__ == "__main__":

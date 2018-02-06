@@ -358,7 +358,7 @@ def main(argv):
                                      input_min=args.input_min,
                                      input_max=args.input_max,
                                      load_full_volume=args.load_full_volume,
-                                     options=args.__dict__) or 0
+                                     options=vars(args)) or 0
 
 
 if __name__ == "__main__":

@@ -183,7 +183,7 @@ def main(argv):
     args = parse_command_line(argv)
     return compute_scales(args.work_dir,
                           args.downscaling_method,
-                          options=args.__dict__) or 0
+                          options=vars(args)) or 0
 
 
 if __name__ == "__main__":

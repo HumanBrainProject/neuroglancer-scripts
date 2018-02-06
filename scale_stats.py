@@ -71,7 +71,7 @@ Show information about a list of scales in Neuroglancer "info" JSON file format
 def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
-    return show_scale_file_info(args.url, options=args.__dict__) or 0
+    return show_scale_file_info(args.url, options=vars(args)) or 0
 
 
 if __name__ == "__main__":

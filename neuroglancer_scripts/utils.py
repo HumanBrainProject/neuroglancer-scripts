@@ -3,6 +3,10 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+
+"""Miscellaneous utility functions.
+"""
+
 import numpy as np
 
 

@@ -3,6 +3,12 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+"""Access to a Neuroglancer pre-computed dataset on the local filesystem.
+
+See the :mod:`~neuroglancer_scripts.accessor` module for a description of the
+API.
+"""
+
 import gzip
 import json
 import os.path

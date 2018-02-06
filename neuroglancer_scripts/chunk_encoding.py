@@ -3,6 +3,12 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+"""Encoding / decoding of Neuroglancer precomputed chunks.
+
+The central component here is the :class:`ChunkEncoder` base class. Use
+:func:`get_encoder` for instantiating a concrete encoder object.
+"""
+
 import numpy as np
 
 

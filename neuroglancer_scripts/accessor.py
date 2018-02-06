@@ -3,6 +3,11 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+"""Access to the files that constitute a Neuroglancer pre-computed dataset.
+
+The central component here is the :class:`Accessor` base class. Use
+:func:`get_accessor_for_url` for instantiating a concrete accessor object.
+"""
 import urllib.parse
 
 __all__ = [

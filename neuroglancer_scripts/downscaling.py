@@ -5,6 +5,12 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+"""Downscaling is used to create a multi-resolution image pyramid.
+
+The central component here is the :class:`Downscaler` base class. Use
+:func:`get_downscaler` for instantiating a concrete downscaler object.
+"""
+
 import numpy as np
 
 from neuroglancer_scripts.utils import ceil_div

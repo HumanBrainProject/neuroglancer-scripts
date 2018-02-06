@@ -14,6 +14,7 @@ Welcome to neuroglancer-scripts's documentation!
    serving-data
    neuroglancer-info
    examples
+   api/neuroglancer_scripts
 
 
 Indices and tables

@@ -12,6 +12,7 @@ Welcome to neuroglancer-scripts's documentation!
 
    script-usage
    serving-data
+   neuroglancer-info
    examples
 
 

@@ -75,7 +75,7 @@ def get_encoder(info, scale_info, encoder_options={}):
         raise InvalidInfoError(str(exc)) from exc
 
 
-def add_argparse_options(parser, allow_lossy):
+def add_argparse_options(parser, allow_lossy=False):
     """Add command-line options for chunk encoding.
 
     :param parser: an instance of :class:`argparse.ArgumentParser`
@@ -89,7 +89,7 @@ def add_argparse_options(parser, allow_lossy):
         parser = argparse.ArgumentParser()
         add_argparse_options(parser)
         args = parser.parse_args()
-        get_encoder(info, scale_info, args.__dict__)
+        get_encoder(info, scale_info, vars(args))
     """
     import argparse
     if allow_lossy:
@@ -98,6 +98,7 @@ def add_argparse_options(parser, allow_lossy):
             if not 1 <= q <= 100:
                 raise argparse.ArgumentTypeError(
                     "JPEG quality must be between 1 and 100")
+            return q
 
         group = parser.add_argument_group("Options for JPEG compression")
         group.add_argument("--jpeg-quality", type=jpeg_quality,

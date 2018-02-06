@@ -174,8 +174,9 @@ class MajorityDownscaler(Downscaler):
 
     This downscaler is suitable for label images.
 
-    .. todo:: the majority downscaler could be *really* optimized (clever
-    iteration with nditer, Cython, countless for appropriate cases)
+    .. todo::
+       The majority downscaler could be *really* optimized (clever iteration
+       with nditer, Cython, countless for appropriate cases)
     """
     def downscale(self, chunk, downscaling_factors):
         if not self.check_factors(downscaling_factors):

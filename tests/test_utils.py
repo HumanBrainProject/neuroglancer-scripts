@@ -3,9 +3,8 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import pytest
-
 import numpy as np
+import pytest
 
 from neuroglancer_scripts.utils import *
 

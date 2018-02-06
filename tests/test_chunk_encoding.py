@@ -144,6 +144,20 @@ def test_get_encoder_incompatible_dtype():
         get_encoder(info, info["scales"][0])
 
 
+def test_add_argparse_options():
+    import argparse
+    parser = argparse.ArgumentParser()
+    add_argparse_options(parser)
+    parser.parse_args([])
+
+    parser = argparse.ArgumentParser()
+    add_argparse_options(parser, allow_lossy=True)
+    args = parser.parse_args(["--jpeg-quality", "50",
+                              "--jpeg-plane", "xz"])
+    assert args.jpeg_quality == 50
+    assert args.jpeg_plane == "xz"
+
+
 def test_raw_encoder_roundtrip():
     encoder = RawChunkEncoder("float32", 2)
     test_chunk = np.arange(11 * 50 * 64 * 2, dtype="<f").reshape(2, 64, 50, 11)

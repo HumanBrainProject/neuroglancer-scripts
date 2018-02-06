@@ -27,6 +27,28 @@ def test_get_accessor_for_url(accessor_options):
     assert a.base_url == "http://example/"
 
 
+def test_add_argparse_options():
+    import argparse
+    # Test default values
+    parser = argparse.ArgumentParser()
+    add_argparse_options(parser, write=False)
+    args = parser.parse_args([])
+    get_accessor_for_url(".", vars(args))
+
+    parser = argparse.ArgumentParser()
+    add_argparse_options(parser, write=True)
+    args = parser.parse_args([])
+    get_accessor_for_url(".", vars(args))
+
+    # Test correct parsing
+    parser = argparse.ArgumentParser()
+    add_argparse_options(parser, write=True)
+    args = parser.parse_args(["--flat"])
+    assert args.flat == True
+    args = parser.parse_args(["--no-gzip"])
+    assert args.gzip == False
+
+
 def test_convert_file_url_to_pathname():
     assert convert_file_url_to_pathname("") == ""
     assert convert_file_url_to_pathname("relative/path") == "relative/path"

@@ -22,7 +22,7 @@ def get_accessor_for_url(url, accessor_options={}):
     :param str url: URL or plain local pathname to the pyramid
     :param dict accessor_options: options passed to the accessor as kwargs.
     :returns: an instance of a sub-class of :class:`Accessor`
-    :rtype: :class:`Accessor`
+    :rtype: Accessor
     """
     url = _strip_precomputed(url)
     r = urllib.parse.urlsplit(url)
@@ -54,8 +54,7 @@ def add_argparse_options(parser, read=True, write=True):
         parser = argparse.ArgumentParser()
         add_argparse_options(parser)
         args = parser.parse_args()
-        get_accessor_for_url(url, args.__dict__)
-
+        get_accessor_for_url(url, vars(args))
     """
     if write:
         group = parser.add_argument_group("Options for file storage")

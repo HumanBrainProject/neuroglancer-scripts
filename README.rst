@@ -1,3 +1,8 @@
+.. image:: https://readthedocs.org/projects/neuroglancer-scripts/badge/?version=latest
+   :target: http://neuroglancer-scripts.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+
+
 neuroglancer-scripts
 ====================
 
@@ -5,8 +10,8 @@ Conversion of images to the Neuroglancer pre-computed format.
 
 Documentation
 -------------
-n
-TODO: upload and link to the documentation (also update long_description in setup.py)
+
+http://neuroglancer-scripts.readthedocs.io/
 
 Development
 -----------

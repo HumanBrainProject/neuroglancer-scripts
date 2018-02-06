@@ -10,7 +10,13 @@ neuroglancer-scripts
 
 Tools for conversion of images to the Neuroglancer pre-computed format.
 
-`Repository on GitHub <https://github.com/HumanBrainProject/neuroglancer-scripts>`_
+`Documentation <http://neuroglancer-scripts.readthedocs.io/>`_
+
+`Source code repository <https://github.com/HumanBrainProject/neuroglancer-scripts>`_
+
+.. image:: https://readthedocs.org/projects/neuroglancer-scripts/badge/?version=latest
+   :target: http://neuroglancer-scripts.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 """,
     url="https://github.com/HumanBrainProject/neuroglancer-scripts",
     author="Yann Leprince",

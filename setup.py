@@ -1,25 +1,36 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+import codecs
+import os.path
+import re
 
-setup(
+import setuptools
+
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+
+def read(*parts):
+    # intentionally *not* adding an encoding option to open, See:
+    #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
+    with codecs.open(os.path.join(here, *parts), 'r') as fp:
+        return fp.read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+
+setuptools.setup(
     name="neuroglancer-scripts",
-    version="0.1.0",
+    version=find_version("src", "neuroglancer_scripts", "__init__.py"),
     description="Conversion of images to the Neuroglancer pre-computed format",
-    long_description="""\
-neuroglancer-scripts
-====================
-
-Tools for conversion of images to the Neuroglancer pre-computed format.
-
-`Documentation <http://neuroglancer-scripts.readthedocs.io/>`_
-
-`Source code repository <https://github.com/HumanBrainProject/neuroglancer-scripts>`_
-
-.. image:: https://readthedocs.org/projects/neuroglancer-scripts/badge/?version=latest
-   :target: http://neuroglancer-scripts.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
-""",
+    long_description=read("README.rst"),
     url="https://github.com/HumanBrainProject/neuroglancer-scripts",
     author="Yann Leprince",
     author_email="y.leprince@fz-juelich.de",
@@ -35,7 +46,7 @@ Tools for conversion of images to the Neuroglancer pre-computed format.
     ],
     keywords="neuroimaging",
     package_dir={"": "src"},
-    packages=find_packages("src"),
+    packages=setuptools.find_packages("src"),
     install_requires=[
         "nibabel >= 2",
         "numpy >= 1.11.0",
@@ -46,7 +57,14 @@ Tools for conversion of images to the Neuroglancer pre-computed format.
     ],
     python_requires="~= 3.4",
     extras_require={
-        "dev": ["check-manifest", "pytest", "pytest-cov", "sphinx", "tox"],
+        "dev": [
+            "check-manifest",
+            "pytest",
+            "pytest-cov",
+            "readme_renderer",
+            "sphinx",
+            "tox",
+        ],
     },
     setup_requires=[
         "pytest-runner",

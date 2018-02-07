@@ -3,12 +3,11 @@
 import codecs
 import os.path
 import re
+import sys
 
 import setuptools
 
-
 here = os.path.abspath(os.path.dirname(__file__))
-
 
 def read(*parts):
     # intentionally *not* adding an encoding option to open, See:
@@ -24,6 +23,14 @@ def find_version(*file_paths):
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
+
+
+tests_require = [
+    "pytest",
+]
+
+needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
+pytest_runner = ["pytest-runner"] if needs_pytest else []
 
 
 setuptools.setup(
@@ -57,21 +64,16 @@ setuptools.setup(
     ],
     python_requires="~= 3.4",
     extras_require={
-        "dev": [
+        "dev": tests_require + [
             "check-manifest",
-            "pytest",
             "pytest-cov",
             "readme_renderer",
             "sphinx",
             "tox",
         ],
     },
-    setup_requires=[
-        "pytest-runner",
-    ],
-    tests_require=[
-        "pytest",
-    ],
+    setup_requires=pytest_runner,
+    tests_require=tests_require,
     entry_points={
         "console_scripts": [
             "compute-scales=neuroglancer_scripts.scripts.compute_scales:main",

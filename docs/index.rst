@@ -16,14 +16,13 @@ Welcome to neuroglancer-scripts's documentation!
    :target: http://neuroglancer-scripts.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-**Installation**: a release on PyPI is planned soon, until then you have to install manually:
+**Installation**: a release on PyPI is planned soon, until then you have to install the development version:
 
 .. code-block:: shell
 
-   git clone https://github.com/HumanBrainProject/neuroglancer-scripts.git
    python3 -m venv venv/
    . venv/bin/activate
-   pip install ./neuroglancer-scripts
+   pip install git+https://github.com/HumanBrainProject/neuroglancer-scripts.git
 
 
 .. toctree::

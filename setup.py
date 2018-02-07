@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="neuroglancer-scripts",
-    version="0.1",
+    version="0.1.0",
     description="Conversion of images to the Neuroglancer pre-computed format",
     long_description="""\
 neuroglancer-scripts

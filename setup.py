@@ -44,6 +44,7 @@ Tools for conversion of images to the Neuroglancer pre-computed format.
         "scikit-image",  # TODO use pillow instead
         "tqdm >= 4",
     ],
+    python_requires="~= 3.4",
     extras_require={
         "dev": ["check-manifest", "pytest", "pytest-cov", "sphinx", "tox"],
     },

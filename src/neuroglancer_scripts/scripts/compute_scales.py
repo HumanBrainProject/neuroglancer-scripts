@@ -97,7 +97,7 @@ def create_next_scale(info, source_scale_index, downscaler,
                               y_idx * chunk_fetch_factor[1] + 1,
                               x_idx * chunk_fetch_factor[0]))
         if (new_chunk.shape[1] > half_chunk[2]
-            and new_chunk.shape[2] > half_chunk[1]):
+                and new_chunk.shape[2] > half_chunk[1]):
             new_chunk[:, half_chunk[2]:, half_chunk[1]:,
                       :half_chunk[0]] = (
                           load_and_downscale_old_chunk(
@@ -112,7 +112,7 @@ def create_next_scale(info, source_scale_index, downscaler,
                               y_idx * chunk_fetch_factor[1],
                               x_idx * chunk_fetch_factor[0] + 1))
         if (new_chunk.shape[1] > half_chunk[2]
-            and new_chunk.shape[3] > half_chunk[0]):
+                and new_chunk.shape[3] > half_chunk[0]):
             new_chunk[:, half_chunk[2]:, :half_chunk[1],
                       half_chunk[0]:] = (
                           load_and_downscale_old_chunk(
@@ -120,7 +120,7 @@ def create_next_scale(info, source_scale_index, downscaler,
                               y_idx * chunk_fetch_factor[1],
                               x_idx * chunk_fetch_factor[0] + 1))
         if (new_chunk.shape[2] > half_chunk[1]
-            and new_chunk.shape[3] > half_chunk[0]):
+                and new_chunk.shape[3] > half_chunk[0]):
             new_chunk[:, :half_chunk[2], half_chunk[1]:,
                       half_chunk[0]:] = (
                           load_and_downscale_old_chunk(
@@ -128,8 +128,8 @@ def create_next_scale(info, source_scale_index, downscaler,
                               y_idx * chunk_fetch_factor[1] + 1,
                               x_idx * chunk_fetch_factor[0] + 1))
         if (new_chunk.shape[1] > half_chunk[2]
-            and new_chunk.shape[2] > half_chunk[1]
-            and new_chunk.shape[3] > half_chunk[0]):
+                and new_chunk.shape[2] > half_chunk[1]
+                and new_chunk.shape[3] > half_chunk[0]):
             new_chunk[:, half_chunk[2]:, half_chunk[1]:,
                       half_chunk[0]:] = (
                           load_and_downscale_old_chunk(

@@ -94,7 +94,6 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
     input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
                                   for l in input_orientation)
 
-
     # Here x, y, and z refer to the data orientation in output chunks (which
     # should correspond to RAS+ anatomical axes). For the data orientation in
     # input slices the terms (column (index along image width), row (index
@@ -127,12 +126,15 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
         else:
             first_slice = first_slice_in_order
             last_slice = last_slice_in_order
-        slice_slicing = np.s_[first_slice:last_slice:input_axis_inversions[2]]
+        slice_slicing = np.s_[first_slice
+                              : last_slice
+                              : input_axis_inversions[2]]
         tqdm.write("Reading slices {0} to {1} ({2}B memory needed)... "
                    .format(first_slice, last_slice - input_axis_inversions[2],
                            readable_count(input_size[0]
                                           * input_size[1]
-                                          * (last_slice_in_order - first_slice_in_order + 1)
+                                          * (last_slice_in_order
+                                             - first_slice_in_order + 1)
                                           * num_channels
                                           * dtype.itemsize)))
 
@@ -144,14 +146,16 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
             assert block.shape[1] == input_size[1]  # check slice height
             if block.ndim == 4:
                 # Scikit-image loads multi-channel (e.g. RGB) images in [slice,
-                # row, column, channel] order, while Neuroglancer expects channel
-                # to come first (in C-contiguous indexing).
+                # row, column, channel] order, while Neuroglancer expects
+                # channel to come first (in C-contiguous indexing).
                 block = np.swapaxes(block, 0, 3)
             elif block.ndim == 3:
                 block = block[np.newaxis, :, :, :]
             else:
-                raise ValueError("block has unexpected dimensionality (ndim={})"
-                                 .format(block.ndim))
+                raise ValueError(
+                    "block has unexpected dimensionality (ndim={})"
+                    .format(block.ndim)
+                )
             return block
 
         # Concatenate all channels from different directories
@@ -166,7 +170,8 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                       ::input_axis_inversions[0]]
         block = np.moveaxis(block, (3, 2, 1),
                             (3 - a for a in input_axis_permutation))
-        # equivalent: np.transpose(block, axes=([0] + [3 - a for a in reversed(invert_permutation(input_axis_permutation))]))
+        # equivalent: np.transpose(block, axes=([0] + [3 - a for a in
+        # reversed(invert_permutation(input_axis_permutation))]))
 
         progress_bar = tqdm(
             total=(((input_size[1] - 1) // input_chunk_size[1] + 1)
@@ -176,12 +181,17 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
         for row_chunk_idx in range((input_size[1] - 1)
                                    // input_chunk_size[1] + 1):
             row_slicing = np.s_[
-                input_chunk_size[1] * row_chunk_idx:min(input_chunk_size[1] * (row_chunk_idx + 1), input_size[1])]
+                input_chunk_size[1] * row_chunk_idx
+                : min(input_chunk_size[1] * (row_chunk_idx + 1),
+                      input_size[1])
+            ]
             for column_chunk_idx in range((input_size[0] - 1)
                                           // input_chunk_size[0] + 1):
                 column_slicing = np.s_[
-                    input_chunk_size[0] * column_chunk_idx:min(input_chunk_size[0] * (column_chunk_idx + 1),
-                                                               input_size[0])]
+                    input_chunk_size[0] * column_chunk_idx
+                    : min(input_chunk_size[0] * (column_chunk_idx + 1),
+                          input_size[0])
+                ]
 
                 input_slicing = (column_slicing, row_slicing, np.s_[:])
                 x_slicing, y_slicing, z_slicing = permute(

@@ -36,12 +36,9 @@ class PrecomputedPyramidIo:
             raise NotImplementedError("voxel_offset is not supported")
         for chunk_size in scale_info["chunk_sizes"]:
             xcs, ycs, zcs = chunk_size
-            if (xmin % xcs == 0
-                and (xmax % xcs == 0 or xmax == xs)
-                and ymin % ycs == 0
-                and (ymax % ycs == 0 or ymax == ys)
-                and zmin % zcs == 0
-                and (zmax % zcs == 0 or zmax == zs)):
+            if (xmin % xcs == 0 and (xmax % xcs == 0 or xmax == xs)
+                    and ymin % ycs == 0 and (ymax % ycs == 0 or ymax == ys)
+                    and zmin % zcs == 0 and (zmax % zcs == 0 or zmax == zs)):
                 return True
         return False
 

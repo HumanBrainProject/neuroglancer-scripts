@@ -25,6 +25,7 @@ __all__ = [
     "MajorityDownscaler",
 ]
 
+
 def get_downscaler(downscaling_method, options={}):
     """Create a downscaler object.
 
@@ -120,8 +121,7 @@ class StridingDownscaler(Downscaler):
         return chunk[:,
                      ::downscaling_factors[2],
                      ::downscaling_factors[1],
-                     ::downscaling_factors[0]
-        ]
+                     ::downscaling_factors[0]]
 
 
 class AveragingDownscaler(Downscaler):
@@ -201,8 +201,7 @@ class MajorityDownscaler(Downscaler):
             block = chunk[t,
                           zd:(zd + downscaling_factors[2]),
                           yd:(yd + downscaling_factors[1]),
-                          xd:(xd + downscaling_factors[0])
-            ]
+                          xd:(xd + downscaling_factors[0])]
 
             labels, counts = np.unique(block.flat, return_counts=True)
             new_chunk[t, z, y, x] = labels[np.argmax(counts)]

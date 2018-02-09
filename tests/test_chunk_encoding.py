@@ -220,6 +220,7 @@ def test_compressed_segmentation_4bit_roundtrip():
     decoded_chunk = encoder.decode(buf, (1, 5, 8))
     assert np.array_equal(decoded_chunk, test_chunk)
 
+
 def test_compressed_segmentation_8bit_roundtrip():
     encoder = CompressedSegmentationEncoder("uint32", 1, [8, 8, 8])
     test_chunk = (np.arange(14 * 5 * 8, dtype="<I").reshape(1, 8, 5, 14) % 256
@@ -311,6 +312,7 @@ def test_jpeg_roundtrip_rgb(plane):
     assert decoded_chunk.shape == test_chunk.shape
     assert (np.mean(np.square(decoded_chunk.astype("f") - test_chunk))
             < 1.36 * 1.1)
+
 
 def test_jpeg_decoder_invalid_data():
     encoder = JpegChunkEncoder("uint8", 1)

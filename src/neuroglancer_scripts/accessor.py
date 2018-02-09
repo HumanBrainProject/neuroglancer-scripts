@@ -21,6 +21,7 @@ __all__ = [
 
 _CHUNK_PATTERN_FLAT = "{key}/{0}-{1}_{2}-{3}_{4}-{5}"
 
+
 def get_accessor_for_url(url, accessor_options={}):
     """Create an accessor object from a URL or pathname.
 

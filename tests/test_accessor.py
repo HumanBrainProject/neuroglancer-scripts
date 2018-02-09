@@ -44,9 +44,9 @@ def test_add_argparse_options():
     parser = argparse.ArgumentParser()
     add_argparse_options(parser, write=True)
     args = parser.parse_args(["--flat"])
-    assert args.flat == True
+    assert args.flat is True
     args = parser.parse_args(["--no-gzip"])
-    assert args.gzip == False
+    assert args.gzip is False
 
 
 def test_convert_file_url_to_pathname():
@@ -64,5 +64,6 @@ def test_convert_file_url_to_pathname():
         convert_file_url_to_pathname("file://invalid/")
     assert convert_file_url_to_pathname("file:///test") == "/test"
     assert convert_file_url_to_pathname("file://localhost/test") == "/test"
-    assert convert_file_url_to_pathname("file:///with%20space") == "/with space"
+    assert (convert_file_url_to_pathname("file:///with%20space")
+            == "/with space")
     assert convert_file_url_to_pathname("precomputed://file:///") == "/"

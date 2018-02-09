@@ -17,9 +17,11 @@ from neuroglancer_scripts.scripts import scale_stats
 from neuroglancer_scripts.scripts import slices_to_precomputed
 from neuroglancer_scripts.scripts import volume_to_precomputed
 
+
 @pytest.fixture(scope="module")
 def examples_dir(request):
     return request.fspath / ".." / ".." / "examples"
+
 
 def test_jubrain_example_MPM(examples_dir, tmpdir):
     input_nifti = examples_dir / "JuBrain" / "MPM.nii.gz"

@@ -17,7 +17,6 @@ import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.pyramid_io
 
 
-
 def convert_chunks_for_scale(chunk_reader,
                              dest_info, chunk_writer, scale_index):
     """Convert chunks for a given scale"""

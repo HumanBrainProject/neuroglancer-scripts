@@ -33,7 +33,8 @@ import neuroglancer_scripts
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
+extensions = [
+    'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
@@ -155,7 +156,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'neuroglancer-scripts.tex', 'neuroglancer-scripts Documentation',
+    (master_doc, 'neuroglancer-scripts.tex',
+     'neuroglancer-scripts Documentation',
      'Yann Leprince', 'manual'),
 ]
 

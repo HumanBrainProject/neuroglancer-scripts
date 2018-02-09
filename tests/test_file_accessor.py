@@ -9,6 +9,7 @@ import pytest
 from neuroglancer_scripts.file_accessor import *
 from neuroglancer_scripts.accessor import *
 
+
 @pytest.mark.parametrize("flat", [False, True])
 @pytest.mark.parametrize("gzip", [False, True])
 def test_file_accessor_roundtrip(tmpdir, gzip, flat):
@@ -26,6 +27,7 @@ def test_file_accessor_roundtrip(tmpdir, gzip, flat):
                   already_compressed=True)
     assert a.fetch_chunk("key", chunk_coords2) == fake_chunk_buf
 
+
 def test_file_accessor_nonexistent_directory():
     a = FileAccessor("/nonexistent/directory")
     with pytest.raises(DataAccessError):
@@ -37,6 +39,7 @@ def test_file_accessor_nonexistent_directory():
         a.fetch_chunk("key", chunk_coords)
     with pytest.raises(DataAccessError):
         a.store_chunk(b"", "key", chunk_coords)
+
 
 def test_file_accessor_invalid_fetch(tmpdir):
     a = FileAccessor(str(tmpdir))

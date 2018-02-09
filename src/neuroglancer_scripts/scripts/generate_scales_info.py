@@ -36,8 +36,9 @@ def format_key(resolution_nm, unit):
 def choose_unit_for_key(resolution_nm):
     """Find the coarsest unit that ensures distinct keys"""
     for unit, factor in KEY_UNITS.items():
-        if round(resolution_nm * factor) != 0 and (
-                format_key(resolution_nm, unit) != format_key(resolution_nm * 2, unit)):
+        if (round(resolution_nm * factor) != 0
+            and (format_key(resolution_nm, unit)
+                 != format_key(resolution_nm * 2, unit))):
             return unit
     raise RuntimeError("cannot find a suitable unit for {} nm"
                        .format(resolution_nm))

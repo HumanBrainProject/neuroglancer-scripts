@@ -18,6 +18,7 @@ def test_get_downscaler(method, options):
     d = get_downscaler(method, options)
     assert isinstance(d, Downscaler)
 
+
 def test_add_argparse_options():
     import argparse
     parser = argparse.ArgumentParser()

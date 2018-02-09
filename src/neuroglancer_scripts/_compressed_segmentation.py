@@ -30,10 +30,12 @@ def number_of_encoding_bits(elements):
             return bits
     raise ValueError("Too many elements!")
 
+
 COMPRESSED_SEGMENTATION_DATA_TYPES = (
     np.dtype(np.uint32).newbyteorder("<"),
     np.dtype(np.uint64).newbyteorder("<"),
 )
+
 
 def encode_chunk(chunk, block_size):
     # Construct file in memory step by step
@@ -61,9 +63,9 @@ def _encode_channel(chunk_channel, block_size):
     buf = bytearray(gx * gy * gz * 8)
     for z, y, x in np.ndindex((gz, gy, gx)):
         block = chunk_channel[
-            z * block_size[2]:(z + 1) * block_size[2],
-            y * block_size[1]:(y + 1) * block_size[1],
-            x * block_size[0]:(x + 1) * block_size[0]
+            z*block_size[2] : (z+1)*block_size[2],
+            y*block_size[1] : (y+1)*block_size[1],
+            x*block_size[0] : (x+1)*block_size[0]
         ]
         if block.shape != block_size:
             block = pad_block(block, block_size)
@@ -97,6 +99,7 @@ def _encode_channel(chunk_channel, block_size):
                          encoded_values_offset)
     return buf
 
+
 def _pack_encoded_values(encoded_values, bits):
     # TODO optimize with np.packbits for bits == 1
     if bits == 0:
@@ -128,7 +131,7 @@ def decode_chunk_into(chunk, buf, block_size):
 
     channel_offsets = [
         4 * ret[0]
-        for ret in struct.iter_unpack("<I", buf[:(4 * num_channels)])
+        for ret in struct.iter_unpack("<I", buf[:4*num_channels])
     ]
     for channel, (offset, next_offset) in enumerate(
             itertools.zip_longest(channel_offsets,
@@ -142,6 +145,7 @@ def decode_chunk_into(chunk, buf, block_size):
         )
 
     return chunk
+
 
 def _decode_channel_into(chunk, channel, buf, block_size):
     # Grid size (number of blocks in the chunk)
@@ -163,9 +167,9 @@ def _decode_channel_into(chunk, channel, buf, block_size):
             raise InvalidFormatError("Invalid offset for encoded values in "
                                      "compressed_segmentation block "
                                      "(truncated file?)")
-        lookup_table_past_end = lookup_table_offset + min(
-            (2 ** bits) * chunk.itemsize,
-            ((len(buf) - lookup_table_offset) // chunk.itemsize) * chunk.itemsize
+        lookup_table_past_end = lookup_table_offset + chunk.itemsize * min(
+            (2 ** bits),
+            ((len(buf) - lookup_table_offset) // chunk.itemsize)
         )
         lookup_table = np.frombuffer(
             buf[lookup_table_offset:lookup_table_past_end], dtype=chunk.dtype)
@@ -201,12 +205,13 @@ def _decode_channel_into(chunk, channel, buf, block_size):
         zmax = min(block_size[2], chunk.shape[1] - z * block_size[2])
         ymax = min(block_size[1], chunk.shape[2] - y * block_size[1])
         xmax = min(block_size[0], chunk.shape[3] - x * block_size[0])
-        chunk[channel,
-              z * block_size[2]:(z + 1) * block_size[2],
-              y * block_size[1]:(y + 1) * block_size[1],
-              x * block_size[0]:(x + 1) * block_size[0]] = block[:zmax,
-                                                                 :ymax,
-                                                                 :xmax]
+        chunk[
+            channel,
+            z*block_size[2] : (z+1)*block_size[2],
+            y*block_size[1] : (y+1)*block_size[1],
+            x*block_size[0] : (x+1)*block_size[0]
+        ] = block[:zmax, :ymax, :xmax]
+
 
 def _unpack_encoded_values(packed_values, bits, num_values):
     if bits == 0:

@@ -7,7 +7,9 @@ import sys
 
 import setuptools
 
+
 here = os.path.abspath(os.path.dirname(__file__))
+
 
 def read(*parts):
     # intentionally *not* adding an encoding option to open, See:

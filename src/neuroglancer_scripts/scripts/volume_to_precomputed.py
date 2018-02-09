@@ -30,7 +30,7 @@ NG_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
 
 
 def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
-    """Compensate the half-voxel shift introduced by Neuroglancer for Nifti data
+    """Compensate the half-voxel shift between Neuroglancer and Nifti.
 
     Nifti specifies that the transformation matrix (legacy, qform, or sform)
     gives the spatial coordinates of the *centre* of a voxel, while the
@@ -63,14 +63,20 @@ def volume_to_raw_chunks(pyramid_writer, volume, chunk_transformer=None):
                * ((size[2] - 1) // chunk_size[2] + 1)),
         desc="writing", unit="chunks", leave=True)
     for z_chunk_idx in range((size[2] - 1) // chunk_size[2] + 1):
-        z_slicing = np.s_[chunk_size[2] * z_chunk_idx:
-                          min(chunk_size[2] * (z_chunk_idx + 1), size[2])]
+        z_slicing = np.s_[
+            chunk_size[2] * z_chunk_idx
+            : min(chunk_size[2] * (z_chunk_idx + 1), size[2])
+        ]
         for y_chunk_idx in range((size[1] - 1) // chunk_size[1] + 1):
-            y_slicing = np.s_[chunk_size[1] * y_chunk_idx:
-                              min(chunk_size[1] * (y_chunk_idx + 1), size[1])]
+            y_slicing = np.s_[
+                chunk_size[1] * y_chunk_idx
+                : min(chunk_size[1] * (y_chunk_idx + 1), size[1])
+            ]
             for x_chunk_idx in range((size[0] - 1) // chunk_size[0] + 1):
-                x_slicing = np.s_[chunk_size[0] * x_chunk_idx:
-                                  min(chunk_size[0] * (x_chunk_idx + 1), size[0])]
+                x_slicing = np.s_[
+                    chunk_size[0] * x_chunk_idx
+                    : min(chunk_size[0] * (x_chunk_idx + 1), size[0])
+                ]
                 if len(volume.shape) == 4:
                     chunk = volume[x_slicing, y_slicing, z_slicing, :]
                 elif len(volume.shape) == 3:
@@ -80,12 +86,11 @@ def volume_to_raw_chunks(pyramid_writer, volume, chunk_transformer=None):
                 if chunk_transformer is not None:
                     chunk = chunk_transformer(chunk)
 
-
                 chunk = np.moveaxis(chunk, (0, 1, 2, 3), (3, 2, 1, 0))
-                assert chunk.size == ((x_slicing.stop - x_slicing.start) *
-                                      (y_slicing.stop - y_slicing.start) *
-                                      (z_slicing.stop - z_slicing.start) *
-                                      num_channels)
+                assert chunk.size == ((x_slicing.stop - x_slicing.start)
+                                      * (y_slicing.stop - y_slicing.start)
+                                      * (z_slicing.stop - z_slicing.start)
+                                      * num_channels)
 
                 chunk_coords = (x_slicing.start, x_slicing.stop,
                                 y_slicing.start, y_slicing.stop,

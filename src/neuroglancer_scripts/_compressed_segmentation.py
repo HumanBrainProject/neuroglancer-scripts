@@ -59,7 +59,7 @@ def _encode_channel(chunk_channel, block_size):
     gx = ceil_div(chunk_channel.shape[2], block_size[0])
     gy = ceil_div(chunk_channel.shape[1], block_size[1])
     gz = ceil_div(chunk_channel.shape[0], block_size[2])
-    stored_LUT_offsets = {}
+    stored_lut_offsets = {}
     buf = bytearray(gx * gy * gz * 8)
     for z, y, x in np.ndindex((gz, gy, gx)):
         block = chunk_channel[
@@ -81,13 +81,13 @@ def _encode_channel(chunk_channel, block_size):
 
         # Write look-up table to the buffer (or re-use another one)
         lut_bytes = lookup_table.astype(block.dtype).tobytes()
-        if(lut_bytes in stored_LUT_offsets):
-            lookup_table_offset = stored_LUT_offsets[lut_bytes]
+        if lut_bytes in stored_lut_offsets:
+            lookup_table_offset = stored_lut_offsets[lut_bytes]
         else:
             assert len(buf) % 4 == 0
             lookup_table_offset = len(buf) // 4
             buf += lut_bytes
-            stored_LUT_offsets[lut_bytes] = lookup_table_offset
+            stored_lut_offsets[lut_bytes] = lookup_table_offset
 
         assert len(buf) % 4 == 0
         encoded_values_offset = len(buf) // 4

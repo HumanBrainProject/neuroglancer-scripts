@@ -39,13 +39,15 @@ def mesh_file_to_precomputed(input_filename, output_filename,
         points = np.dot(coord_transform[:3, :3], points)
         points += coord_transform[:3, 3, np.newaxis]
         points = points.T
-        if np.linalg.det(coord_transform[:3, :3]) < 0:
-            # Flip the triangles to fix inside/outside
-            triangles = np.flip(triangles, axis=1)
 
     triangles_list = mesh.get_arrays_from_intent("NIFTI_INTENT_TRIANGLE")
     assert len(triangles_list) == 1
     triangles = triangles_list[0].data
+
+    if (coord_transform is not None
+            and np.linalg.det(coord_transform[:3, :3]) < 0):
+        # Flip the triangles to fix inside/outside
+        triangles = np.flip(triangles, axis=1)
 
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6

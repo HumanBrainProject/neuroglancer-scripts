@@ -179,9 +179,6 @@ def test_raw_encoder_invalid_size():
     buf = encoder.encode(test_chunk)
     with pytest.raises(InvalidFormatError):
         encoder.decode(buf, (12, 1, 1))
-    decoder = RawChunkEncoder("uint16", 1)
-    with pytest.raises(InvalidFormatError):
-        encoder.decode(buf, (6, 1, 1))
 
 
 def test_compressed_segmentation_invalid_data_type():

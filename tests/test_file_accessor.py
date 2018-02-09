@@ -3,7 +3,6 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import numpy as np
 import pytest
 
 from neuroglancer_scripts.file_accessor import *
@@ -47,4 +46,4 @@ def test_file_accessor_invalid_fetch(tmpdir):
     with pytest.raises(DataAccessError):
         a.fetch_info()
     with pytest.raises(DataAccessError):
-        a.fetch_chunk("key", (0, 1, 0, 1, 0, 1))
+        a.fetch_chunk("key", chunk_coords)

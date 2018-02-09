@@ -5,8 +5,6 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import json
-import os.path
 import sys
 
 import numpy as np

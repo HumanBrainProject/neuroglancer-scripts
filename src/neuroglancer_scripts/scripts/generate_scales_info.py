@@ -10,11 +10,7 @@ import collections
 import copy
 import json
 import math
-import os
-import os.path
 import sys
-
-import numpy as np
 
 import neuroglancer_scripts.accessor
 

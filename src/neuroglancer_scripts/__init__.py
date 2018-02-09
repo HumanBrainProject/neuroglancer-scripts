@@ -8,4 +8,5 @@
 .. todo:: introduction to the high-level APIs
 """
 
-__version__ = "0.1.0"
+# Version used by setup.py and docs/conf.py
+__version__ = "0.2.0.dev0"

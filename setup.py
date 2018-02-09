@@ -68,6 +68,8 @@ setuptools.setup(
     extras_require={
         "dev": tests_require + [
             "check-manifest",
+            "flake8",
+            "pep8-naming",
             "pytest-cov",
             "readme_renderer",
             "sphinx",

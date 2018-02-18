@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-import neuroglancer_scripts.pyramid_io
+from neuroglancer_scripts import precomputed_io
 
 
 def convert_chunks_for_scale(chunk_reader,
@@ -48,19 +48,23 @@ def convert_chunks(source_url, dest_url, copy_info=False,
                    options={}):
     """Convert precomputed chunks between different encodings"""
     source_accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
-        source_url)
-    source_info = source_accessor.fetch_info()
-    chunk_reader = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
-        source_info, source_accessor)
+        source_url
+    )
+    chunk_reader = precomputed_io.get_IO_for_existing_dataset(source_accessor)
+    source_info = chunk_reader.info
     dest_accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
-        dest_url, options)
+        dest_url, options
+    )
     if copy_info:
-        dest_info = source_info
-        dest_accessor.store_info(dest_info)
+        chunk_writer = precomputed_io.get_IO_for_new_dataset(
+            source_info, dest_accessor, encoder_options=options
+        )
     else:
-        dest_info = dest_accessor.fetch_info()
-    chunk_writer = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
-        dest_info, dest_accessor, encoder_params=options)
+        chunk_writer = precomputed_io.get_IO_for_existing_dataset(
+            dest_accessor, encoder_options=options
+        )
+    dest_info = chunk_writer.info
+
     if source_info["data_type"] != dest_info["data_type"]:
         print("WARNING: the data type will be cast from {0} to {1}, "
               "truncation and rounding are NOT checked."

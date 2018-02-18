@@ -13,6 +13,7 @@ import math
 import sys
 
 import neuroglancer_scripts.accessor
+from neuroglancer_scripts import precomputed_io
 
 
 KEY_UNITS = collections.OrderedDict([
@@ -174,7 +175,8 @@ def generate_scales_info(input_fullres_info_filename,
                             dataset_type=dataset_type, encoding=encoding,
                             max_scales=max_scales)
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(dest_url)
-    accessor.store_info(info)
+    # This writes the info file
+    precomputed_io.get_IO_for_new_dataset(info, accessor)
 
 
 def parse_command_line(argv):

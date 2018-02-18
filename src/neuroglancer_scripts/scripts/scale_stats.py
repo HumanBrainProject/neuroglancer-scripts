@@ -10,6 +10,7 @@ import sys
 import numpy as np
 
 import neuroglancer_scripts.accessor
+from neuroglancer_scripts import precomputed_io
 from neuroglancer_scripts.utils import readable_count
 
 
@@ -45,7 +46,8 @@ def show_scales_info(info):
 def show_scale_file_info(url, options={}):
     """Show information about a list of scales."""
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(url, options)
-    info = accessor.fetch_info()
+    io = precomputed_io.get_IO_for_existing_dataset(accessor)
+    info = io.info
     show_scales_info(info)
 
 

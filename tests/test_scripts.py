@@ -57,3 +57,13 @@ def test_jubrain_example_MPM(examples_dir, tmpdir):
         "--downscaling-method=stride",  # for test speed
         str(output_dir)
     ]) == 0
+    assert subprocess.call([
+        "scale-stats",
+        str(output_dir),
+    ]) == 0
+    assert subprocess.call([
+        "convert-chunks",
+        "--copy-info",
+        str(output_dir),
+        str(output_dir / "copy")
+    ]) == 0

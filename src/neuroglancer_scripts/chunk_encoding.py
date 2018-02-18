@@ -39,7 +39,7 @@ def get_encoder(info, scale_info, encoder_options={}):
     :param dict scale_info: an element of (``info["scales"]``) containing
                             scale-specific encoding parameters
                             (``encoding`` and encoding-specific parameters)
-    :param dict encoder_params: extrinsic encoder parameters
+    :param dict encoder_options: extrinsic encoder parameters
     :returns: an instance of a chunk encoder
     :rtype: ChunkEncoder
     :raises InvalidInfoError: if the provided *info* dict is invalid
@@ -121,6 +121,7 @@ class IncompatibleEncoderError(Exception):
     pass
 
 
+# TODO inherit from a new DataError class?
 class InvalidInfoError(Exception):
     """Raised when an *info* dict is invalid or inconsistent."""
     pass
@@ -141,8 +142,8 @@ class ChunkEncoder:
     lossy = False
     """True if this encoder is lossy."""
 
-    already_compressed = False
-    """True if additional compression (e.g. gzip) is superfluous."""
+    mime_type = "application/octet-stream"
+    """MIME type of the encoded chunk."""
 
     def __init__(self, data_type, num_channels):
         self.num_channels = num_channels
@@ -177,7 +178,6 @@ class RawChunkEncoder(ChunkEncoder):
     :param int num_channels: number of image channels
     """
     lossy = False
-    already_compressed = False
 
     def encode(self, chunk):
         chunk = np.asarray(chunk).astype(self.dtype, casting="safe")
@@ -207,7 +207,6 @@ class CompressedSegmentationEncoder(ChunkEncoder):
                                       unsupported
     """
     lossy = False
-    already_compressed = False
 
     def __init__(self, data_type, num_channels, block_size):
         if data_type not in ("uint32", "uint64"):
@@ -246,7 +245,7 @@ class JpegChunkEncoder(ChunkEncoder):
                                       unsupported
     """
     lossy = False
-    already_compressed = True
+    mime_type = "image/jpeg"
 
     def __init__(self, data_type, num_channels,
                  jpeg_quality=95, jpeg_plane="xy"):

@@ -14,7 +14,7 @@ from tqdm import tqdm
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.downscaling
-import neuroglancer_scripts.pyramid_io
+from neuroglancer_scripts import precomputed_io
 
 
 def create_next_scale(info, source_scale_index, downscaler,
@@ -145,14 +145,16 @@ def create_next_scale(info, source_scale_index, downscaler,
 def compute_scales(work_dir=".", downscaling_method="average", options={}):
     """Generate lower scales following an input info file"""
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
-        work_dir, options)
-    info = accessor.fetch_info()
-    pyramid_io = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
-        info, accessor, encoder_params=options)
+        work_dir, options
+    )
+    pyramid_io = precomputed_io.get_IO_for_existing_dataset(
+        accessor, encoder_options=options
+    )
     downscaler = neuroglancer_scripts.downscaling.get_downscaler(
         downscaling_method, options)
-    for i in range(len(info["scales"]) - 1):
-        create_next_scale(info, i, downscaler, pyramid_io, pyramid_io)
+    for i in range(len(pyramid_io.info["scales"]) - 1):
+        create_next_scale(pyramid_io.info, i, downscaler,
+                          pyramid_io, pyramid_io)
 
 
 def parse_command_line(argv):

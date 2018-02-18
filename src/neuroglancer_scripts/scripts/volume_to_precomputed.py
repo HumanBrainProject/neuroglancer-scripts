@@ -19,7 +19,7 @@ from tqdm import tqdm
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.accessor import convert_file_url_to_pathname
 import neuroglancer_scripts.chunk_encoding
-import neuroglancer_scripts.pyramid_io
+from neuroglancer_scripts import precomputed_io
 
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -220,7 +220,8 @@ def volume_file_to_raw_chunks(volume_filename,
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options)
     try:
-        info = accessor.fetch_info()
+        writer = precomputed_io.get_IO_for_existing_dataset(accessor)
+        info = writer.info
     except neuroglancer_scripts.accessor.DataAccessError as exc:
         logging.error("No 'info' file was found in the current directory "
                       "({0}). You can generate one by running this program "
@@ -292,9 +293,7 @@ def volume_file_to_raw_chunks(volume_filename,
     else:
         volume = proxy
     logging.info("Writing chunks... ")
-    pyramid_writer = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
-        info, accessor, encoder_params=options)
-    volume_to_raw_chunks(pyramid_writer, volume,
+    volume_to_raw_chunks(writer, volume,
                          chunk_transformer=chunk_transformer)
 
 

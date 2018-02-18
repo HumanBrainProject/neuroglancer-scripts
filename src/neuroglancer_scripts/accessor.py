@@ -3,11 +3,12 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-"""Access to the files that constitute a Neuroglancer pre-computed dataset.
+"""Low-level file access to Neuroglancer pre-computed datasets.
 
 The central component here is the :class:`Accessor` base class. Use
 :func:`get_accessor_for_url` for instantiating a concrete accessor object.
 """
+
 import urllib.parse
 
 __all__ = [
@@ -98,20 +99,28 @@ class Accessor:
     can_write = False
     """This accessor is able to write data."""
 
-    def fetch_info(self):
-        """Fetch the pyramid's JSON *info* file.
+    def fetch_file(self, relative_path):
+        """Fetch a file relative to the precomputed pyramid's base directory.
 
-        :returns: the parsed *info* file
-        :rtype: dict
-        :raises DataAccessError: if the *info* file cannot be retrieved
+        :param str relative_path: path to the file relative to the base
+                                  directory of the pyramid
+        :returns: contents of the fetched file
+        :rtype: bytes
+        :raises DataAccessError: if requested file cannot be retrieved
         :raises NotImplementedError: if :attr:`can_read` is False
         """
         raise NotImplementedError
 
-    def store_info(self, info):
-        """Store the pyramid's JSON *info* file.
+    def store_file(self, relative_path, buf,
+                   mime_type="application/octet-stream",
+                   overwrite=False):
+        """Store a file relative to the precomputed pyramid's base directory.
 
-        :param dict info: the *info* to be stored
+        :param str relative_path: path to the file relative to the base
+                                  directory of the pyramid
+        :param bytes buf: the contents of the file to be stored
+        :param str mime_type: MIME type of the file
+        :param bool overwrite: whether to allow overwriting an existing file
         :raises DataAccessError: if the *info* file cannot be retrieved
         :raises NotImplementedError: if :attr:`can_write` is False
         """
@@ -130,14 +139,15 @@ class Accessor:
         """
         raise NotImplementedError
 
-    def store_chunk(self, buf, key, chunk_coords, already_compressed=False):
+    def store_chunk(self, buf, key, chunk_coords,
+                    mime_type="application/octet-stream",
+                    overwrite=False):
         """Store a chunk in the pyramid from a bytes buffer.
 
         :param str key: the scale's key
         :param tuple chunk_coords: tuple of the chunk coordinates (xmin, xmax,
                                    ymin, ymax, zmin, zmax)
-        :param bool already_compressed: do not compress the chunk (ignore the
-                                        accessor's gzip option)
+        :param str mime_type: MIME type of the chunk data
         :raises DataAccessError: if the chunk cannot be stored
         :raises NotImplementedError: if :attr:`can_write` is False
         """

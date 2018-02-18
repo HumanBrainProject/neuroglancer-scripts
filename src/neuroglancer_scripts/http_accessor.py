@@ -38,28 +38,22 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
             r.path if r.path[-1] == "/" else r.path + "/",
             "", ""))
 
-    def chunk_url(self, key, chunk_coords):
+    def chunk_relative_url(self, key, chunk_coords):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
         url_suffix = _CHUNK_PATTERN_FLAT.format(
             xmin, xmax, ymin, ymax, zmin, zmax, key=key)
-        return self.base_url + url_suffix
+        return url_suffix
 
     def fetch_chunk(self, key, chunk_coords):
-        chunk_url = self.chunk_url(key, chunk_coords)
-        try:
-            r = requests.get(chunk_url)
-            r.raise_for_status()
-        except requests.exceptions.RequestException as exc:
-            raise DataAccessError("Error reading chunk from {0}:"
-                                  .format(chunk_url, exc)) from exc
-        return r.content
+        chunk_url = self.chunk_relative_url(key, chunk_coords)
+        return self.fetch_file(chunk_url)
 
-    def fetch_info(self):
-        info_url = self.base_url + "info"
+    def fetch_file(self, relative_path):
+        file_url = self.base_url + relative_path
         try:
-            r = requests.get(info_url)
+            r = requests.get(file_url)
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
             raise DataAccessError("Error reading {0}: {1}"
-                                  .format(info_url, exc)) from exc
-        return r.json()
+                                  .format(file_url, exc)) from exc
+        return r.content

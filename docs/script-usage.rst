@@ -67,7 +67,7 @@ Two types of data layout are accepted as input:
 
 5. Optionally, you can convert the raw chunks to a compressed format using
    ``convert-chunks``. You will need to generate these compressed chunks in
-   a separate directory from the raw chunks, and generate a suitable ``info``
+   a separate directory from the raw chunks, and generate a suitable *info*
    file by using the ``--encoding`` parameter to ``generate-scales-info``.
    Two compressed encodings are available:
 
@@ -87,7 +87,7 @@ mesh layer.
 A mesh associated with a segmentation label needs to be in a
 Neuroglancer-specific binary precomputed format. ``mesh-to-precomputed`` can
 be used to convert meshes to this format. Additionally, you need to add a
-``mesh`` key to the ``info`` file of the segmentation volume, and provide one
+``mesh`` key to the *info* file of the segmentation volume, and provide one
 JSON file per segment, as described in `the Neuroglancer documentation of the
 precomputed format
 <https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md>`_.

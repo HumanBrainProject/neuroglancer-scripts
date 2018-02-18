@@ -14,7 +14,7 @@ from tqdm import tqdm, trange
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-import neuroglancer_scripts.pyramid_io
+from neuroglancer_scripts import precomputed_io
 from neuroglancer_scripts.utils import (permute, invert_permutation,
                                         readable_count)
 
@@ -76,9 +76,10 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
     """
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options)
-    info = accessor.fetch_info()
-    pyramid_writer = neuroglancer_scripts.pyramid_io.PrecomputedPyramidIo(
-        info, accessor, encoder_params=options)
+    pyramid_writer = precomputed_io.get_IO_for_existing_dataset(
+        accessor, encoder_options=options
+    )
+    info = pyramid_writer.info
 
     assert len(info["scales"][0]["chunk_sizes"]) == 1  # more not implemented
     chunk_size = info["scales"][0]["chunk_sizes"][0]  # in RAS order (X, Y, Z)

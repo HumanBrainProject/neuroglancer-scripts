@@ -10,7 +10,6 @@ API.
 """
 
 import gzip
-import json
 import os.path
 
 import neuroglancer_scripts.accessor
@@ -23,6 +22,11 @@ __all__ = [
 
 
 _CHUNK_PATTERN_SUBDIR = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
+
+NO_COMPRESS_MIME_TYPES = {
+    "application/json",
+    "image/jpeg",
+}
 
 
 class FileAccessor(neuroglancer_scripts.accessor.Accessor):
@@ -44,23 +48,45 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
             self.chunk_pattern = _CHUNK_PATTERN_SUBDIR
         self.gzip = gzip
 
-    def fetch_info(self):
+    def fetch_file(self, relative_path):
+        file_path = os.path.join(self.base_dir, relative_path)
+        if not file_path.startswith(self.base_dir + os.path.sep):
+            raise ValueError("only relative paths pointing under base_dir are "
+                             "accepted")
+        if os.path.isfile(file_path):
+            f = open(file_path, "rb")
+        elif os.path.isfile(file_path + ".gz"):
+            f = gzip.open(file_path + ".gz", "rb")
+        else:
+            raise DataAccessError("Cannot find {0} in {1}".format(
+                relative_path, self.base_dir))
         try:
-            with open(os.path.join(self.base_dir, "info")) as f:
-                return json.load(f)
+            with f:
+                return f.read()
         except OSError as exc:
             raise DataAccessError(
-                "Error fetching the 'info' file from {0}: {1}"
-                .format(self.base_dir, exc)) from exc
+                "Error fetching {1}: {2}" .format(
+                    relative_path, self.base_dir, exc)) from exc
 
-    def store_info(self, info):
+    def store_file(self, relative_path, buf,
+                   mime_type="application/octet-stream",
+                   overwrite=False):
+        file_path = os.path.join(self.base_dir, relative_path)
+        if not file_path.startswith(self.base_dir + os.path.sep):
+            raise ValueError("only relative paths pointing under base_dir are "
+                             "accepted")
+        mode = "wb" if overwrite else "xb"
         try:
-            os.makedirs(self.base_dir, exist_ok=True)
-            with open(os.path.join(self.base_dir, "info"), "w") as f:
-                json.dump(info, f, separators=(",", ":"), sort_keys=True)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            if self.gzip and mime_type not in NO_COMPRESS_MIME_TYPES:
+                with gzip.open(file_path + ".gz", mode) as f:
+                    f.write(buf)
+            else:
+                with open(file_path, mode) as f:
+                    f.write(buf)
         except OSError as exc:
-            raise DataAccessError("Error storing the 'info' file in {0}: {1}"
-                                  .format(self.base_dir, exc)) from exc
+            raise DataAccessError("Error storing {0}: {1}"
+                                  .format(file_path, exc)) from exc
 
     def fetch_chunk(self, key, chunk_coords):
         f = None
@@ -82,15 +108,18 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                     self._flat_chunk_basename(key, chunk_coords),
                     self.base_dir, exc)) from exc
 
-    def store_chunk(self, buf, key, chunk_coords, already_compressed=False):
+    def store_chunk(self, buf, key, chunk_coords,
+                    mime_type="application/octet-stream",
+                    overwrite=True):
         chunk_path = self._chunk_filename(key, chunk_coords)
+        mode = "wb" if overwrite else "xb"
         try:
             os.makedirs(os.path.dirname(chunk_path), exist_ok=True)
-            if self.gzip and not already_compressed:
-                with gzip.open(chunk_path + ".gz", "wb") as f:
+            if self.gzip and mime_type not in NO_COMPRESS_MIME_TYPES:
+                with gzip.open(chunk_path + ".gz", mode) as f:
                     f.write(buf)
             else:
-                with open(chunk_path, "wb") as f:
+                with open(chunk_path, mode) as f:
                     f.write(buf)
         except OSError as exc:
             raise DataAccessError(

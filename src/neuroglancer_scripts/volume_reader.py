@@ -23,9 +23,6 @@ logger = logging.getLogger(__name__)
 
 # TODO turn return codes into exceptions
 #
-# TODO return the "info" instead of storing it, make another function to store
-# it
-#
 # TODO factor out redundant code with nibabel_image_to_precomputed
 def store_nibabel_image_to_fullres_info(img,
                                         accessor,
@@ -205,7 +202,7 @@ def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):
 
 
 def nibabel_image_to_precomputed(img,
-                                 dest_url,
+                                 precomputed_writer,
                                  ignore_scaling=False,
                                  input_min=None,
                                  input_max=None,
@@ -231,21 +228,7 @@ def nibabel_image_to_precomputed(img,
     affine = img.affine
     voxel_sizes = nibabel.affines.voxel_sizes(affine)
 
-    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
-        dest_url, options)
-    try:
-        writer = precomputed_io.get_IO_for_existing_dataset(accessor)
-        info = writer.info
-    except neuroglancer_scripts.accessor.DataAccessError as exc:
-        logger.error("No 'info' file was found in the current directory "
-                     "({0}). You can generate one by running this program "
-                     "with the --generate-info option, then using "
-                     "generate_scales_info.py on the result"
-                     .format(exc))
-        return 1
-    except ValueError as e:  # TODO use specific exception for invalid JSON
-        logger.error("Invalid 'info' file: {0}".format(e))
-        return 1
+    info = precomputed_writer.info
 
     output_dtype = np.dtype(info["data_type"])
     info_voxel_sizes = 0.000001 * np.asarray(info["scales"][0]["resolution"])
@@ -281,7 +264,7 @@ def nibabel_image_to_precomputed(img,
 
     # Transformations applied to the voxel values
     chunk_transformer = (
-        neuroglancer_scripts.data_types .get_chunk_dtype_transformer(
+        neuroglancer_scripts.data_types.get_chunk_dtype_transformer(
             input_dtype, output_dtype
         )
     )
@@ -291,7 +274,7 @@ def nibabel_image_to_precomputed(img,
     else:
         volume = proxy
     logger.info("Writing chunks... ")
-    volume_to_precomputed(writer, volume,
+    volume_to_precomputed(precomputed_writer, volume,
                           chunk_transformer=chunk_transformer)
 
 
@@ -303,7 +286,23 @@ def volume_file_to_precomputed(volume_filename,
                                load_full_volume=False,
                                options={}):
     img = nibabel.load(volume_filename)
-    return nibabel_image_to_precomputed(img, dest_url,
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        dest_url, options
+    )
+    try:
+        precomputed_writer = precomputed_io.get_IO_for_existing_dataset(
+            accessor
+        )
+    except neuroglancer_scripts.accessor.DataAccessError as exc:
+        logger.error("No 'info' file was found ({0}). You can generate one by "
+                     "running this program with the --generate-info option, "
+                     "then using generate_scales_info.py on the result"
+                     .format(exc))
+        return 1
+    except ValueError as e:  # TODO use specific exception for invalid JSON
+        logger.error("Invalid 'info' file: {0}".format(e))
+        return 1
+    return nibabel_image_to_precomputed(img, precomputed_writer,
                                         ignore_scaling, input_min, input_max,
                                         load_full_volume, options)
 

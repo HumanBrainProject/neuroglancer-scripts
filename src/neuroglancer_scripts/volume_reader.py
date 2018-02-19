@@ -27,8 +27,54 @@ logger = logging.getLogger(__name__)
 # it
 #
 # TODO factor out redundant code with nibabel_image_to_precomputed
+def store_nibabel_image_to_fullres_info(img,
+                                        accessor,
+                                        ignore_scaling=False,
+                                        input_min=None,
+                                        input_max=None,
+                                        options={}):
+    info, json_transform, input_dtype, imperfect_dtype = nibabel_image_to_info(
+        img,
+        ignore_scaling=ignore_scaling,
+        input_min=input_min,
+        input_max=input_max,
+        options={}
+    )
+    try:
+        accessor.store_file("info_fullres.json",
+                            json.dumps(info, indent=2).encode("utf-8"),
+                            mime_type="application/json")
+    except DataAccessError as exc:
+        logger.critical("cannot write info_fullres.json: {1}".format(exc))
+        return 1
+    logger.info("The metadata above was written to info_fullres.json. "
+                "Please run generate_scales_info.py on that file "
+                "to generate the 'info' file, then run this program "
+                "again.")
+    try:
+        s = json.dumps(json_transform)
+        accessor.store_file("transform.json", s.encode("utf-8"),
+                            mime_type="application/json")
+    except DataAccessError as exc:
+        logger.error("cannot write transform.json: {1}".format(exc))
+    logger.info("Neuroglancer transform of the converted volume "
+                "(written to transform.json):\n%s",
+                neuroglancer_scripts.transform.matrix_as_compact_urlsafe_json(
+                    json_transform))
+    if imperfect_dtype:
+        logger.warn("The %s data type is not supported by Neuroglancer. "
+                    "float32 was set, please adjust if needed "
+                    "(data_type must be one of %s). The values will be "
+                    "rounded (if targeting an integer type) and cast "
+                    "during the conversion.",
+                    input_dtype.name,
+                    neuroglancer_scripts.data_types.NG_DATA_TYPES)
+        return 4
+    else:
+        return 0
+
+
 def nibabel_image_to_info(img,
-                          accessor,
                           ignore_scaling=False,
                           input_min=None,
                           input_max=None,
@@ -81,16 +127,6 @@ def nibabel_image_to_info(img,
 
     info = json.loads(header_info)  # ensure well-formed JSON
     print(header_info)
-    try:
-        accessor.store_file("info_fullres.json", header_info.encode("utf-8"),
-                            mime_type="application/json")
-    except DataAccessError as exc:
-        logger.critical("cannot write info_fullres.json: {1}".format(exc))
-        return 1
-    logger.info("The metadata above was written to info_fullres.json. "
-                "Please run generate_scales_info.py on that file "
-                "to generate the 'info' file, then run this program "
-                "again.")
 
     # We need to take the voxel scaling out of img.affine, and convert the
     # translation part from millimetres to nanometres.
@@ -105,29 +141,10 @@ def nibabel_image_to_info(img,
     transform = neuroglancer_scripts.transform.nifti_to_neuroglancer_transform(
         transform, np.asarray(info["scales"][0]["resolution"]))
     json_transform = [list(row) for row in transform]
-    try:
-        s = json.dumps(json_transform)
-        accessor.store_file("transform.json", s.encode("utf-8"),
-                            mime_type="application/json")
-    except DataAccessError as exc:
-        logger.error("cannot write transform.json: {1}".format(exc))
-    logger.info("Neuroglancer transform of the converted volume "
-                "(written to transform.json):\n%s",
-                neuroglancer_scripts.transform.matrix_as_compact_urlsafe_json(
-                    json_transform))
 
-    if input_dtype.name not in neuroglancer_scripts.data_types.NG_DATA_TYPES:
-        logger.error("The %s data type is not supported by Neuroglancer. "
-                     "float32 was set, please adjust if needed "
-                     "(data_type must be one of %s). The values will be "
-                     "rounded (if targeting an integer type) and cast "
-                     "during the conversion.",
-                     input_dtype.name,
-                     neuroglancer_scripts.data_types.NG_DATA_TYPES)
-        # return code indicating that manual intervention is needed
-        return 4
-    # return code indicating that ready-to-use info was output
-    return 0
+    imperfect_dtype = (input_dtype.name
+                       not in neuroglancer_scripts.data_types.NG_DATA_TYPES)
+    return info, json_transform, input_dtype, imperfect_dtype
 
 
 def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):
@@ -301,8 +318,11 @@ def volume_file_to_info(volume_filename, dest_url,
         dest_url,
         accessor_options=options
     )
-    return nibabel_image_to_info(img, accessor,
-                                 ignore_scaling=ignore_scaling,
-                                 input_min=input_min,
-                                 input_max=input_max,
-                                 options=options)
+    return store_nibabel_image_to_fullres_info(
+        img,
+        accessor,
+        ignore_scaling=ignore_scaling,
+        input_min=input_min,
+        input_max=input_max,
+        options=options
+    )

@@ -87,6 +87,7 @@ setuptools.setup(
             "scale-stats=neuroglancer_scripts.scripts.scale_stats:main",
             "slices-to-precomputed=neuroglancer_scripts.scripts.slices_to_precomputed:main",
             "volume-to-precomputed=neuroglancer_scripts.scripts.volume_to_precomputed:main",
+            "volume-to-precomputed-pyramid=neuroglancer_scripts.scripts.volume_to_precomputed_pyramid:main",
         ],
     },
 )

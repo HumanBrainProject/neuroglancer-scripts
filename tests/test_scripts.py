@@ -16,6 +16,7 @@ from neuroglancer_scripts.scripts import mesh_to_precomputed
 from neuroglancer_scripts.scripts import scale_stats
 from neuroglancer_scripts.scripts import slices_to_precomputed
 from neuroglancer_scripts.scripts import volume_to_precomputed
+from neuroglancer_scripts.scripts import volume_to_precomputed_pyramid
 
 
 @pytest.fixture(scope="module")
@@ -66,4 +67,22 @@ def test_jubrain_example_MPM(examples_dir, tmpdir):
         "--copy-info",
         str(output_dir),
         str(output_dir / "copy")
+    ]) == 0
+
+
+def test_all_in_one_conversion(examples_dir, tmpdir):
+    input_nifti = examples_dir / "JuBrain" / "colin27T1_seg.nii.gz"
+    # The file may be present but be a git-lfs pointer file, so we need to open
+    # it to make sure that it is the actual correct file.
+    try:
+        gzip.open(str(input_nifti)).read(348)
+    except OSError as exc:
+        pytest.skip("Cannot find a valid example file {0} for testing: {1}"
+                    .format(input_nifti, exc))
+
+    output_dir = tmpdir / "colin27T1_seg"
+    assert subprocess.call([
+        "volume-to-precomputed-pyramid",
+        str(input_nifti),
+        str(output_dir)
     ]) == 0

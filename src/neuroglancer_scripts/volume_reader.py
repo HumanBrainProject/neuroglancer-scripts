@@ -58,17 +58,7 @@ def store_nibabel_image_to_fullres_info(img,
                 "(written to transform.json):\n%s",
                 neuroglancer_scripts.transform.matrix_as_compact_urlsafe_json(
                     json_transform))
-    if imperfect_dtype:
-        logger.warn("The %s data type is not supported by Neuroglancer. "
-                    "float32 was set, please adjust if needed "
-                    "(data_type must be one of %s). The values will be "
-                    "rounded (if targeting an integer type) and cast "
-                    "during the conversion.",
-                    input_dtype.name,
-                    neuroglancer_scripts.data_types.NG_DATA_TYPES)
-        return 4
-    else:
-        return 0
+    return 4 if imperfect_dtype else 0
 
 
 def nibabel_image_to_info(img,
@@ -141,6 +131,14 @@ def nibabel_image_to_info(img,
 
     imperfect_dtype = (input_dtype.name
                        not in neuroglancer_scripts.data_types.NG_DATA_TYPES)
+    if imperfect_dtype:
+        logger.warn("The %s data type is not supported by Neuroglancer. "
+                    "float32 was set, please adjust if needed "
+                    "(data_type must be one of %s). The values will be "
+                    "rounded (if targeting an integer type) and cast "
+                    "during the conversion.",
+                    input_dtype.name,
+                    neuroglancer_scripts.data_types.NG_DATA_TYPES)
     return info, json_transform, input_dtype, imperfect_dtype
 
 

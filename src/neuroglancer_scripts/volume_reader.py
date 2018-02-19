@@ -97,6 +97,7 @@ def nibabel_image_to_info(img,
         guessed_dtype = "float32"
     header_info = """\
 {{
+    "type": "image",
     "num_channels": {num_channels},
     "data_type": "{data_type}",
     "scales": [

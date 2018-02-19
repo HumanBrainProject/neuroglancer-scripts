@@ -35,7 +35,7 @@ def store_nibabel_image_to_fullres_info(img,
         ignore_scaling=ignore_scaling,
         input_min=input_min,
         input_max=input_max,
-        options={}
+        options=options
     )
     try:
         accessor.store_file("info_fullres.json",

@@ -50,7 +50,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
 
     def fetch_file(self, relative_path):
         file_path = os.path.join(self.base_dir, relative_path)
-        if not file_path.startswith(self.base_dir + os.path.sep):
+        if not file_path.startswith(os.path.join(self.base_dir, "")):
             raise ValueError("only relative paths pointing under base_dir are "
                              "accepted")
         if os.path.isfile(file_path):

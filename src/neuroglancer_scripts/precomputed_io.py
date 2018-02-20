@@ -83,10 +83,10 @@ class PrecomputedIO:
     def __init__(self, info, accessor, encoder_options={}):
         self._info = info
         self.accessor = accessor
-        self.scale_info = {
+        self._scale_info = {
             scale_info["key"]: scale_info for scale_info in info["scales"]
         }
-        self.encoders = {
+        self._encoders = {
             scale_info["key"]: chunk_encoding.get_encoder(info, scale_info,
                                                           encoder_options)
             for scale_info in info["scales"]
@@ -105,7 +105,7 @@ class PrecomputedIO:
                                                == scale_key``
         :rtype: dict
         """
-        return self.scale_info[scale_key]
+        return self._scale_info[scale_key]
 
     def validate_chunk_coords(self, scale_key, chunk_coords):
         """Validate the coordinates of a chunk.
@@ -115,7 +115,7 @@ class PrecomputedIO:
         :rtype bool:
         """
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
-        scale_info = self.scale_info[scale_key]
+        scale_info = self.scale_info(scale_key)
         xs, ys, zs = scale_info["size"]
         if scale_info["voxel_offset"] != [0, 0, 0]:
             raise NotImplementedError("voxel_offset is not supported")
@@ -145,7 +145,7 @@ class PrecomputedIO:
         assert self.validate_chunk_coords(scale_key, chunk_coords)
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
         buf = self.accessor.fetch_chunk(scale_key, chunk_coords)
-        encoder = self.encoders[scale_key]
+        encoder = self._encoders[scale_key]
         chunk = encoder.decode(buf, (xmax - xmin, ymax - ymin, zmax - zmin))
         return chunk
 
@@ -163,7 +163,7 @@ class PrecomputedIO:
                                 the dataset's *info*
         """
         assert self.validate_chunk_coords(scale_key, chunk_coords)
-        encoder = self.encoders[scale_key]
+        encoder = self._encoders[scale_key]
         buf = encoder.encode(chunk)
         self.accessor.store_chunk(
             buf, scale_key, chunk_coords,

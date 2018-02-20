@@ -147,7 +147,7 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                 # Scikit-image loads multi-channel (e.g. RGB) images in [slice,
                 # row, column, channel] order, while Neuroglancer expects
                 # channel to come first (in C-contiguous indexing).
-                block = np.swapaxes(block, 0, 3)
+                block = np.moveaxis(block, (3, 0, 1, 2), (0, 1, 2, 3))
             elif block.ndim == 3:
                 block = block[np.newaxis, :, :, :]
             else:

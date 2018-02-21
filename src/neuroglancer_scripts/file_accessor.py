@@ -26,6 +26,7 @@ _CHUNK_PATTERN_SUBDIR = "{key}/{0}-{1}/{2}-{3}/{4}-{5}"
 NO_COMPRESS_MIME_TYPES = {
     "application/json",
     "image/jpeg",
+    "image/png",
 }
 
 

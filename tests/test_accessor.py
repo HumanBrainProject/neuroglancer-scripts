@@ -3,6 +3,8 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import pathlib
+
 import pytest
 
 from neuroglancer_scripts.accessor import *
@@ -18,10 +20,10 @@ def test_get_accessor_for_url(accessor_options):
     assert isinstance(get_accessor_for_url(""), Accessor)
     a = get_accessor_for_url(".", accessor_options)
     assert isinstance(a, FileAccessor)
-    assert a.base_dir == "."
+    assert a.base_path == pathlib.Path(".")
     a = get_accessor_for_url("file:///absolute", accessor_options)
     assert isinstance(a, FileAccessor)
-    assert a.base_dir == "/absolute"
+    assert a.base_path == pathlib.Path("/absolute")
     a = get_accessor_for_url("http://example/", accessor_options)
     assert isinstance(a, HttpAccessor)
     assert a.base_url == "http://example/"

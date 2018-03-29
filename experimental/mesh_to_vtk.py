@@ -9,10 +9,11 @@ import sys
 
 import nibabel
 import numpy as np
-import pyvtk
+
+import neuroglancer_scripts.mesh
 
 
-def mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
+def mesh_file_to_vtk(input_filename, output_filename, data_format="ascii",
                      coord_transform=None):
     """Convert a mesh file read by nibabel to VTK format"""
     print("Reading {}".format(input_filename))
@@ -44,17 +45,10 @@ def mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6
 
-    # Workaround: dtype must be np.int_ (pyvtk does not recognize int32 as
-    # integers)
-    triangles = triangles.astype(np.int_)
-
-    vtk_mesh = pyvtk.PolyData(points, polygons=triangles)
-
-    vtk_data = pyvtk.VtkData(
-        vtk_mesh,
-        "Converted using "
-        "https://github.com/HumanBrainProject/neuroglancer-scripts")
-    vtk_data.tofile(output_filename, format=data_format)
+    with open(output_filename, "wt") as output_file:
+        neuroglancer_scripts.mesh.save_mesh_as_neuroglancer_vtk(
+            output_file, points, triangles
+        )
 
 
 def parse_command_line(argv):

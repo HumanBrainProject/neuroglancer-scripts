@@ -6,16 +6,12 @@
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 import gzip
-import struct
 import sys
 
 import nibabel
 import numpy as np
 
-
-def progress(text):
-    sys.stderr.write(text)
-    sys.stderr.flush()
+import neuroglancer_scripts.mesh
 
 
 def mesh_file_to_precomputed(input_filename, output_filename,
@@ -52,21 +48,11 @@ def mesh_file_to_precomputed(input_filename, output_filename,
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6
 
-    num_vertices = len(points)
-
-    buf = bytearray()
-    buf += struct.pack("<I", num_vertices)
-    progress("Preparing vertices... ")
-    for vertex in points:
-        buf += struct.pack("<fff", vertex[0], vertex[1], vertex[2])
-    assert len(buf) == 4 + 4 * 3 * num_vertices
-    progress("Preparing triangles... ")
-    for triangle in triangles:
-        buf += struct.pack("<III", *triangle)
-    progress("done.\nWriting file...")
+    # TODO use Accessor
     with gzip.open(output_filename + ".gz", "wb") as output_file:
-        output_file.write(bytes(buf))
-    progress("done.\n")
+        neuroglancer_scripts.mesh.save_mesh_as_precomputed(
+            output_file, points, triangles.astype("uint32")
+        )
 
 
 def parse_command_line(argv):
@@ -82,7 +68,8 @@ pre-computed mesh format
     parser.add_argument("--coord-transform",
                         help="affine transformation to be applied to the"
                         " coordinates, as a 4x4 matrix in homogeneous"
-                        " coordinates, in comma-separated row-major order"
+                        " coordinates, with the translation in millimetres,"
+                        " in comma-separated row-major order"
                         " (the last row is always 0 0 0 1 and may be omitted)"
                         " (e.g. --coord-transform=1,0,0,0,0,1,0,0,0,0,1,0)")
     args = parser.parse_args(argv[1:])

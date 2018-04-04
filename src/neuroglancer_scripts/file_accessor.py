@@ -10,6 +10,7 @@ API.
 """
 
 import gzip
+import os
 import pathlib
 
 import neuroglancer_scripts.accessor
@@ -81,7 +82,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                              "are accepted")
         mode = "wb" if overwrite else "xb"
         try:
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+            os.makedirs(str(file_path.parent), exist_ok=True)
             if self.gzip and mime_type not in NO_COMPRESS_MIME_TYPES:
                 with gzip.open(
                         str(file_path.with_name(file_path.name + ".gz")),
@@ -122,7 +123,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
         chunk_path = self._chunk_path(key, chunk_coords)
         mode = "wb" if overwrite else "xb"
         try:
-            chunk_path.parent.mkdir(parents=True, exist_ok=True)
+            os.makedirs(str(chunk_path.parent), exist_ok=True)
             if self.gzip and mime_type not in NO_COMPRESS_MIME_TYPES:
                 with gzip.open(
                         str(chunk_path.with_name(chunk_path.name + ".gz")),

@@ -89,7 +89,7 @@ def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
             res * axis_factor for res, axis_factor in
             zip(full_scale_info["resolution"], factors)]
         scale_info["size"] = [
-            (sz - 1) // axis_factor + 1 for sz, axis_factor in
+            ceil_div(sz, axis_factor) for sz, axis_factor in
             zip(full_scale_info["size"], factors)]
         # Key is the resolution in micrometres
         scale_info["key"] = format_length(min(scale_info["resolution"]),
@@ -160,7 +160,7 @@ def compute_dyadic_downscaling(info, source_scale_index, downscaler,
     num_channels = info["num_channels"]
     downscaling_factors = [1 if os == ns else 2
                            for os, ns in zip(old_size, new_size)]
-    if new_size != [(os - 1) // ds + 1
+    if new_size != [ceil_div(os, ds)
                     for os, ds in zip(old_size, downscaling_factors)]:
         raise ValueError("Unsupported downscaling factor between scales "
                          "{} and {} (only 1 and 2 are supported)"
@@ -186,9 +186,9 @@ def compute_dyadic_downscaling(info, source_scale_index, downscaler,
 
         return downscaler.downscale(chunk, downscaling_factors)
 
-    chunk_range = ((new_size[0] - 1) // new_chunk_size[0] + 1,
-                   (new_size[1] - 1) // new_chunk_size[1] + 1,
-                   (new_size[2] - 1) // new_chunk_size[2] + 1)
+    chunk_range = (ceil_div(new_size[0], new_chunk_size[0]),
+                   ceil_div(new_size[1], new_chunk_size[1]),
+                   ceil_div(new_size[2], new_chunk_size[2]))
     # TODO how to do progress report correctly with logging?
     for x_idx, y_idx, z_idx in tqdm(
             np.ndindex(chunk_range), total=np.prod(chunk_range),

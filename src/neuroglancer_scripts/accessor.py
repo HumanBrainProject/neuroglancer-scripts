@@ -86,8 +86,6 @@ class Accessor:
     pre-computed dataset. It works with sequences of bytes, without
     interpreting the file contents.
 
-    .. todo:: add I/O for auxiliary files (e.g. mesh fragments)
-
     You can inherit from this class in order to implement a new accessor (see
     :class:`~neuroglancer_scripts.file_accessor.FileAccessor`,
     :class:`~neuroglancer_scripts.http_accessor.HttpAccessor`).

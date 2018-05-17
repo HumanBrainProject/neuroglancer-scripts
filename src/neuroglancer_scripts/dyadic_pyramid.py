@@ -10,7 +10,7 @@ import math
 import numpy as np
 from tqdm import tqdm
 
-from neuroglancer_scripts.utils import (LENGTH_UNITS, format_length)
+from neuroglancer_scripts.utils import (LENGTH_UNITS, ceil_div, format_length)
 
 
 logger = logging.getLogger(__name__)
@@ -99,8 +99,22 @@ def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
         anisotropy_factors = [max(0, max_delay - delay - scale_level)
                               for delay in axis_level_delays]
         sum_anisotropy_factors = sum(anisotropy_factors)
+
+        # Ensure that the smallest chunk size is 1 for extremely anisotropic
+        # datasets (i.e. reduce the anisotropy of chunk_size)
+        excess_anisotropy = sum_anisotropy_factors - 3 * target_chunk_exponent
+        if excess_anisotropy > 0:
+            anisotropy_reduction = ceil_div(excess_anisotropy,
+                                            sum(1 for f in anisotropy_factors
+                                                if f != 0))
+            anisotropy_factors = [max(f - anisotropy_reduction, 0)
+                                  for f in anisotropy_factors]
+            sum_anisotropy_factors = sum(anisotropy_factors)
+            assert sum_anisotropy_factors <= 3 * target_chunk_exponent
+
         base_chunk_exponent = (
             target_chunk_exponent - (sum_anisotropy_factors + 1) // 3)
+        assert base_chunk_exponent >= 0
         scale_info["chunk_sizes"] = [
             [2 ** (base_chunk_exponent + anisotropy_factor)
              for anisotropy_factor in anisotropy_factors]]

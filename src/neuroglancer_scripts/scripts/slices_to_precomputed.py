@@ -226,7 +226,7 @@ def convert_slices_in_directory(slice_dirs, dest_url, input_orientation="RAS",
     """Load slices from a directory and convert them to Neuroglancer chunks"""
     slice_filename_lists = [sorted(d.iterdir()) for d in slice_dirs]
     slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
-                         options={})
+                         options=options)
 
 
 def parse_command_line(argv):

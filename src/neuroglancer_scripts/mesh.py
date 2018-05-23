@@ -1,3 +1,4 @@
+# Copyright (c) 2018 CEA
 # Copyright (c) 2018 Forschungszentrum Juelich GmbH
 # Author: Yann Leprince <y.leprince@fz-juelich.de>
 #
@@ -26,6 +27,11 @@ import neuroglancer_scripts
 
 
 logger = logging.getLogger(__name__)
+
+
+class InvalidMeshDataError(Exception):
+    """Raised when mesh data cannot be decoded properly."""
+    pass
 
 
 def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
@@ -133,3 +139,40 @@ def save_mesh_as_precomputed(file, vertices, triangles):
     file.write(struct.pack("<I", vertices.shape[0]))
     file.write(vertices.astype("<f").tobytes(order="C"))
     file.write(triangles.astype("<I", casting="safe").tobytes(order="C"))
+
+
+def read_precomputed_mesh(file):
+    """Load a mesh in Neuroglancer pre-computed format.
+
+    :param file: a file-like object opened in binary mode (its ``read`` method
+        is expected to return :class:`bytes` objects).
+    :returns tuple: a 2-tuple ``(vertices, triangles)``, where ``vertices`` is
+        an array of size Nx3 and type ``float32`` containing the vertex
+        coordinates expressed in nanometres; and ``triangles`` is  an array
+        of size Mx3 and ``uint32`` data type.
+    """
+    num_vertices = struct.unpack("<I", file.read(4))[0]
+    # TODO handle format errors
+    #
+    # Use frombuffer instead of numpy.fromfile, because the latter expects a
+    # real file and performs direct I/O on file.fileno(), which can fail or
+    # read garbage e.g. if the file is an instance of gzip.GzipFile.
+    buf = file.read(4 * 3 * num_vertices)
+    if len(buf) != 4 * 3 * num_vertices:
+        raise InvalidMeshDataError("The precomputed mesh data is too short")
+    vertices = np.reshape(
+        np.frombuffer(buf, "<f"),
+        (num_vertices, 3),
+        order="C"
+    )
+    # BUG: this could easily exhaust memory if reading a large file that is not
+    # in precomputed format.
+    buf = file.read()
+    if len(buf) % (3 * 4) != 0:
+        raise InvalidMeshDataError("The size of the precomputed mesh data is "
+                                   "not adequate")
+    flat_triangles = np.frombuffer(buf, "<I")
+    triangles = np.reshape(flat_triangles, (-1, 3), order="C")
+    if np.any(triangles > num_vertices):
+        raise InvalidMeshDataError("The mesh references nonexistent vertices")
+    return (vertices, triangles)

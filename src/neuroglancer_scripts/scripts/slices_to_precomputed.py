@@ -140,7 +140,9 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
         def load_z_stack(slice_filenames):
             # Loads the data in [slice, row, column] C-contiguous order
             block = skimage.io.concatenate_images(
-                map(skimage.io.imread, slice_filenames[slice_slicing]))
+                skimage.io.imread(str(filename))
+                for filename in slice_filenames[slice_slicing]
+            )
             assert block.shape[2] == input_size[0]  # check slice width
             assert block.shape[1] == input_size[1]  # check slice height
             if block.ndim == 4:

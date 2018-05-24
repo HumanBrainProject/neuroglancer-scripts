@@ -81,9 +81,14 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
     assert subprocess.call([
         "volume-to-precomputed-pyramid",
         "--mmap",
+        "--input-min", "50",
+        "--input-max", "500",
+        "--downscaling-method", "stride",
         str(input_nifti),
         str(output_dir)
     ]) == 0
+    # TODO check the actual data for correct scaling, especially in combination
+    # with --mmap / --load-full-volume
 
 
 def test_slice_conversion(tmpdir):

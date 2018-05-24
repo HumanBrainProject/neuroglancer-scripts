@@ -80,6 +80,7 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
     output_dir = tmpdir / "colin27T1_seg"
     assert subprocess.call([
         "volume-to-precomputed-pyramid",
+        "--mmap",
         str(input_nifti),
         str(output_dir)
     ]) == 0

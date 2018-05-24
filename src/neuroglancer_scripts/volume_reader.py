@@ -206,7 +206,7 @@ def nibabel_image_to_precomputed(img,
                                  ignore_scaling=False,
                                  input_min=None,
                                  input_max=None,
-                                 load_full_volume=False,
+                                 load_full_volume=True,
                                  options={}):
     shape = img.header.get_data_shape()
 
@@ -283,7 +283,7 @@ def volume_file_to_precomputed(volume_filename,
                                ignore_scaling=False,
                                input_min=None,
                                input_max=None,
-                               load_full_volume=False,
+                               load_full_volume=True,
                                options={}):
     img = nibabel.load(volume_filename)
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(

@@ -28,7 +28,7 @@ def volume_to_precomputed_pyramid(volume_filename,
                                   ignore_scaling=False,
                                   input_min=None,
                                   input_max=None,
-                                  load_full_volume=False,
+                                  load_full_volume=True,
                                   options={}):
     img = nibabel.load(volume_filename)
     formatted_info, _, _, _ = volume_reader.nibabel_image_to_info(
@@ -93,11 +93,13 @@ omitted, it is assumed to be zero.
                        help="read the values as stored on disk, without "
                        "applying the data scaling (slope/intercept) from the "
                        "volume header")
-    group.add_argument("--load-full-volume", action="store_true",
-                       help="load full volume to memory. "
-                       "This will significantly speed up the conversion if "
-                       "the volume is small enough to fit into the system "
-                       "memory")
+    group.add_argument("--load-full-volume", action="store_true", default=True,
+                       help=argparse.SUPPRESS)
+    group.add_argument("--mmap", dest="load_full_volume", action="store_false",
+                       help="use memory-mapping to avoid loading the full "
+                       "volume in memory. This is useful if the input volume "
+                       "is too large to fit memory, but it will slow down "
+                       "the conversion significantly.")
 
     # TODO split into a module
     group = parser.add_argument_group(

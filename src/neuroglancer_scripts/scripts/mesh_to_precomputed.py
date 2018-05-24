@@ -17,12 +17,7 @@ import neuroglancer_scripts.mesh
 def mesh_file_to_precomputed(input_filename, output_filename,
                              coord_transform=None):
     """Convert a mesh read by nibabel to Neuroglancer precomputed format"""
-    print("Reading {}".format(input_filename))
     mesh = nibabel.load(input_filename)
-    print()
-    print("Summary")
-    print("=======")
-    mesh.print_summary()
 
     points_list = mesh.get_arrays_from_intent("NIFTI_INTENT_POINTSET")
     assert len(points_list) == 1

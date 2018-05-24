@@ -185,3 +185,16 @@ def test_mesh_conversion(tmpdir):
         vertices2, triangles2 = read_precomputed_mesh(file)
     assert np.array_equal(vertices * 1e6, vertices2)
     assert np.array_equal(triangles, triangles2)
+
+
+def test_mesh_conversion_with_transform(tmpdir):
+    vertices, triangles = dummy_mesh()
+    dummy_gii_path = tmpdir / "dummy.surf.gii"
+    write_gifti_mesh(vertices, triangles, str(dummy_gii_path))
+    dummy_precomputed_path = tmpdir / "dummy_precomputed"
+    assert subprocess.call([
+        "mesh-to-precomputed",
+        "--coord-transform", "0,1,0,0.2,1,0,0,0,0,0,-1,0.3",
+        str(dummy_gii_path),
+        str(dummy_precomputed_path)
+    ]) == 0

@@ -1,12 +1,16 @@
+# Copyright (c) CEA
 # Copyright (c) 2018 Forschungszentrum Juelich GmbH
 # Author: Yann Leprince <y.leprince@fz-juelich.de>
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 import gzip
+import json
 import subprocess
 
+import numpy as np
 import pytest
+import PIL.Image
 
 # Check that the scripts import correctly
 from neuroglancer_scripts.scripts import compute_scales
@@ -85,4 +89,53 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
         "volume-to-precomputed-pyramid",
         str(input_nifti),
         str(output_dir)
+    ]) == 0
+
+
+def test_slice_conversion(tmpdir):
+    # Prepare dummy slices
+    path_to_slices = tmpdir / "slices"
+    path_to_slices.mkdir()
+    size_x, size_y = 12, 16
+    img_array = np.reshape(
+        np.arange(size_x * size_y, dtype=np.uint8),
+        (size_y, size_x)
+    )
+    img = PIL.Image.fromarray(img_array)
+    size_z = 2
+    img.save(str(path_to_slices / "slice1.png"))
+    img.save(str(path_to_slices / "slice2.png"))
+    # Write minimal yet complete info
+    path_to_converted = tmpdir / "conv"
+    path_to_converted.mkdir()
+    with (path_to_converted / "info_fullres.json").open("w") as f:
+        json.dump({
+            "data_type": "uint8",
+            "num_channels": 1,
+            "scales": [
+                {
+                    "resolution": [1e6, 1e6, 1e6],
+                    "size": [size_x, size_y, size_z],
+                    "voxel_offset": [0, 0, 0]
+                }
+            ]
+        }, f)
+    assert subprocess.call([
+        "generate-scales-info",
+        "--max-scales", "2",
+        "--target-chunk-size", "8",
+        str(path_to_converted / "info_fullres.json"),
+        str(path_to_converted)
+    ]) == 0
+    # Run the converter
+    assert subprocess.call([
+        "slices-to-precomputed",
+        str(path_to_slices),
+        str(path_to_converted)
+    ]) == 0
+    # Downscale the data to check that it can be read successfully
+    assert subprocess.call([
+        "compute-scales",
+        "--downscaling-method", "stride",
+        str(path_to_converted)
     ]) == 0

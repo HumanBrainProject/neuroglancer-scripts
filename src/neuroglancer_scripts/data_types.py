@@ -16,6 +16,8 @@ NG_DATA_TYPES = NG_INTEGER_DATA_TYPES + ("float32",)
 
 
 def get_chunk_dtype_transformer(input_dtype, output_dtype):
+    input_dtype = np.dtype(input_dtype)
+    output_dtype = np.dtype(output_dtype)
     if np.issubdtype(output_dtype, np.integer):
         output_min = np.iinfo(output_dtype).min
         output_max = np.iinfo(output_dtype).max

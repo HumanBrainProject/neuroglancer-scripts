@@ -14,6 +14,7 @@ from tqdm import tqdm, trange
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
+from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
 from neuroglancer_scripts import precomputed_io
 from neuroglancer_scripts.utils import (permute, invert_permutation,
                                         readable_count)
@@ -174,6 +175,10 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
         # equivalent: np.transpose(block, axes=([0] + [3 - a for a in
         # reversed(invert_permutation(input_axis_permutation))]))
 
+        chunk_dtype_transformer = get_chunk_dtype_transformer(
+            block.dtype, dtype
+        )
+
         progress_bar = tqdm(
             total=(((input_size[1] - 1) // input_chunk_size[1] + 1)
                    * ((input_size[0] - 1) // input_chunk_size[0] + 1)),
@@ -215,7 +220,7 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                 chunk_coords = (x_coords[0], x_coords[1],
                                 y_coords[0], y_coords[1],
                                 z_coords[0], z_coords[1])
-                pyramid_writer.write_chunk(chunk.astype(dtype), key,
+                pyramid_writer.write_chunk(chunk_dtype_transformer(chunk), key,
                                            chunk_coords)
                 progress_bar.update()
         # free up memory before reading next block (prevent doubled memory
@@ -279,8 +284,9 @@ A few examples:
                         "dataset will be written")
 
     parser.add_argument("--input-orientation", default="RAS",
-                        help="A 3-character code describe the anatomical"
-                        " orientation of the input axes (see below)")
+                        help="A 3-character code describing the anatomical"
+                        " orientation of the input axes (see below) "
+                        "[default: RAS]")
 
     # TODO add options for data conversion and scaling, like
     # volume_to_raw_chunks.py

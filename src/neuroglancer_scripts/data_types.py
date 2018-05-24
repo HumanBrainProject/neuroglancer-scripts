@@ -11,8 +11,8 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-# TODO import from library
-NG_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64", "float32")
+NG_INTEGER_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64")
+NG_DATA_TYPES = NG_INTEGER_DATA_TYPES + ("float32",)
 
 
 def get_chunk_dtype_transformer(input_dtype, output_dtype):

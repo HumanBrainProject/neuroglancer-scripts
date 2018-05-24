@@ -97,13 +97,13 @@ def test_slice_conversion(tmpdir):
     path_to_slices.mkdir()
     size_x, size_y = 12, 16
     img_array = np.reshape(
-        np.arange(size_x * size_y, dtype=np.uint8),
+        np.arange(size_x * size_y, dtype=np.float32),
         (size_y, size_x)
     )
     img = PIL.Image.fromarray(img_array)
     size_z = 2
-    img.save(str(path_to_slices / "slice1.png"))
-    img.save(str(path_to_slices / "slice2.png"))
+    img.save(str(path_to_slices / "slice1.tiff"))
+    img.save(str(path_to_slices / "slice2.tiff"))
     # Write minimal yet complete info
     path_to_converted = tmpdir / "conv"
     path_to_converted.mkdir()

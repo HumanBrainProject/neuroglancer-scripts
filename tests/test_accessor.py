@@ -7,7 +7,13 @@ import pathlib
 
 import pytest
 
-from neuroglancer_scripts.accessor import *
+from neuroglancer_scripts.accessor import (
+    get_accessor_for_url,
+    add_argparse_options,
+    convert_file_url_to_pathname,
+    Accessor,
+    URLError,
+)
 from neuroglancer_scripts.file_accessor import FileAccessor
 from neuroglancer_scripts.http_accessor import HttpAccessor
 

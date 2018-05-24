@@ -6,7 +6,16 @@
 import numpy as np
 import pytest
 
-from neuroglancer_scripts.chunk_encoding import *
+from neuroglancer_scripts.chunk_encoding import (
+    get_encoder,
+    add_argparse_options,
+    CompressedSegmentationEncoder,
+    JpegChunkEncoder,
+    RawChunkEncoder,
+    InvalidFormatError,
+    InvalidInfoError,
+    IncompatibleEncoderError,
+)
 
 
 @pytest.mark.parametrize("encoder_options", [

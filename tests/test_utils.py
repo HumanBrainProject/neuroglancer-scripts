@@ -6,7 +6,12 @@
 import numpy as np
 import pytest
 
-from neuroglancer_scripts.utils import *
+from neuroglancer_scripts.utils import (
+    ceil_div,
+    permute,
+    invert_permutation,
+    readable_count,
+)
 
 
 def test_ceil_div():

@@ -8,7 +8,11 @@ import io
 
 import numpy as np
 
-from neuroglancer_scripts.mesh import *
+from neuroglancer_scripts.mesh import (
+    save_mesh_as_precomputed,
+    read_precomputed_mesh,
+    save_mesh_as_neuroglancer_vtk,
+)
 
 
 def dummy_mesh(num_vertices=4, num_triangles=3):

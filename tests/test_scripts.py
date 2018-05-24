@@ -15,16 +15,6 @@ import PIL.Image
 
 from neuroglancer_scripts.mesh import read_precomputed_mesh
 
-# Check that the scripts import correctly
-from neuroglancer_scripts.scripts import compute_scales
-from neuroglancer_scripts.scripts import convert_chunks
-from neuroglancer_scripts.scripts import generate_scales_info
-from neuroglancer_scripts.scripts import mesh_to_precomputed
-from neuroglancer_scripts.scripts import scale_stats
-from neuroglancer_scripts.scripts import slices_to_precomputed
-from neuroglancer_scripts.scripts import volume_to_precomputed
-from neuroglancer_scripts.scripts import volume_to_precomputed_pyramid
-
 
 @pytest.fixture(scope="module")
 def examples_dir(request):

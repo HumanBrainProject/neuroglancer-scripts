@@ -3,12 +3,12 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import json
-
 import pytest
 
-from neuroglancer_scripts.file_accessor import *
-from neuroglancer_scripts.accessor import *
+from neuroglancer_scripts.file_accessor import FileAccessor
+from neuroglancer_scripts.accessor import (
+    DataAccessError,
+)
 
 
 @pytest.mark.parametrize("flat", [False, True])

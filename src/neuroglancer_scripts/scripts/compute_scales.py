@@ -55,6 +55,8 @@ pyramid scheme created by generate_scales_info.py is appropriate).
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return compute_scales(args.work_dir,
                           args.downscaling_method,

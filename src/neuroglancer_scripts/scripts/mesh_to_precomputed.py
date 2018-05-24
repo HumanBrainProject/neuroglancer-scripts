@@ -95,6 +95,8 @@ pre-computed mesh format
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return mesh_file_to_precomputed(args.input_filename, args.output_filename,
                                     coord_transform=args.coord_transform) or 0

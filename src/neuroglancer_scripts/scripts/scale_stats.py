@@ -68,6 +68,8 @@ Show information about a list of scales in Neuroglancer "info" JSON file format
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return show_scale_file_info(args.url, options=vars(args)) or 0
 

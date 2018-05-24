@@ -105,6 +105,8 @@ mode). You can create such an info file with generate_scales_info.py.
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return convert_chunks(args.source_url, args.dest_url,
                           copy_info=args.copy_info,

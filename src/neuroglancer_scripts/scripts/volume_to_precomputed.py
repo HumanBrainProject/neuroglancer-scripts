@@ -70,6 +70,8 @@ omitted, it is assumed to be zero.
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     if args.generate_info:
         return neuroglancer_scripts.volume_reader.volume_file_to_info(

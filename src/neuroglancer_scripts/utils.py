@@ -117,3 +117,12 @@ def format_length(length_nm, unit):
     :rtype: str
     """
     return format(length_nm * LENGTH_UNITS[unit], ".0f") + unit
+
+
+def init_logging_for_cmdline():
+    """Set up a sane logging configuration for command-line tools.
+
+    This must be called early in the main function.
+    """
+    import logging
+    logging.basicConfig(format="%(levelname)s: %(message)s", level="INFO")

@@ -123,6 +123,8 @@ omitted, it is assumed to be zero.
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return volume_to_precomputed_pyramid(
         args.volume_filename,

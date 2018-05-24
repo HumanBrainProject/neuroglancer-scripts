@@ -304,6 +304,8 @@ A few examples:
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return convert_slices_in_directory(args.slice_dirs,
                                        args.dest_url,

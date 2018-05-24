@@ -107,6 +107,8 @@ Output is written to a file named "info" at dest_url.
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return generate_scales_info(args.fullres_info,
                                 args.dest_url,

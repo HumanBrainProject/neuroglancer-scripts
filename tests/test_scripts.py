@@ -8,9 +8,12 @@ import gzip
 import json
 import subprocess
 
+import nibabel
 import numpy as np
 import pytest
 import PIL.Image
+
+from neuroglancer_scripts.mesh import read_precomputed_mesh
 
 # Check that the scripts import correctly
 from neuroglancer_scripts.scripts import compute_scales
@@ -139,3 +142,46 @@ def test_slice_conversion(tmpdir):
         "--downscaling-method", "stride",
         str(path_to_converted)
     ]) == 0
+
+
+def dummy_mesh(num_vertices=4, num_triangles=3):
+    vertices = np.reshape(
+        np.arange(3 * num_vertices, dtype=np.float32),
+        (num_vertices, 3)
+    )
+    triangles = np.reshape(
+        np.arange(3 * num_triangles, dtype=np.uint32),
+        (num_triangles, 3)
+    ) % num_vertices
+    return vertices, triangles
+
+
+def write_gifti_mesh(vertices, triangles, filename):
+    gii = nibabel.gifti.GiftiImage()
+    data_arr = nibabel.gifti.gifti.GiftiDataArray(
+        vertices,
+        "NIFTI_INTENT_POINTSET"
+    )
+    gii.add_gifti_data_array(data_arr)
+    data_arr = nibabel.gifti.gifti.GiftiDataArray(
+        triangles,
+        "NIFTI_INTENT_TRIANGLE"
+    )
+    gii.add_gifti_data_array(data_arr)
+    nibabel.save(gii, filename)
+
+
+def test_mesh_conversion(tmpdir):
+    vertices, triangles = dummy_mesh()
+    dummy_gii_path = tmpdir / "dummy.surf.gii"
+    write_gifti_mesh(vertices, triangles, str(dummy_gii_path))
+    dummy_precomputed_path = tmpdir / "dummy_precomputed"
+    assert subprocess.call([
+        "mesh-to-precomputed",
+        str(dummy_gii_path),
+        str(dummy_precomputed_path)
+    ]) == 0
+    with gzip.open(str(dummy_precomputed_path) + ".gz", "rb") as file:
+        vertices2, triangles2 = read_precomputed_mesh(file)
+    assert np.array_equal(vertices * 1e6, vertices2)
+    assert np.array_equal(triangles, triangles2)

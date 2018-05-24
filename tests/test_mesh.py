@@ -43,3 +43,16 @@ def test_precomputed_mesh_gzip_file_roundtrip():
         vertices2, triangles2 = read_precomputed_mesh(f)
     assert np.array_equal(vertices, vertices2)
     assert np.array_equal(triangles, triangles2)
+
+
+def test_write_vtk_mesh():
+    vertices, triangles = dummy_mesh()
+    file = io.StringIO()
+    save_mesh_as_neuroglancer_vtk(
+        file, vertices, triangles,
+        vertex_attributes=[{
+            "name": "dummy_attribute",
+            "values": np.arange(vertices.shape[0])
+        }],
+        title="dummy mesh"
+    )

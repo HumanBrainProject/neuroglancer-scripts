@@ -12,11 +12,13 @@ from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
+from neuroglancer_scripts import data_types
 from neuroglancer_scripts import precomputed_io
 
 
 def convert_chunks_for_scale(chunk_reader,
-                             dest_info, chunk_writer, scale_index):
+                             dest_info, chunk_writer, scale_index,
+                             chunk_transformer):
     """Convert chunks for a given scale"""
     scale_info = dest_info["scales"][scale_index]
     key = scale_info["key"]
@@ -65,13 +67,13 @@ def convert_chunks(source_url, dest_url, copy_info=False,
         )
     dest_info = chunk_writer.info
 
-    if source_info["data_type"] != dest_info["data_type"]:
-        print("WARNING: the data type will be cast from {0} to {1}, "
-              "truncation and rounding are NOT checked."
-              .format(source_info["data_type"], dest_info["data_type"]))
+    chunk_transformer = data_types.get_chunk_dtype_transformer(
+        source_info["data_type"], dest_info["data_type"]
+    )
     for scale_index in reversed(range(len(dest_info["scales"]))):
         convert_chunks_for_scale(chunk_reader,
-                                 dest_info, chunk_writer, scale_index)
+                                 dest_info, chunk_writer, scale_index,
+                                 chunk_transformer)
 
 
 def parse_command_line(argv):

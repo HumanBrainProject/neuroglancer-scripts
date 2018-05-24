@@ -5,6 +5,7 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import json
 import logging
 import sys
 
@@ -15,7 +16,7 @@ import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.downscaling
 import neuroglancer_scripts.dyadic_pyramid
 from neuroglancer_scripts import precomputed_io
-import neuroglancer_scripts.volume_reader
+from neuroglancer_scripts import volume_reader
 
 
 logger = logging.getLogger(__name__)
@@ -30,13 +31,14 @@ def volume_to_precomputed_pyramid(volume_filename,
                                   load_full_volume=False,
                                   options={}):
     img = nibabel.load(volume_filename)
-    info, _, _, _ = neuroglancer_scripts.volume_reader.nibabel_image_to_info(
+    formatted_info, _, _, _ = volume_reader.nibabel_image_to_info(
         img,
         ignore_scaling=ignore_scaling,
         input_min=input_min,
         input_max=input_max,
         options=options
     )
+    info = json.loads(formatted_info)
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options
     )
@@ -51,7 +53,7 @@ def volume_to_precomputed_pyramid(volume_filename,
     except neuroglancer_scripts.accessor.DataAccessError as exc:
         logger.error("Cannot write info: {0}".format(exc))
         return 1
-    neuroglancer_scripts.volume_reader.nibabel_image_to_precomputed(
+    volume_reader.nibabel_image_to_precomputed(
         img, precomputed_writer,
         ignore_scaling, input_min, input_max,
         load_full_volume, options

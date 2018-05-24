@@ -30,22 +30,23 @@ def store_nibabel_image_to_fullres_info(img,
                                         input_min=None,
                                         input_max=None,
                                         options={}):
-    info, json_transform, input_dtype, imperfect_dtype = nibabel_image_to_info(
-        img,
-        ignore_scaling=ignore_scaling,
-        input_min=input_min,
-        input_max=input_max,
-        options=options
-    )
+    formatted_info, json_transform, input_dtype, imperfect_dtype = (
+        nibabel_image_to_info(
+            img,
+            ignore_scaling=ignore_scaling,
+            input_min=input_min,
+            input_max=input_max,
+            options=options
+        ))
     try:
         accessor.store_file("info_fullres.json",
-                            json.dumps(info, indent=2).encode("utf-8"),
+                            formatted_info.encode("utf-8"),
                             mime_type="application/json")
     except DataAccessError as exc:
         logger.critical("cannot write info_fullres.json: {1}".format(exc))
         return 1
     logger.info("The metadata above was written to info_fullres.json. "
-                "Please run generate_scales_info.py on that file "
+                "Please run generate-scales-info on that file "
                 "to generate the 'info' file, then run this program "
                 "again.")
     try:
@@ -95,7 +96,7 @@ def nibabel_image_to_info(img,
         guessed_dtype = input_dtype.name
     else:
         guessed_dtype = "float32"
-    header_info = """\
+    formatted_info = """\
 {{
     "type": "image",
     "num_channels": {num_channels},
@@ -113,8 +114,8 @@ def nibabel_image_to_info(img,
              size=list(shape[:3]),
              resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
 
-    info = json.loads(header_info)  # ensure well-formed JSON
-    print(header_info)
+    info = json.loads(formatted_info)  # ensure well-formed JSON
+    logger.info("the following info has been generated:\n%s", formatted_info)
 
     # We need to take the voxel scaling out of img.affine, and convert the
     # translation part from millimetres to nanometres.
@@ -140,7 +141,7 @@ def nibabel_image_to_info(img,
                     "during the conversion.",
                     input_dtype.name,
                     neuroglancer_scripts.data_types.NG_DATA_TYPES)
-    return info, json_transform, input_dtype, imperfect_dtype
+    return formatted_info, json_transform, input_dtype, imperfect_dtype
 
 
 def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):

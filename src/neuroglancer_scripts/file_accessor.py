@@ -56,20 +56,20 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
         if ".." in file_path.relative_to(self.base_path).parts:
             raise ValueError("only relative paths pointing under base_path "
                              "are accepted")
-        if file_path.is_file():
-            f = file_path.open("rb")
-        elif file_path.with_name(file_path.name + ".gz").is_file():
-            f = gzip.open(str(file_path.with_name(file_path.name + ".gz")),
-                          "rb")
-        else:
-            raise DataAccessError("Cannot find {0} in {1}".format(
-                relative_path, self.base_path))
         try:
+            if file_path.is_file():
+                f = file_path.open("rb")
+            elif file_path.with_name(file_path.name + ".gz").is_file():
+                f = gzip.open(str(file_path.with_name(file_path.name + ".gz")),
+                              "rb")
+            else:
+                raise DataAccessError("Cannot find {0} in {1}".format(
+                    relative_path, self.base_path))
             with f:
                 return f.read()
         except OSError as exc:
             raise DataAccessError(
-                "Error fetching {1}: {2}" .format(
+                "Error fetching {1}: {2}".format(
                     relative_path, self.base_path, exc)) from exc
 
     def store_file(self, relative_path, buf,
@@ -97,18 +97,22 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
 
     def fetch_chunk(self, key, chunk_coords):
         f = None
-        for pattern in _CHUNK_PATTERN_FLAT, _CHUNK_PATTERN_SUBDIR:
-            chunk_path = self._chunk_path(key, chunk_coords, pattern)
-            if chunk_path.is_file():
-                f = chunk_path.open("rb")
-            elif chunk_path.with_name(chunk_path.name + ".gz").is_file():
-                f = gzip.open(
-                    str(chunk_path.with_name(chunk_path.name + ".gz")), "rb"
-                )
-        if f is None:
-            raise DataAccessError("Cannot find chunk {0} in {1}".format(
-                self._flat_chunk_basename(key, chunk_coords), self.base_path))
         try:
+            for pattern in _CHUNK_PATTERN_FLAT, _CHUNK_PATTERN_SUBDIR:
+                chunk_path = self._chunk_path(key, chunk_coords, pattern)
+                if chunk_path.is_file():
+                    f = chunk_path.open("rb")
+                elif chunk_path.with_name(chunk_path.name + ".gz").is_file():
+                    f = gzip.open(
+                        str(chunk_path.with_name(chunk_path.name + ".gz")),
+                        "rb"
+                    )
+            if f is None:
+                raise DataAccessError(
+                    "Cannot find chunk {0} in {1}" .format(
+                        self._flat_chunk_basename(key, chunk_coords),
+                        self.base_path)
+                )
             with f:
                 return f.read()
         except OSError as exc:

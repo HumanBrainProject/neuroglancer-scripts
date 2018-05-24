@@ -3,6 +3,8 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import pathlib
+
 import pytest
 
 from neuroglancer_scripts.file_accessor import FileAccessor
@@ -42,10 +44,43 @@ def test_file_accessor_nonexistent_directory():
         a.store_chunk(b"", "key", chunk_coords)
 
 
-def test_file_accessor_invalid_fetch(tmpdir):
+def test_file_accessor_errors(tmpdir):
+    # tmpdir from pytest is missing features of pathlib
+    tmpdir = pathlib.Path(str(tmpdir))
     a = FileAccessor(str(tmpdir))
     chunk_coords = (0, 1, 0, 1, 0, 1)
     with pytest.raises(DataAccessError):
         a.fetch_file("info")
     with pytest.raises(DataAccessError):
         a.fetch_chunk("key", chunk_coords)
+
+    inaccessible_file = tmpdir / "inaccessible"
+    inaccessible_file.touch(mode=0o000, exist_ok=False)
+    with pytest.raises(DataAccessError):
+        a.fetch_file("inaccessible")
+
+    inaccessible_chunk = tmpdir / "inaccessible_key" / "0-1_0-1_0-1"
+    inaccessible_chunk.parent.mkdir(mode=0o000)
+    with pytest.raises(DataAccessError):
+        a.fetch_chunk("inaccessible_key", chunk_coords)
+    with pytest.raises(DataAccessError):
+        a.store_chunk(b"", "inaccessible_key", chunk_coords)
+
+    with pytest.raises(DataAccessError):
+        a.store_file("inaccessible_key/dummy", b"")
+
+    invalid_gzip_file = tmpdir / "invalid.gz"
+    with invalid_gzip_file.open("w") as f:
+        f.write("not gzip compressed")
+    with pytest.raises(DataAccessError):
+        print(a.fetch_file("invalid"))
+
+    a.store_file("existing", b"")
+    with pytest.raises(DataAccessError):
+        a.store_file("existing", b"", overwrite=False)
+    a.store_file("existing", b"", overwrite=True)
+
+    with pytest.raises(ValueError):
+        a.fetch_file("../forbidden")
+    with pytest.raises(ValueError):
+        a.store_file("../forbidden", b"")

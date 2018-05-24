@@ -7,12 +7,15 @@
 
 
 import json
+import logging
 import sys
 
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts import data_types
 from neuroglancer_scripts import precomputed_io
 import neuroglancer_scripts.dyadic_pyramid
+
+logger = logging.getLogger(__name__)
 
 
 def set_info_params(info, dataset_type=None, encoding=None):
@@ -32,21 +35,22 @@ def set_info_params(info, dataset_type=None, encoding=None):
 
     if full_scale_info["encoding"] == "compressed_segmentation":
         if info["type"] != "segmentation":
-            print("WARNING: using compressed_segmentation encoding but "
-                  "'type' is not 'segmentation'")
+            logger.warn("using compressed_segmentation encoding but "
+                        "'type' is not 'segmentation'")
         if "compressed_segmentation_block_size" not in full_scale_info:
             full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
         # compressed_segmentation only supports uint32 or uint64
         if info["data_type"] in ("uint8", "uint16"):
             info["data_type"] = "uint32"
         if info["data_type"] not in ("uint32", "uint64"):
-            print("ERROR: data type {0} is not supported by the "
-                  "compressed_segmentation encoding".format(info["data_type"]))
+            logger.warn("data type %s is not supported by the "
+                        "compressed_segmentation encoding",
+                        info["data_type"])
 
     if (info["type"] == "segmentation"
             and info["data_type"] not in data_types.NG_INTEGER_DATA_TYPES):
-        print('WARNING: the dataset is of type "segmentation" but has a '
-              'non-integer data_type ({0})'.format(info["data_type"]))
+        logger.warn('the dataset is of type "segmentation" but has a '
+                    'non-integer data_type (%s)', info["data_type"])
 
 
 def generate_scales_info(input_fullres_info_filename,

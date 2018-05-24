@@ -43,7 +43,7 @@ def store_nibabel_image_to_fullres_info(img,
                             formatted_info.encode("utf-8"),
                             mime_type="application/json")
     except DataAccessError as exc:
-        logger.critical("cannot write info_fullres.json: {1}".format(exc))
+        logger.critical("cannot write info_fullres.json: %s", exc)
         return 1
     logger.info("The metadata above was written to info_fullres.json. "
                 "Please run generate-scales-info on that file "
@@ -54,7 +54,7 @@ def store_nibabel_image_to_fullres_info(img,
         accessor.store_file("transform.json", s.encode("utf-8"),
                             mime_type="application/json")
     except DataAccessError as exc:
-        logger.error("cannot write transform.json: {1}".format(exc))
+        logger.error("cannot write transform.json: %s", exc)
     logger.info("Neuroglancer transform of the converted volume "
                 "(written to transform.json):\n%s",
                 neuroglancer_scripts.transform.matrix_as_compact_urlsafe_json(
@@ -294,13 +294,13 @@ def volume_file_to_precomputed(volume_filename,
             accessor
         )
     except neuroglancer_scripts.accessor.DataAccessError as exc:
-        logger.error("No 'info' file was found ({0}). You can generate one by "
+        logger.error("No 'info' file was found (%s). You can generate one by "
                      "running this program with the --generate-info option, "
-                     "then using generate_scales_info.py on the result"
-                     .format(exc))
+                     "then using generate_scales_info.py on the result",
+                     exc)
         return 1
-    except ValueError as e:  # TODO use specific exception for invalid JSON
-        logger.error("Invalid 'info' file: {0}".format(e))
+    except ValueError as exc:  # TODO use specific exception for invalid JSON
+        logger.error("Invalid 'info' file: %s", exc)
         return 1
     return nibabel_image_to_precomputed(img, precomputed_writer,
                                         ignore_scaling, input_min, input_max,

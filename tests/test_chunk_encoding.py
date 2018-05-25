@@ -3,6 +3,8 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import struct
+
 import numpy as np
 import pytest
 
@@ -209,9 +211,9 @@ def test_compressed_segmentation_0bit_roundtrip():
 
 def test_compressed_segmentation_1bit_roundtrip():
     encoder = CompressedSegmentationEncoder("uint32", 1, [8, 8, 8])
-    test_chunk = np.arange(1 * 5 * 8, dtype="<I").reshape(1, 8, 5, 1) % 2 + 37
+    test_chunk = np.arange(8 * 8 * 8, dtype="<I").reshape(1, 8, 8, 8) % 2 + 37
     buf = encoder.encode(test_chunk)
-    decoded_chunk = encoder.decode(buf, (1, 5, 8))
+    decoded_chunk = encoder.decode(buf, (8, 8, 8))
     assert np.array_equal(decoded_chunk, test_chunk)
 
 
@@ -273,16 +275,49 @@ def test_compressed_segmentation_roundtrip_uint64(block_size):
 
 
 def test_cseg_decoder_invalid_data():
-    encoder = CompressedSegmentationEncoder("uint32", 1, [8, 8, 8])
-    with pytest.raises(InvalidFormatError):
-        encoder.decode(b"", (1, 1, 1))
+    encoder = CompressedSegmentationEncoder("uint32", 2, [8, 8, 8])
+    buf = encoder.encode(np.ones((2, 1, 1, 11), dtype="uint32"))
 
-    test_chunk = np.ones((1, 1, 1, 11), dtype="uint8")
-    buf = encoder.encode(test_chunk)
-    encoder64 = CompressedSegmentationEncoder("uint64", 1, [8, 8, 8])
-    test_chunk = np.ones((1, 1, 1, 11), dtype="uint8")
+    # file too short even for all-0bit encoding
     with pytest.raises(InvalidFormatError):
-        encoder64.decode(buf, (1, 1, 1))
+        encoder.decode(buf[:39], (1, 1, 11))
+
+    # channel offset too large for the file size
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf[:40], (1, 1, 11))
+
+    # truncated lookup table for 0-bit encoding
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf[:-1], (1, 1, 11))
+
+    buf[11] = 255  # invalid number of encoding bits
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf, (1, 1, 11))
+
+
+def test_cseg_decoder_invalid_data_in_non_0bit_encoding():
+    encoder = CompressedSegmentationEncoder("uint32", 1, [8, 8, 8])
+    test_chunk = np.reshape(np.arange(11, dtype="uint32"), (1, 1, 1, 11))
+    buf = encoder.encode(test_chunk)
+
+    # truncated encoded values for non-0bit encoding
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf[:-1], (1, 1, 11))
+
+    # truncated encoded values for non-0bit encoding
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf[:-1], (1, 1, 11))
+
+    # Manipulate the LUT offset so that LUT indices are past the end
+    lut_offset_position = 4
+    lut_offset_and_bits = struct.unpack_from("<I", buf, lut_offset_position)[0]
+    lut_offset_and_bits = (
+        (lut_offset_and_bits & 0xFF000000)
+        | (len(buf) // 4 - 2)
+    )
+    struct.pack_into("<I", buf, lut_offset_position, lut_offset_and_bits)
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf, (1, 1, 11))
 
 
 def test_jpeg_invalid_data_type():

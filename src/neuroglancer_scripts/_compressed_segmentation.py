@@ -28,7 +28,7 @@ def number_of_encoding_bits(elements):
     for bits in (0, 1, 2, 4, 8, 16, 32):
         if 2 ** bits >= elements:
             return bits
-    raise ValueError("Too many elements!")
+    raise AssertionError("Too many elements")
 
 
 COMPRESSED_SEGMENTATION_DATA_TYPES = (
@@ -55,6 +55,7 @@ def encode_chunk(chunk, block_size):
 
 
 def _encode_channel(chunk_channel, block_size):
+    block_size = tuple(block_size)
     # Grid size (number of blocks in the chunk)
     gx = ceil_div(chunk_channel.shape[2], block_size[0])
     gy = ceil_div(chunk_channel.shape[1], block_size[1])
@@ -163,10 +164,6 @@ def _decode_channel_into(chunk, channel, buf, block_size):
                                      "compressed_segmentation block ({0})"
                                      .format(bits))
         encoded_values_offset = 4 * res[1]
-        if bits != 0 and encoded_values_offset > len(buf):
-            raise InvalidFormatError("Invalid offset for encoded values in "
-                                     "compressed_segmentation block "
-                                     "(truncated file?)")
         lookup_table_past_end = lookup_table_offset + chunk.itemsize * min(
             (2 ** bits),
             ((len(buf) - lookup_table_offset) // chunk.itemsize)
@@ -186,6 +183,11 @@ def _decode_channel_into(chunk, channel, buf, block_size):
             encoded_values_end = encoded_values_offset + 4 * (
                 ceil_div(block_num_elem, values_per_32bit)
             )
+            if encoded_values_end > len(buf):
+                raise InvalidFormatError(
+                    "Invalid compressed_segmentation data: file too short, "
+                    "insufficient room for encoded values"
+                )
             packed_values = np.frombuffer(buf[encoded_values_offset:
                                               encoded_values_end], dtype="<I")
             encoded_values = _unpack_encoded_values(packed_values, bits,
@@ -214,15 +216,13 @@ def _decode_channel_into(chunk, channel, buf, block_size):
 
 
 def _unpack_encoded_values(packed_values, bits, num_values):
-    if bits == 0:
-        return np.zeros(num_values, dtype="<I")
-    else:
-        bitmask = (1 << bits) - 1
-        values_per_32bit = 32 // bits
-        padded_values = np.empty(
-            values_per_32bit * ceil_div(num_values, values_per_32bit),
-            dtype="<I")
-        for shift in range(values_per_32bit):
-            padded_values[shift::values_per_32bit] = (
-                (packed_values >> (shift * bits)) & bitmask)
-        return padded_values[:num_values]
+    assert bits > 0
+    bitmask = (1 << bits) - 1
+    values_per_32bit = 32 // bits
+    padded_values = np.empty(
+        values_per_32bit * ceil_div(num_values, values_per_32bit),
+        dtype="<I")
+    for shift in range(values_per_32bit):
+        padded_values[shift::values_per_32bit] = (
+            (packed_values >> (shift * bits)) & bitmask)
+    return padded_values[:num_values]

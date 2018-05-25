@@ -18,14 +18,14 @@ def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     This function compensates the resulting half-voxel shift by adjusting the
     translation parameters accordingly.
     """
-    ret = np.copy(nifti_transformation_matrix)
+    ret = np.array(nifti_transformation_matrix, copy=True, dtype=float)
     ret[:3, 3] -= np.dot(ret[:3, :3], 0.5 * np.asarray(voxel_size))
     return ret
 
 
 def matrix_as_compact_urlsafe_json(matrix):
     # Transform tre matrix, transforming numbers whose floating-point
-    # representation has a training .0 to integers
+    # representation has a trailing .0 to integers
     array = [[int(x) if str(x).endswith(".0") and int(x) == x
               else x for x in row] for row in matrix]
     return json.dumps(array, indent=None, separators=('_', ':'))

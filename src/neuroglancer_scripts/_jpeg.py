@@ -21,7 +21,7 @@ def encode_chunk(chunk, jpeg_quality, jpeg_plane):
     if jpeg_plane == "xy":
         reshaped_chunk = chunk.reshape(
             num_channels, chunk.shape[1] * chunk.shape[2], chunk.shape[3])
-    elif jpeg_plane == "xz":
+    else:  # jpeg_plane == "xz":
         reshaped_chunk = chunk.reshape(
             num_channels, chunk.shape[1], chunk.shape[2] * chunk.shape[3])
 

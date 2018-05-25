@@ -23,8 +23,8 @@ def choose_unit_for_key(resolution_nm):
             and (format_length(resolution_nm, unit)
                  != format_length(resolution_nm * 2, unit))):
             return unit
-    raise RuntimeError("cannot find a suitable unit for {} nm"
-                       .format(resolution_nm))
+    raise NotImplementedError("cannot find a suitable unit for {} nm"
+                              .format(resolution_nm))
 
 
 def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,

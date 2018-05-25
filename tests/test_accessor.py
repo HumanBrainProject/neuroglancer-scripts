@@ -33,6 +33,10 @@ def test_get_accessor_for_url(accessor_options):
     a = get_accessor_for_url("http://example/", accessor_options)
     assert isinstance(a, HttpAccessor)
     assert a.base_url == "http://example/"
+    with pytest.raises(URLError, match="scheme"):
+        get_accessor_for_url("weird://", accessor_options)
+    with pytest.raises(URLError, match="decod"):
+        get_accessor_for_url("file:///%ff", accessor_options)
 
 
 def test_add_argparse_options():

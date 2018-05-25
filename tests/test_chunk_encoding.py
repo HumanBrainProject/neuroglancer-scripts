@@ -166,6 +166,10 @@ def test_add_argparse_options():
     assert args.jpeg_quality == 50
     assert args.jpeg_plane == "xz"
 
+    with pytest.raises(SystemExit) as excinfo:
+        parser.parse_args(["--jpeg-quality", "-1"])
+    assert excinfo.value.code == 2
+
 
 def test_raw_encoder_roundtrip():
     encoder = RawChunkEncoder("float32", 2)
@@ -332,3 +336,7 @@ def test_jpeg_decoder_invalid_data():
         encoder.decode(buf, (2, 1, 1))
     with pytest.raises(InvalidFormatError):
         encoder_3ch.decode(buf, (1, 1, 1))
+
+    buf = encoder_3ch.encode(np.ones((3, 1, 9, 1), dtype="uint8"))
+    with pytest.raises(InvalidFormatError):
+        encoder.decode(buf, (1, 9, 1))

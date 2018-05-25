@@ -43,8 +43,8 @@ def get_downscaler(downscaling_method, options={}):
     elif downscaling_method == "stride":
         return StridingDownscaler()
     else:
-        RuntimeError("invalid downscaling method {0}"
-                     .format(downscaling_method))
+        raise NotImplementedError("invalid downscaling method {0}"
+                                  .format(downscaling_method))
 
 
 def add_argparse_options(parser):

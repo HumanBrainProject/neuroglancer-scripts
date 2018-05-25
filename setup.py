@@ -27,8 +27,10 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+# Remember keep synchronized with the list of dependencies in tox.ini
 tests_require = [
     "pytest",
+    "requests-mock",
 ]
 
 needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)

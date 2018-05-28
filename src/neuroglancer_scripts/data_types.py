@@ -25,26 +25,31 @@ def get_chunk_dtype_transformer(input_dtype, output_dtype):
         output_min = 0.0
         output_max = 1.0
 
+    work_dtype = np.promote_types(input_dtype, output_dtype)
+
     round_to_nearest = (
         np.issubdtype(output_dtype, np.integer)
-        and not np.issubdtype(input_dtype, np.integer))
+        and not np.issubdtype(input_dtype, np.integer)
+    )
     if round_to_nearest:
         logger.warning("Values will be rounded to the nearest integer")
 
     clip_values = (
         np.issubdtype(output_dtype, np.integer)
-        and not np.can_cast(input_dtype, output_dtype, casting="safe"))
+        and not np.can_cast(input_dtype, output_dtype, casting="safe")
+    )
     if clip_values:
         logger.warning("Values will be clipped to the range [%s, %s]",
                        output_min, output_max)
 
     def chunk_transformer(chunk, preserve_input=True):
-        if preserve_input and (round_to_nearest or clip_values):
-            chunk = np.copy(chunk)
-        if round_to_nearest:
-            np.rint(chunk, out=chunk)
-        if clip_values:
-            np.clip(chunk, output_min, output_max, out=chunk)
+        assert np.can_cast(chunk.dtype, input_dtype, casting="equiv")
+        if round_to_nearest or clip_values:
+            chunk = np.array(chunk, dtype=work_dtype, copy=preserve_input)
+            if round_to_nearest:
+                np.rint(chunk, out=chunk)
+            if clip_values:
+                np.clip(chunk, output_min, output_max, out=chunk)
         return chunk.astype(output_dtype, casting="unsafe")
 
     return chunk_transformer

@@ -38,6 +38,7 @@ def set_info_params(info, dataset_type=None, encoding=None):
             logger.warn("using compressed_segmentation encoding but "
                         "'type' is not 'segmentation'")
         if "compressed_segmentation_block_size" not in full_scale_info:
+            # TODO clamp block size to chunk size (e.g. thin chunks)
             full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
         # compressed_segmentation only supports uint32 or uint64
         if info["data_type"] in ("uint8", "uint16"):
@@ -51,6 +52,10 @@ def set_info_params(info, dataset_type=None, encoding=None):
             and info["data_type"] not in data_types.NG_INTEGER_DATA_TYPES):
         logger.warn('the dataset is of type "segmentation" but has a '
                     'non-integer data_type (%s)', info["data_type"])
+
+    if (info["type"] == "segmentation" and info["num_channels"] != 1):
+        logger.warn('the dataset is of type "segmentation" but num_channels '
+                    'is %d (must be 1)', info["data_type"])
 
 
 def generate_scales_info(input_fullres_info_filename,

@@ -195,9 +195,10 @@ def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):
                 chunk_coords = (x_slicing.start, x_slicing.stop,
                                 y_slicing.start, y_slicing.stop,
                                 z_slicing.start, z_slicing.stop)
-                pyramid_writer.write_chunk(chunk.astype(dtype),
-                                           info["scales"][0]["key"],
-                                           chunk_coords)
+                pyramid_writer.write_chunk(
+                    chunk.astype(dtype, casting="equiv"),
+                    info["scales"][0]["key"], chunk_coords
+                )
                 progress_bar.update()
 
 

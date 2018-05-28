@@ -220,8 +220,10 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                 chunk_coords = (x_coords[0], x_coords[1],
                                 y_coords[0], y_coords[1],
                                 z_coords[0], z_coords[1])
-                pyramid_writer.write_chunk(chunk_dtype_transformer(chunk), key,
-                                           chunk_coords)
+                pyramid_writer.write_chunk(
+                    chunk_dtype_transformer(chunk),
+                    key, chunk_coords
+                )
                 progress_bar.update()
         # free up memory before reading next block (prevent doubled memory
         # usage)

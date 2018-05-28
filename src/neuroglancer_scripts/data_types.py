@@ -43,6 +43,6 @@ def get_chunk_dtype_transformer(input_dtype, output_dtype):
             np.rint(chunk, out=chunk)
         if clip_values:
             np.clip(chunk, output_min, output_max, out=chunk)
-        return chunk.astype(output_dtype)
+        return chunk.astype(output_dtype, casting="unsafe")
 
     return chunk_transformer

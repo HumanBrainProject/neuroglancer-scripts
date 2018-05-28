@@ -42,8 +42,10 @@ def convert_chunks_for_scale(chunk_reader,
             chunk_coords = (xmin, xmax, ymin, ymax, zmin, zmax)
 
             chunk = chunk_reader.read_chunk(key, chunk_coords)
-            chunk_writer.write_chunk(chunk.astype(dest_dtype),
-                                     key, chunk_coords)
+            chunk_writer.write_chunk(
+                chunk.astype(dest_dtype, casting="equiv"),
+                key, chunk_coords
+            )
 
 
 def convert_chunks(source_url, dest_url, copy_info=False,

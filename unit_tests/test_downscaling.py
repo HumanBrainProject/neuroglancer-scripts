@@ -69,6 +69,7 @@ def test_dyadic_downscaling(dx, dy, dz):
     assert np.array_equal(d.downscale(truncated_chunk, scaling_factors),
                           lowres_chunk)
 
+    # TODO test correct rounding (& fix downscaler)
     d = AveragingDownscaler()
     assert np.array_equal(d.downscale(upscaled_chunk, scaling_factors),
                           lowres_chunk)

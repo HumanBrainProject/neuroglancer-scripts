@@ -14,6 +14,7 @@ The central component here is the :class:`Downscaler` base class. Use
 import numpy as np
 
 from neuroglancer_scripts.utils import ceil_div
+from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
 
 
 __all__ = [
@@ -150,29 +151,32 @@ class AveragingDownscaler(Downscaler):
         if not self.check_factors(downscaling_factors):
             raise NotImplementedError
         dtype = chunk.dtype
-        # unbounded type for arithmetic
-        chunk = chunk.astype(np.float32, casting="safe")
+        # Use a floating-point type for arithmetic
+        work_dtype = np.promote_types(chunk.dtype, np.floating)
+        chunk = chunk.astype(work_dtype, casting="safe")
+
+        half = work_dtype.type(0.5)
 
         if downscaling_factors[2] == 2:
             if chunk.shape[1] % 2 != 0:
                 chunk = np.pad(chunk, ((0, 0), (0, 1), (0, 0), (0, 0)),
                                self.padding_mode, **self.pad_kwargs)
-            chunk = (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :]) * 0.5
+            chunk = half * (chunk[:, ::2, :, :] + chunk[:, 1::2, :, :])
 
         if downscaling_factors[1] == 2:
             if chunk.shape[2] % 2 != 0:
                 chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 1), (0, 0)),
                                self.padding_mode, **self.pad_kwargs)
-            chunk = (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :]) * 0.5
+            chunk = half * (chunk[:, :, ::2, :] + chunk[:, :, 1::2, :])
 
         if downscaling_factors[0] == 2:
             if chunk.shape[3] % 2 != 0:
                 chunk = np.pad(chunk, ((0, 0), (0, 0), (0, 0), (0, 1)),
                                self.padding_mode, **self.pad_kwargs)
-            chunk = (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2]) * 0.5
+            chunk = half * (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2])
 
-        # TODO proper rounding for integer target types
-        return chunk.astype(dtype)
+        dtype_converter = get_chunk_dtype_transformer(work_dtype, dtype)
+        return dtype_converter(chunk)
 
 
 class MajorityDownscaler(Downscaler):

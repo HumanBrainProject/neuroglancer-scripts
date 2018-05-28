@@ -184,7 +184,7 @@ def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):
                     chunk = chunk[..., np.newaxis]
 
                 if chunk_transformer is not None:
-                    chunk = chunk_transformer(chunk)
+                    chunk = chunk_transformer(chunk, preserve_input=False)
 
                 chunk = np.moveaxis(chunk, (0, 1, 2, 3), (3, 2, 1, 0))
                 assert chunk.size == ((x_slicing.stop - x_slicing.start)

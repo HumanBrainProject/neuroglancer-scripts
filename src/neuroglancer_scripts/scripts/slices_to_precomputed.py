@@ -221,7 +221,7 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                                 y_coords[0], y_coords[1],
                                 z_coords[0], z_coords[1])
                 pyramid_writer.write_chunk(
-                    chunk_dtype_transformer(chunk),
+                    chunk_dtype_transformer(chunk, preserve_input=False),
                     key, chunk_coords
                 )
                 progress_bar.update()

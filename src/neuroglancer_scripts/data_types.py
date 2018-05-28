@@ -38,7 +38,9 @@ def get_chunk_dtype_transformer(input_dtype, output_dtype):
         logger.warning("Values will be clipped to the range [%s, %s]",
                        output_min, output_max)
 
-    def chunk_transformer(chunk):
+    def chunk_transformer(chunk, preserve_input=True):
+        if preserve_input and (round_to_nearest or clip_values):
+            chunk = np.copy(chunk)
         if round_to_nearest:
             np.rint(chunk, out=chunk)
         if clip_values:

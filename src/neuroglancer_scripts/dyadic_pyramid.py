@@ -13,6 +13,14 @@ from tqdm import tqdm
 from neuroglancer_scripts.utils import (LENGTH_UNITS, ceil_div, format_length)
 
 
+__all__ = [
+    "choose_unit_for_key",
+    "fill_scales_for_dyadic_pyramid",
+    "compute_dyadic_scales",
+    "compute_dyadic_downscaling",
+]
+
+
 logger = logging.getLogger(__name__)
 
 

@@ -133,6 +133,7 @@ def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
                             axis_level_delays)))
     if max_scales:
         max_downscale_level = min(max_downscale_level, max_scales)
+    max_downscale_level = max(max_downscale_level, 1)
     info["scales"] = [downscale_info(scale_level)
                       for scale_level in range(max_downscale_level)]
     return info

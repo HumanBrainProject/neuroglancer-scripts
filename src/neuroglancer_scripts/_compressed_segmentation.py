@@ -102,18 +102,17 @@ def _encode_channel(chunk_channel, block_size):
 
 
 def _pack_encoded_values(encoded_values, bits):
-    # TODO optimize with np.packbits for bits == 1
     if bits == 0:
         return bytes()
     else:
+        assert 32 % bits == 0
+        assert np.array_equal(encoded_values,
+                              encoded_values & ((1 << bits) - 1))
         values_per_32bit = 32 // bits
-        assert np.all(encoded_values == encoded_values & ((1 << bits) - 1))
-        # TODO use np.pad?
-        padded_values = np.empty(
-            values_per_32bit * ceil_div(len(encoded_values), values_per_32bit),
-            dtype="<I")
-        padded_values[:len(encoded_values)] = encoded_values
-        padded_values[len(encoded_values):] = 0
+        padded_values = np.pad(encoded_values.astype("<I", casting="unsafe"),
+                               [(0, -len(encoded_values) % values_per_32bit)],
+                               mode="constant", constant_values=0)
+        assert len(padded_values) % values_per_32bit == 0
         packed_values = functools.reduce(
             np.bitwise_or,
             (padded_values[shift::values_per_32bit] << (shift * bits)
@@ -218,11 +217,12 @@ def _decode_channel_into(chunk, channel, buf, block_size):
 
 def _unpack_encoded_values(packed_values, bits, num_values):
     assert bits > 0
+    assert 32 % bits == 0
     bitmask = (1 << bits) - 1
     values_per_32bit = 32 // bits
     padded_values = np.empty(
         values_per_32bit * ceil_div(num_values, values_per_32bit),
-        dtype="<I")
+        dtype="I")
     for shift in range(values_per_32bit):
         padded_values[shift::values_per_32bit] = (
             (packed_values >> (shift * bits)) & bitmask)

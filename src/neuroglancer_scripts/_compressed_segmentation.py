@@ -108,6 +108,7 @@ def _pack_encoded_values(encoded_values, bits):
     else:
         values_per_32bit = 32 // bits
         assert np.all(encoded_values == encoded_values & ((1 << bits) - 1))
+        # TODO use np.pad?
         padded_values = np.empty(
             values_per_32bit * ceil_div(len(encoded_values), values_per_32bit),
             dtype="<I")

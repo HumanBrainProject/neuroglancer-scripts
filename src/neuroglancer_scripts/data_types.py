@@ -8,6 +8,13 @@ import logging
 import numpy as np
 
 
+__all__ = [
+    "NG_DATA_TYPES",
+    "NG_INTEGER_DATA_TYPES",
+    "get_chunk_dtype_transformer",
+]
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,6 +27,15 @@ NG_DATA_TYPES = NG_INTEGER_DATA_TYPES + ("float32",)
 # - implement optional scaling
 # - print a warning for NaNs during float->int conversion
 def get_chunk_dtype_transformer(input_dtype, output_dtype):
+    """
+
+    .. note::
+        Conversion to uint64 may result in loss of precision, because of a
+        known bug / approximation in NumPy, where dtype promotion between a
+        64-bit (u)int and any float will return float64, even though this type
+        can only hold all integers up to 2**53 (see e.g.
+        https://github.com/numpy/numpy/issues/8851).
+    """
     input_dtype = np.dtype(input_dtype)
     output_dtype = np.dtype(output_dtype)
     if np.issubdtype(output_dtype, np.integer):

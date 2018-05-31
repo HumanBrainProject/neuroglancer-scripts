@@ -26,6 +26,14 @@ import numpy as np
 import neuroglancer_scripts
 
 
+__all__ = [
+    "InvalidMeshDataError",
+    "save_mesh_as_neuroglancer_vtk",
+    "save_mesh_as_precomputed",
+    "read_precomputed_mesh",
+]
+
+
 logger = logging.getLogger(__name__)
 
 

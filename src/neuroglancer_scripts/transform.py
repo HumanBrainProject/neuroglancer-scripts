@@ -8,6 +8,12 @@ import json
 import numpy as np
 
 
+__all__ = [
+    "nifti_to_neuroglancer_transform",
+    "matrix_as_compact_urlsafe_json",
+]
+
+
 def nifti_to_neuroglancer_transform(nifti_transformation_matrix, voxel_size):
     """Compensate the half-voxel shift between Neuroglancer and Nifti.
 

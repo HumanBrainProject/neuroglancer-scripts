@@ -17,7 +17,11 @@ import neuroglancer_scripts.accessor
 from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT, DataAccessError
 
 
-# TODO DataAccessError
+__all__ = [
+    "HttpAccessor",
+]
+
+
 class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
     """Access a Neuroglancer pre-computed pyramid with HTTP.
 

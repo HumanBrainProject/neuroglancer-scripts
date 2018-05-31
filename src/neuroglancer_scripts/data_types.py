@@ -15,6 +15,10 @@ NG_INTEGER_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64")
 NG_DATA_TYPES = NG_INTEGER_DATA_TYPES + ("float32",)
 
 
+# TODO re-factor into a class:
+# - implement reporting of non-preserved values (clipped / rounded)
+# - implement optional scaling
+# - print a warning for NaNs during float->int conversion
 def get_chunk_dtype_transformer(input_dtype, output_dtype):
     input_dtype = np.dtype(input_dtype)
     output_dtype = np.dtype(output_dtype)
@@ -31,13 +35,17 @@ def get_chunk_dtype_transformer(input_dtype, output_dtype):
         np.issubdtype(output_dtype, np.integer)
         and not np.issubdtype(input_dtype, np.integer)
     )
-    if round_to_nearest:
-        logger.warning("Values will be rounded to the nearest integer")
-
     clip_values = (
         np.issubdtype(output_dtype, np.integer)
         and not np.can_cast(input_dtype, output_dtype, casting="safe")
     )
+
+    logger.debug("dtype converter from %s to %s: "
+                 "work_dtype=%s, round_to_nearest=%s, clip_values=%s",
+                 input_dtype, output_dtype,
+                 work_dtype, round_to_nearest, clip_values)
+    if round_to_nearest:
+        logger.warning("Values will be rounded to the nearest integer")
     if clip_values:
         logger.warning("Values will be clipped to the range [%s, %s]",
                        output_min, output_max)

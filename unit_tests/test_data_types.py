@@ -32,14 +32,14 @@ def test_data_types_lists():
 ])
 def test_dtype_conversion_float_to_int(float_dtype):
     reference_test_data = np.array(
-        [-100, 0.4, 0.6, 2**8, 2**16, 2**32, 2**63],
+        [-np.inf, -100, 0.4, 0.6, 2**8, 2**16, 2**32, 2**64, np.inf],
         dtype=float_dtype
     )
     test_data = np.copy(reference_test_data)
     t = get_chunk_dtype_transformer(test_data.dtype, "uint8")
     assert np.array_equal(
         t(test_data),
-        np.array([0, 0, 1, 255, 255, 255, 255], dtype="uint8")
+        np.array([0, 0, 0, 1, 255, 255, 255, 255, 255], dtype="uint8")
     )
     # Ensure that the input data was not modified in-place
     assert np.array_equal(test_data, reference_test_data)
@@ -47,7 +47,7 @@ def test_dtype_conversion_float_to_int(float_dtype):
     t = get_chunk_dtype_transformer(test_data.dtype, "uint16")
     assert np.array_equal(
         t(test_data),
-        np.array([0, 0, 1, 256, 65535, 65535, 65535], dtype="uint16")
+        np.array([0, 0, 0, 1, 256, 65535, 65535, 65535, 65535], dtype="uint16")
     )
     # Ensure that the input data was not modified in-place
     assert np.array_equal(test_data, reference_test_data)
@@ -55,19 +55,23 @@ def test_dtype_conversion_float_to_int(float_dtype):
     t = get_chunk_dtype_transformer(test_data.dtype, "uint32")
     assert np.array_equal(
         t(test_data),
-        np.array([0, 0, 1, 256, 65536, 2**32-1, 2**32-1], dtype="uint32")
+        np.array([0, 0, 0, 1, 256, 65536, 2**32-1, 2**32-1, 2**32-1],
+                 dtype="uint32")
     )
     # Ensure that the input data was not modified in-place
     assert np.array_equal(test_data, reference_test_data)
 
-    # Test with 2**64 is expected to fail, see below.
-    t = get_chunk_dtype_transformer(test_data.dtype, "uint64")
-    assert np.array_equal(
-        t(test_data),
-        np.array([0, 0, 1, 256, 65536, 2**32, 2**63], dtype="uint64")
+    # Use a different test for uint64: tests for 2**64 and +infinity are
+    # expected to fail due to a bug in NumPy, see below.
+    uint64_test_data = np.array(
+        [-np.inf, -100, 0.4, 0.6, 2**63],
+        dtype=float_dtype
     )
-    # Ensure that the input data was not modified in-place
-    assert np.array_equal(test_data, reference_test_data)
+    t = get_chunk_dtype_transformer(uint64_test_data.dtype, "uint64")
+    assert np.array_equal(
+        t(uint64_test_data),
+        np.array([0, 0, 0, 1, 2**63], dtype="uint64")
+    )
 
 
 @pytest.mark.xfail(reason="known bug in NumPy", strict=True)
@@ -77,11 +81,11 @@ def test_dtype_conversion_float_to_uint64():
     # (u)int and any float will return float64, even though this type can only
     # hold all integers up to 2**53 (see e.g.
     # https://github.com/numpy/numpy/issues/8851).
-    test_data = np.array([2**64])
+    test_data = np.array([2**64, np.inf])
     t = get_chunk_dtype_transformer(test_data.dtype, "uint64")
     assert np.array_equal(
         t(test_data),
-        np.array([2**64-1], dtype="uint64")
+        np.array([2**64 - 1, 2**64 - 1], dtype="uint64")
     )
 
 
@@ -101,7 +105,30 @@ def test_dtype_conversion_identity(dtype):
 
 @pytest.mark.parametrize("dtype", NG_INTEGER_DATA_TYPES)
 def test_dtype_conversion_integer_upcasting(dtype):
+    iinfo_uint64 = np.iinfo(np.uint64)
     iinfo = np.iinfo(dtype)
+    # The test will need to be rewritten if NG_INTEGER_DATA_TYPES ever includes
+    # signed data types
+    assert (iinfo_uint64.max >= iinfo.max and iinfo_uint64.min <= iinfo.min)
+
     test_data = np.array([iinfo.min, iinfo.max], dtype=dtype)
     t = get_chunk_dtype_transformer(test_data.dtype, "uint64")
     assert np.array_equal(t(test_data), test_data)
+
+
+@pytest.mark.parametrize("dtype", NG_INTEGER_DATA_TYPES)
+def test_dtype_conversion_integer_downcasting(dtype):
+    iinfo_uint64 = np.iinfo(np.uint64)
+    iinfo = np.iinfo(dtype)
+    # The test will need to be rewritten if NG_INTEGER_DATA_TYPES ever includes
+    # signed data types
+    assert (iinfo_uint64.max >= iinfo.max and iinfo_uint64.min <= iinfo.min)
+
+    test_data = np.array([iinfo_uint64.min, iinfo.min,
+                          iinfo.max, iinfo_uint64.max], dtype=np.uint64)
+    t = get_chunk_dtype_transformer(test_data.dtype, dtype)
+    assert np.array_equal(
+        t(test_data),
+        np.array([iinfo.min, iinfo.min,
+                  iinfo.max, iinfo.max], dtype=dtype)
+    )

@@ -232,10 +232,11 @@ def nibabel_image_to_precomputed(img,
     info = precomputed_writer.info
 
     output_dtype = np.dtype(info["data_type"])
-    info_voxel_sizes = 0.000001 * np.asarray(info["scales"][0]["resolution"])
+    info_voxel_sizes = 1e-6 * np.asarray(info["scales"][0]["resolution"])
     if not np.allclose(voxel_sizes, info_voxel_sizes):
         logger.warning("voxel size is inconsistent with resolution in the "
-                       "info file(%s nm)", info_voxel_sizes)
+                       "info file (%s mm)",
+                       " × ".join(str(sz) for sz in info_voxel_sizes))
 
     if not np.can_cast(input_dtype, output_dtype, casting="safe"):
         logger.warning("The volume has data type %s, but chunks will be "

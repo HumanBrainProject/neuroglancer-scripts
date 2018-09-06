@@ -53,6 +53,7 @@ def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
 
     Each element of ``vertex_attributes`` must be a mapping (e.g.
     :class:`dict`) with the following keys:
+
     name
        The name of the vertex attribute, as a :class:`str`. Cannot contain
        white space.

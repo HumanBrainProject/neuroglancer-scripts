@@ -7,8 +7,12 @@
 
 import csv
 import json
+import logging
 import os.path
 import sys
+
+
+logger = logging.getLogger(__name__)
 
 
 def fragment_exists(fragment_name, mesh_dir):
@@ -24,17 +28,14 @@ def make_mesh_fragment_links(input_csv, output_mesh_dir):
         for line in csv_reader:
             numeric_label = int(line[0])
             fragment_list = line[1:]
-            if False:  # TODO make filtering optional
-                fragment_list = [f for f in fragment_list
-                                 if fragment_exists(f, output_mesh_dir)]
-            else:
-                for fragment_name in fragment_list:
-                    if not fragment_exists(fragment_name, output_mesh_dir):
-                        print("WARNING: missing fragment {0}"
-                              .format(fragment_name))
-                # TODO output a warning for missing fragments
-            fragment_json_filename = os.path.join(output_mesh_dir,
-                                                  "{0}:0".format(numeric_label))
+            # Output a warning for missing fragments
+            for fragment_name in fragment_list:
+                if not fragment_exists(fragment_name, output_mesh_dir):
+                    logger.warning("missing fragment %s", fragment_name)
+            fragment_json_filename = os.path.join(
+                output_mesh_dir,
+                "{0}:0".format(numeric_label)
+            )
             # TODO use accessor
             with open(fragment_json_filename, "w") as fragment_json_file:
                 json.dump({"fragments": fragment_list}, fragment_json_file,
@@ -46,7 +47,11 @@ def parse_command_line(argv):
     import argparse
     parser = argparse.ArgumentParser(
         description="""\
-Create JSON files linking pre-computed mesh fragments to labels of a segmentation.
+Create JSON files linking mesh fragments to labels of a segmentation layer.
+
+The input is a CSV file, where each line contains the integer label in the
+first cell, followed by an arbitrary number of cells whose contents name the
+fragment files corresponding to the given integer label.
 """)
     parser.add_argument("input_csv")
     parser.add_argument("output_mesh_dir")
@@ -56,6 +61,8 @@ Create JSON files linking pre-computed mesh fragments to labels of a segmentatio
 
 def main(argv=sys.argv):
     """The script's entry point."""
+    import neuroglancer_scripts.utils
+    neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
     return make_mesh_fragment_links(args.input_csv, args.output_mesh_dir) or 0
 

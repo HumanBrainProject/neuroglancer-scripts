@@ -1,5 +1,6 @@
 include LICENCE.txt
 include .coveragerc
+include .editorconfig
 include tox.ini
 
 prune examples
@@ -11,4 +12,5 @@ include docs/Makefile
 exclude docs/autodoc-requirements.txt
 prune docs/_build
 
-recursive-include tests *.py
+recursive-include script_tests *.py
+recursive-include unit_tests *.py

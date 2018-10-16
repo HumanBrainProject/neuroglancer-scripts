@@ -59,8 +59,9 @@ def test_dyadic_downscaling(dx, dy, dz):
         upscaled_chunk[:, z::dz, y::dy, x::dx] = lowres_chunk
 
     # Shorten the chunk by 1 voxel in every direction where it was upscaled
-    truncation_slicing = [np.s_[:]] + [np.s_[:-1] if s == 2 else np.s_[:]
-                                       for s in reversed(scaling_factors)]
+    truncation_slicing = (np.s_[:],) + tuple(
+        np.s_[:-1] if s == 2 else np.s_[:] for s in reversed(scaling_factors)
+    )
     truncated_chunk = upscaled_chunk[truncation_slicing]
 
     d = StridingDownscaler()

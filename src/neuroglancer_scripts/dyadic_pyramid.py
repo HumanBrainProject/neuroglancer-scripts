@@ -68,8 +68,8 @@ def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
     at most two chunks along every dimension.
     """
     if len(info["scales"]) != 1:
-        logger.warn("the source info JSON contains multiple scales, only "
-                    "the first one will be used.")
+        logger.warning("the source info JSON contains multiple scales, only "
+                       "the first one will be used.")
     full_scale_info = info["scales"][0]
 
     target_chunk_exponent = int(math.log2(target_chunk_size))

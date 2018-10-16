@@ -117,8 +117,8 @@ def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
             if not np.can_cast(values.dtype, np.float32):
                 # As of a8ce681660864ab3ac7c1086c0b4262e40f24707 Neuroglancer
                 # reads everything as float32 anyway
-                logger.warn("Data for the '{0}' vertex attribute will be "
-                            "converted to float32".format(name))
+                logger.warning("Data for the '{0}' vertex attribute will be "
+                               "converted to float32".format(name))
             file.write("SCALARS {0} {1}".format(name, "float"))
             if num_components != 1:
                 file.write(" {0:d}".format(num_components))

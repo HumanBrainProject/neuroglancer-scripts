@@ -43,6 +43,8 @@ def convert_chunks_for_scale(chunk_reader,
 
             chunk = chunk_reader.read_chunk(key, chunk_coords)
             chunk = chunk_transformer(chunk, preserve_input=False)
+            # TODO add the possibility of data-type conversion (ideally through
+            # a command-line flag)
             chunk_writer.write_chunk(
                 chunk.astype(dest_dtype, casting="equiv"),
                 key, chunk_coords
@@ -85,9 +87,10 @@ def parse_command_line(argv):
     parser = argparse.ArgumentParser(
         description="""\
 Convert Neuroglancer precomputed chunks between different encodings (raw,
-compressed_segmentation, or jpeg). The target encoding parameters is determined
-by a pre-existing info file in the destination directory (except in --copy-info
-mode). You can create such an info file with generate_scales_info.py.
+compressed_segmentation, or jpeg). The target encoding parameters are
+determined by a pre-existing info file in the destination directory (except in
+--copy-info mode). You can create such an info file with
+generate_scales_info.py.
 """)
     parser.add_argument("source_url",
                         help="URL/directory where the input chunks are found")

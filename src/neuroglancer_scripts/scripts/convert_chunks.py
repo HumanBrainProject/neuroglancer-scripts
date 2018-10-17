@@ -8,7 +8,7 @@
 import sys
 
 import numpy as np
-from tqdm import tqdm
+from neuroglancer_scripts.tqdm import tqdm
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding

@@ -10,7 +10,7 @@ import sys
 
 import numpy as np
 import skimage.io
-from tqdm import tqdm, trange
+from neuroglancer_scripts.tqdm import tqdm, trange
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding

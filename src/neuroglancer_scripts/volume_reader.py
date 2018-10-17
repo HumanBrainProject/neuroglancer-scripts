@@ -9,7 +9,7 @@ import logging
 import numpy as np
 import nibabel
 import nibabel.orientations
-from tqdm import tqdm
+from neuroglancer_scripts.tqdm import tqdm
 
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.accessor import DataAccessError

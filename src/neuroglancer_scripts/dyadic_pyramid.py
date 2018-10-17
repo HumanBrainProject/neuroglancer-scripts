@@ -8,7 +8,7 @@ import logging
 import math
 
 import numpy as np
-from tqdm import tqdm
+from neuroglancer_scripts.tqdm import tqdm
 
 from neuroglancer_scripts.utils import (LENGTH_UNITS, ceil_div, format_length)
 

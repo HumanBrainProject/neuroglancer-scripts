@@ -177,6 +177,12 @@ def compute_dyadic_downscaling(info, source_scale_index, downscaler,
 
     downscaler.check_factors(downscaling_factors)
 
+    if chunk_reader.scale_is_lossy(old_key):
+        logger.warning(
+            "Using data stored in a lossy format (scale %s) as an input "
+            "for downscaling (to scale %s)" % (old_key, new_key)
+        )
+
     half_chunk = [osz // f
                   for osz, f in zip(old_chunk_size, downscaling_factors)]
     chunk_fetch_factor = [nsz // hc

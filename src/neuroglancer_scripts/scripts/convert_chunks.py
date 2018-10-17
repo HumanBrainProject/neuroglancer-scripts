@@ -5,6 +5,7 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import logging
 import sys
 
 import numpy as np
@@ -16,6 +17,9 @@ from neuroglancer_scripts import data_types
 from neuroglancer_scripts import precomputed_io
 
 
+logger = logging.getLogger(__name__)
+
+
 def convert_chunks_for_scale(chunk_reader,
                              dest_info, chunk_writer, scale_index,
                              chunk_transformer):
@@ -24,6 +28,10 @@ def convert_chunks_for_scale(chunk_reader,
     key = scale_info["key"]
     size = scale_info["size"]
     dest_dtype = np.dtype(dest_info["data_type"]).newbyteorder("<")
+
+    if chunk_reader.scale_is_lossy(key):
+        logger.warning("Using data stored in a lossy format as an input for "
+                       "conversion (for scale %s)" % key)
 
     for chunk_size in scale_info["chunk_sizes"]:
         chunk_range = ((size[0] - 1) // chunk_size[0] + 1,

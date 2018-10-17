@@ -61,3 +61,57 @@ def test_precomputed_IO_validate_chunk_coords(tmpdir):
     bad_chunk_coords = (0, 8, 1, 4, 0, 8)
     assert io.validate_chunk_coords("key", good_chunk_coords) is True
     assert io.validate_chunk_coords("key", bad_chunk_coords) is False
+
+
+def test_raw_encoding_lossy_info(tmpdir):
+    accessor = get_accessor_for_url(str(tmpdir))
+    # Minimal info file
+    io_raw = get_IO_for_new_dataset(DUMMY_INFO, accessor)
+    assert not io_raw.scale_is_lossy("key")
+
+
+def test_compressed_segmentation_encoding_lossy_info(tmpdir):
+    accessor = get_accessor_for_url(str(tmpdir))
+    io = get_IO_for_new_dataset(
+        {
+            "type": "image",
+            "data_type": "uint32",
+            "num_channels": 1,
+            "scales": [
+                {
+                    "key": "key",
+                    "size": [8, 3, 15],
+                    "resolution": [1e6, 1e6, 1e6],
+                    "voxel_offset": [0, 0, 0],
+                    "chunk_sizes": [[8, 8, 8]],
+                    "encoding": "compressed_segmentation",
+                    "compressed_segmentation_block_size": [8, 8, 8],
+                }
+            ]
+        },
+        accessor
+    )
+    assert not io.scale_is_lossy("key")
+
+
+def test_jpeg_encoding_lossy_info(tmpdir):
+    accessor = get_accessor_for_url(str(tmpdir))
+    io = get_IO_for_new_dataset(
+        {
+            "type": "image",
+            "data_type": "uint8",
+            "num_channels": 1,
+            "scales": [
+                {
+                    "key": "key",
+                    "size": [8, 3, 15],
+                    "resolution": [1e6, 1e6, 1e6],
+                    "voxel_offset": [0, 0, 0],
+                    "chunk_sizes": [[8, 8, 8]],
+                    "encoding": "jpeg",
+                }
+            ]
+        },
+        accessor
+    )
+    assert io.scale_is_lossy("key")

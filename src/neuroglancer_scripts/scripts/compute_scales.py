@@ -24,7 +24,8 @@ def compute_scales(work_dir=".", downscaling_method="average", options={}):
         accessor, encoder_options=options
     )
     downscaler = neuroglancer_scripts.downscaling.get_downscaler(
-        downscaling_method, options)
+        downscaling_method, pyramid_io.info, options
+    )
     neuroglancer_scripts.dyadic_pyramid.compute_dyadic_scales(
         pyramid_io, downscaler
     )

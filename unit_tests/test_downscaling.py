@@ -26,13 +26,25 @@ def test_get_downscaler(method, options):
     assert isinstance(d, Downscaler)
 
 
+def test_get_downscaler_auto_image():
+    d = get_downscaler("auto", info={"type": "image"})
+    assert isinstance(d, AveragingDownscaler)
+
+
+def test_get_downscaler_auto_segmentation():
+    d = get_downscaler("auto", info={"type": "segmentation"})
+    assert isinstance(d, StridingDownscaler)
+
+
 def test_add_argparse_options():
     import argparse
     parser = argparse.ArgumentParser()
     add_argparse_options(parser)
     # Test default values
     args = parser.parse_args([])
-    get_downscaler(args.downscaling_method, vars(args))
+    get_downscaler(args.downscaling_method, {"type": "image"}, vars(args))
+    args = parser.parse_args(["--downscaling-method", "auto"])
+    assert args.downscaling_method == "auto"
     # Test correct parsing
     args = parser.parse_args(["--downscaling-method", "average"])
     assert args.downscaling_method == "average"

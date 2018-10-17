@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-def get_downscaler(downscaling_method, options={}):
+def get_downscaler(downscaling_method, info=None, options={}):
     """Create a downscaler object.
 
     :param str downscaling_method: one of ``"average"``, ``"majority"``, or
@@ -36,7 +36,12 @@ def get_downscaler(downscaling_method, options={}):
     :returns: an instance of a sub-class of :class:`Downscaler`
     :rtype: Downscaler
     """
-    if downscaling_method == "average":
+    if downscaling_method == "auto":
+        if info["type"] == "image":
+            return get_downscaler("average", info=None, options=options)
+        else:  # info["type"] == "segmentation":
+            return get_downscaler("stride", info=None, options=options)
+    elif downscaling_method == "average":
         outside_value = options.get("outside_value")
         return AveragingDownscaler(outside_value)
     elif downscaling_method == "majority":
@@ -63,12 +68,16 @@ def add_argparse_options(parser):
         get_downscaler(args.downscaling_method, vars(args))
     """
     group = parser.add_argument_group("Options for downscaling")
-    group.add_argument("--downscaling-method", default="average",
-                       choices=("average", "majority", "stride"),
-                       help='"average" is recommended for grey-level images, '
-                       '"majority" for segmentation images. "stride" is the '
-                       'fastest, but provides no protection against aliasing '
-                       'artefacts.')
+    group.add_argument("--downscaling-method", default="auto",
+                       choices=("auto", "average", "majority", "stride"),
+                       help='The default is "auto", which chooses '
+                       '"average" or "stride" depending on the "type" '
+                       'attribute of the dataset (for "image" or '
+                       '"segmentation", respectively). "average" is '
+                       'recommended for grey-level images. "majority" is a '
+                       'high-quality, but very slow method for segmentation '
+                       'images. "stride" is fastest, but provides no '
+                       'protection against aliasing artefacts.')
     group.add_argument("--outside-value", type=float, default=None,
                        help='padding value used by the "average" downscaling '
                        "method for computing the voxels at the border. If "

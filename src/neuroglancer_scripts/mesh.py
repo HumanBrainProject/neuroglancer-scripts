@@ -31,6 +31,7 @@ __all__ = [
     "save_mesh_as_neuroglancer_vtk",
     "save_mesh_as_precomputed",
     "read_precomputed_mesh",
+    "affine_transform_mesh",
 ]
 
 
@@ -185,3 +186,31 @@ def read_precomputed_mesh(file):
     if np.any(triangles > num_vertices):
         raise InvalidMeshDataError("The mesh references nonexistent vertices")
     return (vertices, triangles)
+
+
+def affine_transform_mesh(vertices, triangles, coord_transform):
+    """Transform a mesh through an affine transformation.
+
+    :param numpy.ndarray vertices: the list of vertices of the mesh. Must be
+        convertible to an array of size Nx3, type ``float32``.
+    :param numpy.ndarray triangles: the list of triangles of the mesh, in an
+        array of size Mx3.
+    :param numpy.ndarray coord_transform: the affine transform to be applied
+        to mesh vertices, as a 3×4 or 4×4 matrix in homogeneous coordinates.
+    :returns: transformed ``(vertices, triangles)``
+    :rtype: tuple
+
+    Vertex coordinates are transformed with the provided affine transformation.
+    Triangles will be flipped if the transformation has a negative determinant,
+    in order to conserve the inside/outside of the mesh.
+    """
+    if coord_transform.shape[0] == 4:
+        assert np.all(coord_transform[3, :] == [0, 0, 0, 1])
+    vertices = vertices.T
+    vertices = np.dot(coord_transform[:3, :3], vertices)
+    vertices += coord_transform[:3, 3, np.newaxis]
+    vertices = vertices.T
+    if np.linalg.det(coord_transform[:3, :3]) < 0:
+        # Flip the triangles to fix inside/outside
+        triangles = np.flip(triangles, axis=1)
+    return vertices, triangles

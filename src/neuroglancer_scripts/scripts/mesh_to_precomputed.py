@@ -5,49 +5,78 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import gzip
+import io
+import logging
+import pathlib
 import sys
 
 import nibabel
 import numpy as np
 
+import neuroglancer_scripts.accessor
 import neuroglancer_scripts.mesh
+import neuroglancer_scripts.precomputed_io as precomputed_io
 
 
-def mesh_file_to_precomputed(input_filename, output_filename,
-                             coord_transform=None):
+logger = logging.getLogger(__name__)
+
+
+def mesh_file_to_precomputed(input_path, dest_url, mesh_name=None,
+                             mesh_dir=None, coord_transform=None, options={}):
     """Convert a mesh read by nibabel to Neuroglancer precomputed format"""
-    mesh = nibabel.load(input_filename)
+    input_path = pathlib.Path(input_path)
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        dest_url, options
+    )
+    info = precomputed_io.get_IO_for_existing_dataset(accessor).info
+    if mesh_dir is None:
+        mesh_dir = "mesh"  # default value
+    if "mesh" not in info:
+        info["mesh"] = mesh_dir
+        # Write the updated info file
+        precomputed_io.get_IO_for_new_dataset(
+            info, accessor, overwrite_info=True
+        )
+    if mesh_dir != info["mesh"]:
+        logger.critical("The provided --mesh-dir value does not match the "
+                        "value stored in the info file")
+        return 1
+    if info["type"] != "segmentation":
+        logger.warning('The dataset has type "image" instead of '
+                       '"segmentation", Neuroglancer will not use the meshes.')
+
+    if mesh_name is None:
+        mesh_name = input_path.stem
+
+    mesh = nibabel.load(str(input_path))
 
     points_list = mesh.get_arrays_from_intent("NIFTI_INTENT_POINTSET")
     assert len(points_list) == 1
     points = points_list[0].data
 
-    if coord_transform is not None:
-        if coord_transform.shape[0] == 4:
-            assert np.all(coord_transform[3, :] == [0, 0, 0, 1])
-        points = points.T
-        points = np.dot(coord_transform[:3, :3], points)
-        points += coord_transform[:3, 3, np.newaxis]
-        points = points.T
-
     triangles_list = mesh.get_arrays_from_intent("NIFTI_INTENT_TRIANGLE")
     assert len(triangles_list) == 1
     triangles = triangles_list[0].data
 
-    if (coord_transform is not None
-            and np.linalg.det(coord_transform[:3, :3]) < 0):
-        # Flip the triangles to fix inside/outside
-        triangles = np.flip(triangles, axis=1)
+    if coord_transform is not None:
+        points_dtype = points.dtype
+        points, triangles = neuroglancer_scripts.mesh.affine_transform_mesh(
+            points, triangles, coord_transform
+        )
+        # Convert vertices back to their original type to avoid the warning
+        # that save_mesh_as_precomputed prints when downcasting to float32.
+        points = points.astype(np.promote_types(points_dtype, np.float32),
+                               casting="same_kind")
 
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6
 
-    # TODO use Accessor
-    with gzip.open(output_filename + ".gz", "wb") as output_file:
-        neuroglancer_scripts.mesh.save_mesh_as_precomputed(
-            output_file, points, triangles.astype("uint32")
-        )
+    io_buf = io.BytesIO()
+    neuroglancer_scripts.mesh.save_mesh_as_precomputed(
+        io_buf, points, triangles.astype("uint32")
+    )
+    accessor.store_file(mesh_dir + "/" + mesh_name, io_buf.getvalue(),
+                        mime_type="application/octet-stream")
 
 
 def parse_command_line(argv):
@@ -55,11 +84,29 @@ def parse_command_line(argv):
     import argparse
     parser = argparse.ArgumentParser(
         description="""\
-Convert a mesh (readable by nibabel, e.g. in Gifti format) to Neuroglancer
-pre-computed mesh format
+Convert a mesh to Neuroglancer pre-computed mesh format.
+
+This tool can convert any mesh format that is readable by nibabel, e.g. Gifti.
+
+The resulting files are so-called mesh fragments, which will not be directly
+visible by Neuroglancer. The fragments need to be linked to the integer labels
+of the associated segmentation image, through small JSON files in the mesh
+directory (see the link-mesh-fragments command).
 """)
-    parser.add_argument("input_filename")
-    parser.add_argument("output_filename")
+    parser.add_argument("input_mesh", type=pathlib.Path,
+                        help="input mesh file to be read by Nibabel")
+    parser.add_argument("dest_url",
+                        help="base directory/URL of the output dataset")
+
+    parser.add_argument("--mesh-dir", default=None,
+                        help='sub-directory of the dataset where the mesh '
+                        'file(s) will be written. If given, this value must '
+                        'match the "mesh" key of the info file. It will be '
+                        'written to the info file if not already present. '
+                        '(default: "mesh").')
+    parser.add_argument("--mesh-name", default=None,
+                        help="name of the precomputed mesh file (default: "
+                        "basename of the input mesh file)")
     parser.add_argument("--coord-transform",
                         help="affine transformation to be applied to the"
                         " coordinates, as a 4x4 matrix in homogeneous"
@@ -67,8 +114,12 @@ pre-computed mesh format
                         " in comma-separated row-major order"
                         " (the last row is always 0 0 0 1 and may be omitted)"
                         " (e.g. --coord-transform=1,0,0,0,0,1,0,0,0,0,1,0)")
-    args = parser.parse_args(argv[1:])
 
+    neuroglancer_scripts.accessor.add_argparse_options(parser,
+                                                       read=True, write=True)
+
+    args = parser.parse_args(argv[1:])
+    # TODO factor in library
     if args.coord_transform is not None:
         try:
             matrix = np.fromstring(args.coord_transform, sep=",")
@@ -93,8 +144,11 @@ def main(argv=sys.argv):
     import neuroglancer_scripts.utils
     neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
-    return mesh_file_to_precomputed(args.input_filename, args.output_filename,
-                                    coord_transform=args.coord_transform) or 0
+    return mesh_file_to_precomputed(args.input_mesh, args.dest_url,
+                                    mesh_name=args.mesh_name,
+                                    mesh_dir=args.mesh_dir,
+                                    coord_transform=args.coord_transform,
+                                    options=vars(args)) or 0
 
 
 if __name__ == "__main__":

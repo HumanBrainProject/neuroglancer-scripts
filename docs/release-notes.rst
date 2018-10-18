@@ -1,6 +1,19 @@
 Release notes
 =============
 
+0.3.0.dev0 (in development)
+---------------------------
+
+- The default downscaling method is now chosen automatically based on the
+  ``type`` of dataset: ``image`` uses local averaging, ``segmentation`` uses
+  striding.
+
+- The command-line interface of ``mesh-to-precomputed`` was changed to work
+  with Accessors, instead of being restricted to files. The command also now
+  reads and writes the ``info`` file to make sure that Neuroglancer knows where
+  to find the mesh fragments.
+
+
 0.2.0 (16 October 2018)
 -----------------------
 

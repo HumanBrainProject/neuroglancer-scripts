@@ -67,7 +67,10 @@ The input is a CSV file, where each line contains the integer label in the
 first cell, followed by an arbitrary number of cells whose contents name the
 fragment files corresponding to the given integer label.
 """)
-    parser.add_argument("input_csv")
+    parser.add_argument("input_csv",
+                        help="CSV file containing the mapping between integer "
+                        "labels and mesh fragment name, in the format "
+                        "described above")
     parser.add_argument("dest_url",
                         help="base directory/URL of the output dataset")
 

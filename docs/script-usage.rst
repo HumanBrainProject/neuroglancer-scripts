@@ -85,13 +85,7 @@ segmentation label as part of a ``segmentation`` type layer, or as a standalone
 mesh layer.
 
 A mesh associated with a segmentation label needs to be in a
-Neuroglancer-specific binary precomputed format. ``mesh-to-precomputed`` can
-be used to convert meshes to this format. Additionally, you need to add a
-``mesh`` key to the *info* file of the segmentation volume, and provide one
-JSON file per segment, as described in `the Neuroglancer documentation of the
-precomputed format
-<https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md>`_.
-At the moment this must be done manually. Note that you may omit the ``:0``
-suffix from the file name if you are serving the files using nginx or Apache as
-described below; this is necessary on filesystems which disallow ``:`` in file
-names.
+Neuroglancer-specific binary precomputed format. ``mesh-to-precomputed`` can be
+used to convert meshes to this format. The ``link-mesh-fragments`` command must
+then be used so that Neuroglancer knows what meshes are associated to each
+label of the segmentation.

@@ -13,6 +13,8 @@ Release notes
   reads and writes the ``info`` file to make sure that Neuroglancer knows where
   to find the mesh fragments.
 
+- Introduced a new command ``link-mesh-fragments`` to create the small JSON
+  files that are required to link segmentation labels to mesh fragments.
 
 0.2.0 (16 October 2018)
 -----------------------

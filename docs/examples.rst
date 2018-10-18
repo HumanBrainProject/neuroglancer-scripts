@@ -134,23 +134,26 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
 
 .. code-block:: sh
 
-   mkdir classif/mesh
    mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
+       --mesh-name=grey-left \
        gray_left_327680.gii \
-       classif/mesh/grey-left
+       classif/
    mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
+       --mesh-name=grey-right \
        gray_right_327680.gii \
-       classif/mesh/grey-right
+       classif/
    mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
+       --mesh-name=white-left \
        white_left_327680.gii \
-       classif/mesh/white-left
+       classif/
    mesh-to-precomputed \
        --coord-transform=-1,0,0,70.7666,0,-1,0,73.01,0,0,1,58.8777 \
+       --mesh-name=white-right \
        white_right_327680.gii \
-       classif/mesh/white-right
+       classif/
    echo '{"fragments":[]}' > classif/mesh/0
    echo '{"fragments":["grey-left","grey-right"]}' > classif/mesh/100
    echo '{"fragments":["white-left","white-right"]}' > classif/mesh/200

@@ -55,25 +55,20 @@ AXIS_INVERSION_FOR_RAS = {
 
 def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                          options={}):
-    """Convert a list of 2D slices to Neuroglancer pre-computed chunks
+    """Convert a list of 2D slices to Neuroglancer pre-computed chunks.
 
-    Parameters:
-    ===========
-
-    - `info` is the JSON dictionary that describes the dataset for
-      Neuroglancer. Only the information from the first scale is used.
-
-    - `slice_filename_lists`: a list of lists of filenames. Files from each
-      inner list are read as 2D images and concatenated along the third axis.
-      Blocks from the outer list are concatenated along a fourth axis,
-      representing the image channels.
-
-    - `input_axis_inversions`: a 3-tuple in (column, row, slice) order. Each
-      value must be 1 (preserve orientation along the axis) or -1 (invert
-      orientation along the axis).
-
-    - `input_axis_permutation`: a 3-tuple in (column, row, slice) order. Each
-      value is 0 for X (L-R axis), 1 for Y (A-P axis), 2 for Z (I-S axis).
+    :param dict info: the JSON dictionary that describes the dataset for
+        Neuroglancer. Only the information from the first scale is used.
+    :param list slice_filename_lists: a list of lists of filenames. Files from
+        each inner list are read as 2D images and concatenated along the third
+        axis. Blocks from the outer list are concatenated along a fourth axis,
+        representing the image channels.
+    :param tuple input_axis_inversions: a 3-tuple in (column, row, slice)
+        order. Each value must be 1 (preserve orientation along the axis) or -1
+        (invert orientation along the axis).
+    :param tuple input_axis_permutation: a 3-tuple in (column, row, slice)
+      order. Each value is 0 for X (L-R axis), 1 for Y (A-P axis), 2 for Z (I-S
+      axis).
     """
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options)

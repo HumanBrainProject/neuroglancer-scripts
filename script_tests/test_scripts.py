@@ -171,16 +171,35 @@ def test_mesh_conversion(tmpdir):
     vertices, triangles = dummy_mesh()
     dummy_gii_path = tmpdir / "dummy.surf.gii"
     write_gifti_mesh(vertices, triangles, str(dummy_gii_path))
+
     dummy_precomputed_path = tmpdir / "dummy_precomputed"
+    dummy_precomputed_path.mkdir()
+    with open(str(dummy_precomputed_path / "info"), "w") as f:
+        json.dump({"type": "segmentation", "scales": []}, f)
+    assert subprocess.call([
+        "mesh-to-precomputed",
+        "--mesh-dir=mesh",
+        "--mesh-name=test",
+        str(dummy_gii_path),
+        str(dummy_precomputed_path)
+    ]) == 0
+    testmesh_path = dummy_precomputed_path / "mesh" / "test.gz"
+    with open(str(dummy_precomputed_path / "info")) as f:
+        info = json.load(f)
+    assert info["mesh"] == "mesh"
+    with gzip.open(str(testmesh_path), "rb") as file:
+        vertices2, triangles2 = read_precomputed_mesh(file)
+    assert np.array_equal(vertices * 1e6, vertices2)
+    assert np.array_equal(triangles, triangles2)
+
+    # Test omitting "mesh" parameter and mesh name
+    dummy_mesh_path = dummy_precomputed_path / "mesh" / "dummy.surf.gz"
     assert subprocess.call([
         "mesh-to-precomputed",
         str(dummy_gii_path),
         str(dummy_precomputed_path)
     ]) == 0
-    with gzip.open(str(dummy_precomputed_path) + ".gz", "rb") as file:
-        vertices2, triangles2 = read_precomputed_mesh(file)
-    assert np.array_equal(vertices * 1e6, vertices2)
-    assert np.array_equal(triangles, triangles2)
+    assert dummy_mesh_path.exists()
 
 
 def test_mesh_conversion_with_transform(tmpdir):
@@ -188,6 +207,9 @@ def test_mesh_conversion_with_transform(tmpdir):
     dummy_gii_path = tmpdir / "dummy.surf.gii"
     write_gifti_mesh(vertices, triangles, str(dummy_gii_path))
     dummy_precomputed_path = tmpdir / "dummy_precomputed"
+    dummy_precomputed_path.mkdir()
+    with open(str(dummy_precomputed_path / "info"), "w") as f:
+        json.dump({"type": "segmentation", "scales": []}, f)
     assert subprocess.call([
         "mesh-to-precomputed",
         "--coord-transform", "0,1,0,0.2,1,0,0,0,0,0,-1,0.3",

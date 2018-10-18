@@ -107,6 +107,17 @@ class PrecomputedIO:
         """
         return self._scale_info[scale_key]
 
+    def scale_is_lossy(self, scale_key):
+        """Test if the scale is using a lossy encoding.
+
+        :param str scale_key: the *key* attribute of the scale
+        :returns: True if the scale is using a lossy encoding
+        :rtype bool:
+        :raises KeyError: if the ``scale_key`` is not a valid scale of this
+                          dataset
+        """
+        return self._encoders[scale_key].lossy
+
     def validate_chunk_coords(self, scale_key, chunk_coords):
         """Validate the coordinates of a chunk.
 
@@ -128,7 +139,7 @@ class PrecomputedIO:
         return False
 
     def read_chunk(self, scale_key, chunk_coords):
-        """Write a chunk into the dataset.
+        """Read a chunk from the dataset.
 
         The chunk coordinates **must** be compatible with the dataset's *info*.
         This can be checked with :meth:`validate_chunk_coords`.
@@ -136,11 +147,12 @@ class PrecomputedIO:
         :param str scale_key: the *key* attribute of the scale
         :param tuple chunk_coords: the chunk coordinates ``(xmin, xmax, ymin,
                                    ymax, zmin, zmax)``
+        :returns: chunk data contained in a 4-D NumPy array (C, Z, Y, X)
+        :rtype: numpy.ndarray
         :raises DataAccessError: if the chunk's file cannot be accessed
         :raises InvalidFormatError: if the chunk cannot be decoded
         :raises AssertionError: if the chunk coordinates are incompatible with
                                 the dataset's *info*
-
         """
         assert self.validate_chunk_coords(scale_key, chunk_coords)
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
@@ -155,6 +167,8 @@ class PrecomputedIO:
         The chunk coordinates **must** be compatible with the dataset's *info*.
         This can be checked with :meth:`validate_chunk_coords`.
 
+        :param numpy.ndarray chunk: chunk data contained in a 4-D NumPy array
+                                    (C, Z, Y, X)
         :param str scale_key: the *key* attribute of the scale
         :param tuple chunk_coords: the chunk coordinates ``(xmin, xmax, ymin,
                                    ymax, zmin, zmax)``

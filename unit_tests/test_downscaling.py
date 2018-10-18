@@ -26,13 +26,25 @@ def test_get_downscaler(method, options):
     assert isinstance(d, Downscaler)
 
 
+def test_get_downscaler_auto_image():
+    d = get_downscaler("auto", info={"type": "image"})
+    assert isinstance(d, AveragingDownscaler)
+
+
+def test_get_downscaler_auto_segmentation():
+    d = get_downscaler("auto", info={"type": "segmentation"})
+    assert isinstance(d, StridingDownscaler)
+
+
 def test_add_argparse_options():
     import argparse
     parser = argparse.ArgumentParser()
     add_argparse_options(parser)
     # Test default values
     args = parser.parse_args([])
-    get_downscaler(args.downscaling_method, vars(args))
+    get_downscaler(args.downscaling_method, {"type": "image"}, vars(args))
+    args = parser.parse_args(["--downscaling-method", "auto"])
+    assert args.downscaling_method == "auto"
     # Test correct parsing
     args = parser.parse_args(["--downscaling-method", "average"])
     assert args.downscaling_method == "average"
@@ -59,8 +71,9 @@ def test_dyadic_downscaling(dx, dy, dz):
         upscaled_chunk[:, z::dz, y::dy, x::dx] = lowres_chunk
 
     # Shorten the chunk by 1 voxel in every direction where it was upscaled
-    truncation_slicing = [np.s_[:]] + [np.s_[:-1] if s == 2 else np.s_[:]
-                                       for s in reversed(scaling_factors)]
+    truncation_slicing = (np.s_[:],) + tuple(
+        np.s_[:-1] if s == 2 else np.s_[:] for s in reversed(scaling_factors)
+    )
     truncated_chunk = upscaled_chunk[truncation_slicing]
 
     d = StridingDownscaler()

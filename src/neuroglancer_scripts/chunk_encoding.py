@@ -244,7 +244,7 @@ class JpegChunkEncoder(ChunkEncoder):
     :raises IncompatibleEncoderError: if data_type or num_channels are
                                       unsupported
     """
-    lossy = False
+    lossy = True
     mime_type = "image/jpeg"
 
     def __init__(self, data_type, num_channels,

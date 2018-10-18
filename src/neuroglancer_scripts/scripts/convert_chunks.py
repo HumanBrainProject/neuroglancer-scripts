@@ -5,6 +5,7 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import logging
 import sys
 
 import numpy as np
@@ -16,6 +17,9 @@ from neuroglancer_scripts import data_types
 from neuroglancer_scripts import precomputed_io
 
 
+logger = logging.getLogger(__name__)
+
+
 def convert_chunks_for_scale(chunk_reader,
                              dest_info, chunk_writer, scale_index,
                              chunk_transformer):
@@ -24,6 +28,10 @@ def convert_chunks_for_scale(chunk_reader,
     key = scale_info["key"]
     size = scale_info["size"]
     dest_dtype = np.dtype(dest_info["data_type"]).newbyteorder("<")
+
+    if chunk_reader.scale_is_lossy(key):
+        logger.warning("Using data stored in a lossy format as an input for "
+                       "conversion (for scale %s)" % key)
 
     for chunk_size in scale_info["chunk_sizes"]:
         chunk_range = ((size[0] - 1) // chunk_size[0] + 1,
@@ -43,6 +51,8 @@ def convert_chunks_for_scale(chunk_reader,
 
             chunk = chunk_reader.read_chunk(key, chunk_coords)
             chunk = chunk_transformer(chunk, preserve_input=False)
+            # TODO add the possibility of data-type conversion (ideally through
+            # a command-line flag)
             chunk_writer.write_chunk(
                 chunk.astype(dest_dtype, casting="equiv"),
                 key, chunk_coords
@@ -85,9 +95,10 @@ def parse_command_line(argv):
     parser = argparse.ArgumentParser(
         description="""\
 Convert Neuroglancer precomputed chunks between different encodings (raw,
-compressed_segmentation, or jpeg). The target encoding parameters is determined
-by a pre-existing info file in the destination directory (except in --copy-info
-mode). You can create such an info file with generate_scales_info.py.
+compressed_segmentation, or jpeg). The target encoding parameters are
+determined by a pre-existing info file in the destination directory (except in
+--copy-info mode). You can create such an info file with
+generate_scales_info.py.
 """)
     parser.add_argument("source_url",
                         help="URL/directory where the input chunks are found")

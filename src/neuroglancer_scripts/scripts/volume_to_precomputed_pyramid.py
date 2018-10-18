@@ -59,7 +59,7 @@ def volume_to_precomputed_pyramid(volume_filename,
         load_full_volume, options
     )
     downscaler = neuroglancer_scripts.downscaling.get_downscaler(
-        downscaling_method, options
+        downscaling_method, info, options
     )
     neuroglancer_scripts.dyadic_pyramid.compute_dyadic_scales(
         precomputed_writer, downscaler

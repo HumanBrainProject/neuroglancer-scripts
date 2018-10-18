@@ -68,8 +68,8 @@ def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
     at most two chunks along every dimension.
     """
     if len(info["scales"]) != 1:
-        logger.warn("the source info JSON contains multiple scales, only "
-                    "the first one will be used.")
+        logger.warning("the source info JSON contains multiple scales, only "
+                       "the first one will be used.")
     full_scale_info = info["scales"][0]
 
     target_chunk_exponent = int(math.log2(target_chunk_size))
@@ -176,6 +176,12 @@ def compute_dyadic_downscaling(info, source_scale_index, downscaler,
                          .format(old_key, new_key))
 
     downscaler.check_factors(downscaling_factors)
+
+    if chunk_reader.scale_is_lossy(old_key):
+        logger.warning(
+            "Using data stored in a lossy format (scale %s) as an input "
+            "for downscaling (to scale %s)" % (old_key, new_key)
+        )
 
     half_chunk = [osz // f
                   for osz, f in zip(old_chunk_size, downscaling_factors)]

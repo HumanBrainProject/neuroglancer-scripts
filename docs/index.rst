@@ -39,6 +39,7 @@ The easiest way to install neuroglancer-scripts is in a virtual environment:
    neuroglancer-info
    examples
    api/neuroglancer_scripts
+   release-notes
 
 
 Indices and tables

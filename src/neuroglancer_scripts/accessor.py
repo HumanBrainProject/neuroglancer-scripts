@@ -97,6 +97,18 @@ class Accessor:
     can_write = False
     """This accessor is able to write data."""
 
+    def file_exists(self, relative_path):
+        """Test existence of a file relative to the base directory.
+
+        :param str relative_path: path to the file relative to the base
+                                  directory of the pyramid
+        :returns: True if the file exists
+        :rtype: bool
+        :raises DataAccessError: if an error occurs when probing file existence
+        :raises NotImplementedError: if :attr:`can_read` is False
+        """
+        raise NotImplementedError
+
     def fetch_file(self, relative_path):
         """Fetch a file relative to the precomputed pyramid's base directory.
 
@@ -104,7 +116,7 @@ class Accessor:
                                   directory of the pyramid
         :returns: contents of the fetched file
         :rtype: bytes
-        :raises DataAccessError: if requested file cannot be retrieved
+        :raises DataAccessError: if the requested file cannot be retrieved
         :raises NotImplementedError: if :attr:`can_read` is False
         """
         raise NotImplementedError

@@ -11,6 +11,9 @@ import logging
 import os.path
 import sys
 
+import neuroglancer_scripts.accessor
+import neuroglancer_scripts.precomputed_io as precomputed_io
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,24 +25,35 @@ def fragment_exists(fragment_name, mesh_dir):
     )
 
 
-def make_mesh_fragment_links(input_csv, output_mesh_dir):
+def make_mesh_fragment_links(input_csv, dest_url, no_colon_suffix=False,
+                             options={}):
+    if no_colon_suffix:
+        filename_format = "{0}/{1}"
+    else:
+        filename_format = "{0}/{1}:0"
+    accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
+        dest_url, options
+    )
+    info = precomputed_io.get_IO_for_existing_dataset(accessor).info
+    if "mesh" not in info:
+        logger.critical('The info file is missing the "mesh" key, please '
+                        'use mesh-to-precomputed first.')
+        return 1
+    mesh_dir = info["mesh"]
+
     with open(input_csv, newline="") as csv_file:
-        csv_reader = csv.reader(csv_file)
-        for line in csv_reader:
+        for line in csv.reader(csv_file):
             numeric_label = int(line[0])
             fragment_list = line[1:]
             # Output a warning for missing fragments
             for fragment_name in fragment_list:
-                if not fragment_exists(fragment_name, output_mesh_dir):
+                if not accessor.file_exists(mesh_dir + "/" + fragment_name):
                     logger.warning("missing fragment %s", fragment_name)
-            fragment_json_filename = os.path.join(
-                output_mesh_dir,
-                "{0}:0".format(numeric_label)
-            )
-            # TODO use accessor
-            with open(fragment_json_filename, "w") as fragment_json_file:
-                json.dump({"fragments": fragment_list}, fragment_json_file,
-                          separators=(",", ":"))
+            relative_filename = filename_format.format(mesh_dir, numeric_label)
+            json_str = json.dumps({"fragments": fragment_list},
+                                  separators=(",", ":"))
+            accessor.store_file(relative_filename, json_str.encode("utf-8"),
+                                mime_type="application/json")
 
 
 def parse_command_line(argv):
@@ -54,7 +68,18 @@ first cell, followed by an arbitrary number of cells whose contents name the
 fragment files corresponding to the given integer label.
 """)
     parser.add_argument("input_csv")
-    parser.add_argument("output_mesh_dir")
+    parser.add_argument("dest_url",
+                        help="base directory/URL of the output dataset")
+
+    parser.add_argument("--no-colon-suffix",
+                        dest="no_colon_suffix", action="store_true",
+                        help="omit the :0 suffix in the name of created JSON "
+                        "files (e.g. 10 instead of 10:0). This is necessary "
+                        "on filesystems that disallow colons, such as FAT.")
+
+    neuroglancer_scripts.accessor.add_argparse_options(parser,
+                                                       read=True, write=True)
+
     args = parser.parse_args(argv[1:])
     return args
 
@@ -64,7 +89,9 @@ def main(argv=sys.argv):
     import neuroglancer_scripts.utils
     neuroglancer_scripts.utils.init_logging_for_cmdline()
     args = parse_command_line(argv)
-    return make_mesh_fragment_links(args.input_csv, args.output_mesh_dir) or 0
+    return make_mesh_fragment_links(args.input_csv, args.dest_url,
+                                    no_colon_suffix=args.no_colon_suffix,
+                                    options=vars(args)) or 0
 
 
 if __name__ == "__main__":

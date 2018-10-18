@@ -201,6 +201,25 @@ def test_mesh_conversion(tmpdir):
     ]) == 0
     assert dummy_mesh_path.exists()
 
+    fragments_csv_path = tmpdir / "fragments.csv"
+    with fragments_csv_path.open("w") as f:
+        f.write("0\n"
+                "10,dummy.surf\n")
+    assert subprocess.call([
+        "link-mesh-fragments",
+        "--no-colon-suffix",
+        str(fragments_csv_path),
+        str(dummy_precomputed_path)
+    ]) == 0
+    with (dummy_precomputed_path / "mesh" / "0").open() as f:
+        json_content = json.load(f)
+    assert "fragments" in json_content
+    assert json_content["fragments"] == []
+    with (dummy_precomputed_path / "mesh" / "10").open() as f:
+        json_content = json.load(f)
+    assert "fragments" in json_content
+    assert json_content["fragments"] == ["dummy.surf"]
+
 
 def test_mesh_conversion_with_transform(tmpdir):
     vertices, triangles = dummy_mesh()

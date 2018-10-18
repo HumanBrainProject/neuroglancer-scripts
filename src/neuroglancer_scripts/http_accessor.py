@@ -52,6 +52,18 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
         chunk_url = self.chunk_relative_url(key, chunk_coords)
         return self.fetch_file(chunk_url)
 
+    def file_exists(self, relative_path):
+        file_url = self.base_url + relative_path
+        try:
+            r = requests.head(file_url)
+            if r.status_code == requests.codes.not_found:
+                return False
+            r.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            raise DataAccessError("Error probing the existence of {0}: {1}"
+                                  .format(file_url, exc)) from exc
+        return True
+
     def fetch_file(self, relative_path):
         file_url = self.base_url + relative_path
         try:

@@ -3,6 +3,7 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import argparse
 import pathlib
 
 import pytest
@@ -39,22 +40,22 @@ def test_get_accessor_for_url(accessor_options):
         get_accessor_for_url("file:///%ff", accessor_options)
 
 
-def test_add_argparse_options():
-    import argparse
+@pytest.mark.parametrize("write_chunks", [True, False])
+@pytest.mark.parametrize("write_files", [True, False])
+def test_add_argparse_options(write_chunks, write_files):
     # Test default values
     parser = argparse.ArgumentParser()
-    add_argparse_options(parser, write=False)
+    add_argparse_options(parser,
+                         write_chunks=write_chunks,
+                         write_files=write_files)
     args = parser.parse_args([])
     get_accessor_for_url(".", vars(args))
 
-    parser = argparse.ArgumentParser()
-    add_argparse_options(parser, write=True)
-    args = parser.parse_args([])
-    get_accessor_for_url(".", vars(args))
 
+def test_add_argparse_options_parsing():
     # Test correct parsing
     parser = argparse.ArgumentParser()
-    add_argparse_options(parser, write=True)
+    add_argparse_options(parser)
     args = parser.parse_args(["--flat"])
     assert args.flat is True
     args = parser.parse_args(["--no-gzip"])

@@ -47,12 +47,12 @@ def get_accessor_for_url(url, accessor_options={}):
                        "https)".format(r.scheme))
 
 
-def add_argparse_options(parser, read=True, write=True):
+def add_argparse_options(parser, write_chunks=True, write_files=True):
     """Add command-line options for file access.
 
     :param argparse.ArgumentParser parser: an argument parser
-    :param bool read: whether to add options for file reading
-    :param bool write: whether to add options for file writing
+    :param bool write_chunks: whether to add options for chunk writing
+    :param bool write_files: whether to add options for file writing
 
     The accesor options can be obtained from command-line arguments with
     :func:`add_argparse_options` and passed to :func:`get_accessor_for_url`::
@@ -63,8 +63,12 @@ def add_argparse_options(parser, read=True, write=True):
         args = parser.parse_args()
         get_accessor_for_url(url, vars(args))
     """
-    if write:
+    if write_chunks or write_files:
         group = parser.add_argument_group("Options for file storage")
+        group.add_argument("--no-gzip", "--no-compression",
+                           action="store_false", dest="gzip",
+                           help="Don't gzip the output.")
+    if write_chunks:
         group.add_argument(
             "--flat", action="store_true",
             help="Store all chunks for each resolution with a flat layout, as "
@@ -74,9 +78,6 @@ def add_argparse_options(parser, read=True, write=True):
             "docker). " "Do not use this option for large images, or you risk "
             "running into problems with directories containing huge numbers "
             "of files.")
-        group.add_argument("--no-gzip", "--no-compression",
-                           action="store_false", dest="gzip",
-                           help="Don't gzip the output.")
 
 
 class Accessor:

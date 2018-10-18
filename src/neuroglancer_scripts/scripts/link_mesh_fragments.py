@@ -81,7 +81,7 @@ fragment files corresponding to the given integer label.
                         "on filesystems that disallow colons, such as FAT.")
 
     neuroglancer_scripts.accessor.add_argparse_options(parser,
-                                                       read=True, write=True)
+                                                       write_chunks=False)
 
     args = parser.parse_args(argv[1:])
     return args

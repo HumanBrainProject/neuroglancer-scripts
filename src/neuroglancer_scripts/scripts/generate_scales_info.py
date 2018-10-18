@@ -110,6 +110,11 @@ Output is written to a file named "info" at dest_url.
                         " compressed_segmentation). By default this is"
                         " inherited from the fullres_info file, with a"
                         " fallback to raw.")
+
+    neuroglancer_scripts.accessor.add_argparse_options(
+        parser, write_chunks=False, write_files=False
+    )
+
     args = parser.parse_args(argv[1:])
     return args
 

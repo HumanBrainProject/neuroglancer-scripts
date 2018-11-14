@@ -184,7 +184,8 @@ class AveragingDownscaler(Downscaler):
                                self.padding_mode, **self.pad_kwargs)
             chunk = half * (chunk[:, :, :, ::2] + chunk[:, :, :, 1::2])
 
-        dtype_converter = get_chunk_dtype_transformer(work_dtype, dtype)
+        dtype_converter = get_chunk_dtype_transformer(work_dtype, dtype,
+                                                      warn=False)
         return dtype_converter(chunk)
 
 

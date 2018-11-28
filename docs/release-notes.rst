@@ -4,6 +4,16 @@ Release notes
 0.3.0.dev0 (in development)
 ---------------------------
 
+Bug fixes
+~~~~~~~~~
+
+- Fix the swarm of warning messages that appear when downscaling images of
+  integer type by the averaging method.
+
+
+Other improvements
+~~~~~~~~~~~~~~~~~~
+
 - The default downscaling method is now chosen automatically based on the
   ``type`` of dataset: ``image`` uses local averaging, ``segmentation`` uses
   striding.

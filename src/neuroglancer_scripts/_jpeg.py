@@ -66,7 +66,7 @@ def decode_chunk(buf, chunk_size, num_channels):
     try:
         chunk = flat_chunk.reshape(num_channels,
                                    chunk_size[2], chunk_size[1], chunk_size[0])
-    except Exception as exc:
+    except Exception:
         raise InvalidFormatError("The JPEG-encoded chunk has an incompatible "
                                  "shape ({0} elements, expecting {1})"
                                  .format(flat_chunk.size // num_channels,

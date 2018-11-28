@@ -86,6 +86,7 @@ setuptools.setup(
             "compute-scales=neuroglancer_scripts.scripts.compute_scales:main",
             "convert-chunks=neuroglancer_scripts.scripts.convert_chunks:main",
             "generate-scales-info=neuroglancer_scripts.scripts.generate_scales_info:main",
+            "link-mesh-fragments=neuroglancer_scripts.scripts.link_mesh_fragments:main",
             "mesh-to-precomputed=neuroglancer_scripts.scripts.mesh_to_precomputed:main",
             "scale-stats=neuroglancer_scripts.scripts.scale_stats:main",
             "slices-to-precomputed=neuroglancer_scripts.scripts.slices_to_precomputed:main",

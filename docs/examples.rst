@@ -154,6 +154,4 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
        --mesh-name=white-right \
        white_right_327680.gii \
        classif/
-   echo '{"fragments":[]}' > classif/mesh/0
-   echo '{"fragments":["grey-left","grey-right"]}' > classif/mesh/100
-   echo '{"fragments":["white-left","white-right"]}' > classif/mesh/200
+   link-mesh-fragments --no-colon-suffix mesh_labels.csv classif/

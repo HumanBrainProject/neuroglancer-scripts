@@ -116,7 +116,7 @@ directory (see the link-mesh-fragments command).
                         " (e.g. --coord-transform=1,0,0,0,0,1,0,0,0,0,1,0)")
 
     neuroglancer_scripts.accessor.add_argparse_options(parser,
-                                                       read=True, write=True)
+                                                       write_chunks=False)
 
     args = parser.parse_args(argv[1:])
     # TODO factor in library

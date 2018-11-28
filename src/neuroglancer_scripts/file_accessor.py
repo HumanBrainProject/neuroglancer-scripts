@@ -50,6 +50,23 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
             self.chunk_pattern = _CHUNK_PATTERN_SUBDIR
         self.gzip = gzip
 
+    def file_exists(self, relative_path):
+        relative_path = pathlib.Path(relative_path)
+        file_path = self.base_path / relative_path
+        if ".." in file_path.relative_to(self.base_path).parts:
+            raise ValueError("only relative paths pointing under base_path "
+                             "are accepted")
+        try:
+            if file_path.is_file():
+                return True
+            elif file_path.with_name(file_path.name + ".gz").is_file():
+                return True
+        except OSError as exc:
+            raise DataAccessError(
+                "Error fetching {1}: {2}".format(
+                    relative_path, self.base_path, exc)) from exc
+        return False
+
     def fetch_file(self, relative_path):
         relative_path = pathlib.Path(relative_path)
         file_path = self.base_path / relative_path

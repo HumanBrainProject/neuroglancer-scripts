@@ -61,7 +61,9 @@ Show information about a list of scales in Neuroglancer "info" JSON file format
     parser.add_argument("url", default=".",
                         help='directory/URL containing the "info" file')
 
-    neuroglancer_scripts.accessor.add_argparse_options(parser, write=False)
+    neuroglancer_scripts.accessor.add_argparse_options(
+        parser, write_chunks=False, write_files=False
+    )
     args = parser.parse_args(argv[1:])
     return args
 

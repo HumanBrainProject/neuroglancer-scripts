@@ -118,9 +118,6 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
    ftp://bigbrain.loris.ca/BigBrainRelease.2015/3D_Surfaces/Apr7_2016/gii/).
    The meshes are displayed in the 3D view.
 
-   Edit ``classif/info`` to add a top-level ``mesh`` key pointing to a ``mesh``
-   sub-directory: ``"mesh": "mesh"``.
-
    Finally, convert the Gifti meshes to mesh fragments in pre-computed format,
    and create the JSON files that Neuroglancer needs in order to find the mesh
    fragments. The coordinate transformation is needed for two reasons:

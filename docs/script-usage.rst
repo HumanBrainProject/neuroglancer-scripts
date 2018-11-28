@@ -88,4 +88,4 @@ A mesh associated with a segmentation label needs to be in a
 Neuroglancer-specific binary precomputed format. ``mesh-to-precomputed`` can be
 used to convert meshes to this format. The ``link-mesh-fragments`` command must
 then be used so that Neuroglancer knows what meshes are associated to each
-label of the segmentation.
+label of the segmentation. See the last step of :ref:`BigBrain` for an example.

@@ -21,10 +21,11 @@
 # 6.  python setup.py sdist bdist_wheel
 # 7.  twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 # 8.  Commit the updated version number
-# 9.  Tag the commit (git tag -a vX.Y.Z). The release notes should be converted
-#     to Markdown and included in the tag message:
-#     pandoc -o release_notes.md docs/release-notes.rst
+# 9.  Tag the commit (git tag -a vX.Y.Z). The release notes for the last
+#     version should be converted to plain text and included in the tag
+#     message:
+#     pandoc -t plain docs/release-notes.rst
 # 10. Bump the version number to something that ends with .dev0 and commit
 # 11. Push the master branch and the new tag to Github
 # 12. twine upload dist/*
-__version__ = "0.3.0.dev0"
+__version__ = "0.3.0"

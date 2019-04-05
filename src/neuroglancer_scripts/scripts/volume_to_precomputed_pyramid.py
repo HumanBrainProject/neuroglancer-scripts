@@ -84,10 +84,6 @@ omitted, it is assumed to be zero.
     parser.add_argument("dest_url", help="directory/URL where the converted "
                         "dataset will be written")
 
-    parser.add_argument("--generate-info", action="store_true",
-                        help="generate an 'info_fullres.json' file containing "
-                        "the metadata read for this volume, then exit")
-
     group = parser.add_argument_group("Option for reading the input file")
     group.add_argument("--ignore-scaling", action="store_true",
                        help="read the values as stored on disk, without "

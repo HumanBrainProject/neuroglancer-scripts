@@ -68,8 +68,9 @@ def mesh_file_to_precomputed(input_path, dest_url, mesh_name=None,
         points = points.astype(np.promote_types(points_dtype, np.float32),
                                casting="same_kind")
 
-    # Gifti uses millimetres, Neuroglancer expects nanometres
-    points *= 1e6
+    # Gifti uses millimetres, Neuroglancer expects nanometres.
+    # points can be a read-only array, so we cannot use the *= operator.
+    points = 1e6 * points
 
     io_buf = io.BytesIO()
     neuroglancer_scripts.mesh.save_mesh_as_precomputed(

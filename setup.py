@@ -46,7 +46,7 @@ setuptools.setup(
     author="Yann Leprince",
     author_email="yann.leprince@cea.fr",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",

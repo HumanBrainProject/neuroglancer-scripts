@@ -44,7 +44,7 @@ setuptools.setup(
     long_description=read("README.rst"),
     url="https://github.com/HumanBrainProject/neuroglancer-scripts",
     author="Yann Leprince",
-    author_email="y.leprince@fz-juelich.de",
+    author_email="yann.leprince@cea.fr",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",

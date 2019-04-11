@@ -1,11 +1,9 @@
-sudo: false
 language: python
 # The next two lines are here to fix build with Pyton 3.7, see
 # https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
 sudo: required
 dist: xenial
 python:
-  - "3.4"
   - "3.5"
   - "3.6"
   - "3.7"

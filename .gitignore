@@ -29,9 +29,9 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-.pytest_cache/
+.pytest_cache
 htmlcov/
-.tox/
+.tox
 .coverage
 .coverage.*
 .cache
@@ -44,8 +44,8 @@ docs/_build/
 # Environments
 .env
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+env
+venv
+ENV
+env.bak
+venv.bak

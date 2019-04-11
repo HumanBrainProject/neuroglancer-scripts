@@ -1,1 +1,12 @@
+# Warn about whitespace errors
+* whitespace="trailing-space,tab-in-indent"
+Makefile whitespace="trailing-space"
+
+# Normalize end-of-line for files that Git detects to be text
+* text=auto
+
+# Python files
+*.py diff=python
+
+# Git LFS
 *.nii.gz filter=lfs diff=lfs merge=lfs -text

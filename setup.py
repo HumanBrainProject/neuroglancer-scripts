@@ -72,6 +72,7 @@ setuptools.setup(
             "check-manifest",
             "flake8",
             "pep8-naming",
+            "pre-commit",
             "pytest-cov",
             "readme_renderer",
             "sphinx",
@@ -82,15 +83,24 @@ setuptools.setup(
     tests_require=tests_require,
     entry_points={
         "console_scripts": [
-            "compute-scales=neuroglancer_scripts.scripts.compute_scales:main",
-            "convert-chunks=neuroglancer_scripts.scripts.convert_chunks:main",
-            "generate-scales-info=neuroglancer_scripts.scripts.generate_scales_info:main",
-            "link-mesh-fragments=neuroglancer_scripts.scripts.link_mesh_fragments:main",
-            "mesh-to-precomputed=neuroglancer_scripts.scripts.mesh_to_precomputed:main",
-            "scale-stats=neuroglancer_scripts.scripts.scale_stats:main",
-            "slices-to-precomputed=neuroglancer_scripts.scripts.slices_to_precomputed:main",
-            "volume-to-precomputed=neuroglancer_scripts.scripts.volume_to_precomputed:main",
-            "volume-to-precomputed-pyramid=neuroglancer_scripts.scripts.volume_to_precomputed_pyramid:main",
+            "compute-scales="
+            "neuroglancer_scripts.scripts.compute_scales:main",
+            "convert-chunks="
+            "neuroglancer_scripts.scripts.convert_chunks:main",
+            "generate-scales-info="
+            "neuroglancer_scripts.scripts.generate_scales_info:main",
+            "link-mesh-fragments="
+            "neuroglancer_scripts.scripts.link_mesh_fragments:main",
+            "mesh-to-precomputed="
+            "neuroglancer_scripts.scripts.mesh_to_precomputed:main",
+            "scale-stats="
+            "neuroglancer_scripts.scripts.scale_stats:main",
+            "slices-to-precomputed="
+            "neuroglancer_scripts.scripts.slices_to_precomputed:main",
+            "volume-to-precomputed="
+            "neuroglancer_scripts.scripts.volume_to_precomputed:main",
+            "volume-to-precomputed-pyramid="
+            "neuroglancer_scripts.scripts.volume_to_precomputed_pyramid:main",
         ],
     },
 )

@@ -9,7 +9,6 @@ import gzip
 import re
 import sys
 
-import nibabel
 import numpy as np
 import pyvtk
 

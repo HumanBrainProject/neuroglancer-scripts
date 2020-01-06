@@ -5,11 +5,11 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
-  - "3.8-dev"
+  - "3.8"
 
 matrix:
   allow_failures:
-    - python: 3.8-dev  # allowed to fail as long as Python 3.8 is in beta
+    # - python: 3.9-dev  # allow tests to fail with this pre-release of Python
 
 install: pip install tox-travis
 script: tox

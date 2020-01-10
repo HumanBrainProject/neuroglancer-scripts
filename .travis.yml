@@ -1,6 +1,9 @@
-sudo: false
+version: ~> 1.0
+os: linux
 language: python
-dist: xenial  # required for Python >= 3.7
+# Support Ubuntu/Python version combinations are documented on
+# https://docs.travis-ci.com/user/languages/python/#python-versions
+dist: xenial
 python:
   - "3.5"
   - "3.6"

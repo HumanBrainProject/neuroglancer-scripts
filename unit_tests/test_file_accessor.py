@@ -79,6 +79,9 @@ def test_file_accessor_errors(tmpdir):
     with pytest.raises(DataAccessError):
         a.store_file("inaccessible_key/dummy", b"")
 
+    # Allow pytest to remove tmpdir with os.rmtree
+    inaccessible_chunk.parent.chmod(mode=0o755)
+
     invalid_gzip_file = tmpdir / "invalid.gz"
     with invalid_gzip_file.open("w") as f:
         f.write("not gzip compressed")

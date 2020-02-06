@@ -27,6 +27,10 @@ def mesh_file_to_vtk(input_filename, output_filename, data_format="ascii",
     assert len(points_list) == 1
     points = points_list[0].data
 
+    triangles_list = mesh.get_arrays_from_intent("NIFTI_INTENT_TRIANGLE")
+    assert len(triangles_list) == 1
+    triangles = triangles_list[0].data
+
     if coord_transform is not None:
         if coord_transform.shape[0] == 4:
             assert np.all(coord_transform[3, :] == [0, 0, 0, 1])
@@ -37,10 +41,6 @@ def mesh_file_to_vtk(input_filename, output_filename, data_format="ascii",
         if np.linalg.det(coord_transform[:3, :3]) < 0:
             # Flip the triangles to fix inside/outside
             triangles = np.flip(triangles, axis=1)
-
-    triangles_list = mesh.get_arrays_from_intent("NIFTI_INTENT_TRIANGLE")
-    assert len(triangles_list) == 1
-    triangles = triangles_list[0].data
 
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6

@@ -4,6 +4,9 @@
 # Author: Pavel Chervakov <p.chervakov@fz-juelich.de>
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
+
+# flake8: noqa
+
 """
 Convert a mesh from STL ASCII to Neuroglancer pre-computed mesh format
 

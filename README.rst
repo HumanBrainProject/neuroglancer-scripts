@@ -1,7 +1,7 @@
 neuroglancer-scripts
 ====================
 
-Tools for converting 3D images to the Neuroglancer pre-computed format.
+Tools for converting volumetric images and surface meshes to the pre-computed format of Neuroglancer_.
 
 
 .. image:: https://img.shields.io/pypi/v/neuroglancer-scripts.svg
@@ -24,7 +24,8 @@ Tools for converting 3D images to the Neuroglancer pre-computed format.
 Installation
 ------------
 
-The easiest way to install neuroglancer-scripts is in a virtual environment:
+The easiest way to install the latest stable version of neuroglancer-scripts is
+through ``pip``. Using a virtual environment is recommended:
 
 .. code-block:: shell
 
@@ -42,8 +43,7 @@ See the `documentation <http://neuroglancer-scripts.readthedocs.io/>`_.
 Development
 -----------
 
-The code is hosted `on GitHub
-<https://github.com/HumanBrainProject/neuroglancer-scripts>`_.
+The code is hosted on https://github.com/HumanBrainProject/neuroglancer-scripts.
 
 This project uses ``pytest`` and ``tox`` for testing. You will need to install
 the project (a virtual environment is recommended) before you can use it or run
@@ -68,3 +68,6 @@ versions. This will run the same tests as the Travis continuous integration:
 .. code-block:: shell
 
    tox
+
+
+.. _Neuroglancer: https://github.com/google/neuroglancer

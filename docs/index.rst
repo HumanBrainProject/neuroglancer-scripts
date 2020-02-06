@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to neuroglancer-scripts's documentation!
-================================================
+Documentation of neuroglancer-scripts
+=====================================
 
 .. image:: https://img.shields.io/pypi/v/neuroglancer-scripts.svg
    :target: https://pypi.python.org/pypi/neuroglancer-scripts
@@ -22,7 +22,12 @@ Welcome to neuroglancer-scripts's documentation!
    :target: http://neuroglancer-scripts.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-The easiest way to install neuroglancer-scripts is in a virtual environment:
+
+Installation
+------------
+
+The easiest way to install the latest stable version of neuroglancer-scripts is
+through ``pip``. Using a virtual environment is recommended:
 
 .. code-block:: shell
 
@@ -30,9 +35,20 @@ The easiest way to install neuroglancer-scripts is in a virtual environment:
    . venv/bin/activate
    pip install neuroglancer-scripts
 
+
+Usage
+-----
+
+The ``neuroglancer-scripts`` package provides :ref:`command-line tools
+<command-line>`, and a :ref:`Python API <python-api>`, for converting
+volumetric images and surface meshes to formats used by Neuroglancer_.
+
+
+Table of contents
+-----------------
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    script-usage
    serving-data
@@ -48,3 +64,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. _Neuroglancer: https://github.com/google/neuroglancer

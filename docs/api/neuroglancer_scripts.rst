@@ -1,5 +1,7 @@
-API documentation
-=================
+.. _python-api:
+
+Python API
+==========
 
 neuroglancer\_scripts package
 -----------------------------

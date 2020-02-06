@@ -1,16 +1,33 @@
-Using the conversion scripts
-============================
+.. _command-line:
 
-Two main types of data can be converted with these scripts: image volumes, and
-surface meshes.
+Command-line usage
+==================
+
+This page will teach you how to use the scripts in common cases.
+
+
+Converting a single-file (NIfTI) volume
+---------------------------------------
+
+If your input dataset is stored in a single file that can be read by Nibabel_
+(such as a NIfTI_ file), then you are in luck. The
+``volume-to-precomputed-pyramid`` script will do all the work for you. It will
+convert your dataset to raw pre-computed chunks.
+
+Usage: ``volume-to-precomputed-pyramid [-h] [--ignore-scaling] [--mmap]
+[--input-min INPUT_MIN] [--input-max INPUT_MAX] [--no-gzip] [--flat]
+[--downscaling-method {auto,average,majority,stride}] [--outside-value
+OUTSIDE_VALUE] volume_filename dest_url``.
+
+You may want to use :ref:`convert-chunks <convert-chunks>` in a second step, to
+further compres your dataset with JPEG or ``compressed_segmentation``
+encoding).
+
 
 Converting image volumes
 ------------------------
 
-Here is a summary of the steps needed for converting volumetric images to the
-Neuroglancer precomputed chunk format.
-
-Two types of data layout are accepted as input:
+The instructions below are applicable to the two accepted input data layouts:
 
 - Volumes in NIfTI format (or any other format readable by Nibabel). See
   :ref:`JuBrain` for an example.
@@ -19,7 +36,7 @@ Two types of data layout are accepted as input:
 
 
 1. Write the metadata for the full-resolution image `in JSON format
-   <https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md>`_.
+   <https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/volume.md>`_.
    If your input data is readable by Nibabel, you can use
    ``volume-to-precomputed --generate-info`` do do the job. Here is an example
    with minimal metadata (note that the resolution is expressed in
@@ -55,6 +72,7 @@ Two types of data layout are accepted as input:
 
 3. Convert your data to raw full-resolution chunks by using one of these
    scripts:
+
    - ``slices-to-precomputed``
    - ``volume-to-precomputed``
 
@@ -65,6 +83,8 @@ Two types of data layout are accepted as input:
 
    At this point the raw-format data is ready to be displayed in Neuroglancer.
 
+.. _convert-chunks:
+
 5. Optionally, you can convert the raw chunks to a compressed format using
    ``convert-chunks``. You will need to generate these compressed chunks in
    a separate directory from the raw chunks, and generate a suitable *info*
@@ -73,8 +93,8 @@ Two types of data layout are accepted as input:
 
    - ``compressed_segmentation``: lossless compression, recommended for images
      containing discrete labels;
-
-   - ``jpeg``: lossy JPEG compression, see ``--jpeg-quality`` and ``--jpeg-plane``.
+   - ``jpeg``: lossy JPEG compression, see ``--jpeg-quality`` and
+     ``--jpeg-plane``.
 
 
 Converting surface meshes
@@ -89,3 +109,7 @@ Neuroglancer-specific binary precomputed format. ``mesh-to-precomputed`` can be
 used to convert meshes to this format. The ``link-mesh-fragments`` command must
 then be used so that Neuroglancer knows what meshes are associated to each
 label of the segmentation. See the last step of :ref:`BigBrain` for an example.
+
+
+.. _Nibabel: https://nipy.org/nibabel/
+.. _NIfTI: https://nifti.nimh.nih.gov/

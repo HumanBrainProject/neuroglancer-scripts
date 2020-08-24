@@ -71,13 +71,13 @@ def parse_command_line(argv):
     import argparse
     parser = argparse.ArgumentParser(
         description="""\
-Convert a volume from Nifti to Neuroglancer pre-computed format
+Convert a volume from Nifti to Neuroglancer pre-computed format.
 
 Chunks are saved with the same data orientation as the input volume.
 
-The image values will be scaled (additionally to any slope/intercept scaling
-defined in the file header) if --input-max is specified. If --input-min is
-omitted, it is assumed to be zero.
+The image values will be scaled (after any slope/intercept scaling
+defined in the file header) if --input-max is specified. If --input-min
+is omitted, it is assumed to be zero.
 """)
     parser.add_argument("volume_filename",
                         help="source Nifti file containing the data")

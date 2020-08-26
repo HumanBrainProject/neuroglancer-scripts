@@ -84,10 +84,10 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
     dtype = np.dtype(info["data_type"]).newbyteorder("<")
     num_channels = info["num_channels"]
 
-    input_axis_permutation = tuple(AXIS_PERMUTATION_FOR_RAS[l]
-                                   for l in input_orientation)
-    input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[l]
-                                  for l in input_orientation)
+    input_axis_permutation = tuple(AXIS_PERMUTATION_FOR_RAS[a]
+                                   for a in input_orientation)
+    input_axis_inversions = tuple(AXIS_INVERSION_FOR_RAS[a]
+                                  for a in input_orientation)
 
     # Here x, y, and z refer to the data orientation in output chunks (which
     # should correspond to RAS+ anatomical axes). For the data orientation in
@@ -102,10 +102,10 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
     input_size = permute(size, input_axis_permutation)
     input_chunk_size = permute(chunk_size, input_axis_permutation)
 
-    for l in slice_filename_lists:
-        if len(l) != input_size[2]:
+    for filename_list in slice_filename_lists:
+        if len(filename_list) != input_size[2]:
             raise ValueError("{} slices found where {} were expected"
-                             .format(len(l), input_size[2]))
+                             .format(len(filename_list), input_size[2]))
 
     for slice_chunk_idx in trange((input_size[2] - 1)
                                   // input_chunk_size[2] + 1,
@@ -156,7 +156,8 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
             return block
 
         # Concatenate all channels from different directories
-        block = np.concatenate([load_z_stack(l) for l in slice_filename_lists],
+        block = np.concatenate([load_z_stack(filename_list)
+                                for filename_list in slice_filename_lists],
                                axis=0)
         assert block.shape[0] == num_channels
 

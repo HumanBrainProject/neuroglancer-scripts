@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v3.2.0
     hooks:
     -   id: check-added-large-files
     -   id: check-case-conflict
@@ -14,7 +14,7 @@ repos:
     -   id: trailing-whitespace
 
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.9
+    rev: 3.8.3
     hooks:
     -   id: flake8
         additional_dependencies: [pep8-naming]

@@ -63,8 +63,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                 return True
         except OSError as exc:
             raise DataAccessError(
-                "Error fetching {1}: {2}".format(
-                    relative_path, self.base_path, exc)) from exc
+                "Error fetching {0}: {1}".format(file_path, exc)) from exc
         return False
 
     def fetch_file(self, relative_path):
@@ -86,8 +85,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                 return f.read()
         except OSError as exc:
             raise DataAccessError(
-                "Error fetching {1}: {2}".format(
-                    relative_path, self.base_path, exc)) from exc
+                "Error fetching {0}: {1}".format(file_path, exc)) from exc
 
     def store_file(self, relative_path, buf,
                    mime_type="application/octet-stream",

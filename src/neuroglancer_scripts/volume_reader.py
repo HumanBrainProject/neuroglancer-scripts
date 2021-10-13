@@ -94,6 +94,11 @@ def nibabel_image_to_info(img,
         zero_index = tuple(0 for _ in shape)
         input_dtype = proxy[zero_index].dtype
 
+    input_dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype(
+                            input_dtype)
+    if is_rgb:
+        shape = shape + (3,)
+
     logger.info("Input image shape is %s", shape)
     affine = img.affine
     voxel_sizes = nibabel.affines.voxel_sizes(affine)
@@ -298,6 +303,19 @@ def volume_file_to_precomputed(volume_filename,
                                load_full_volume=True,
                                options={}):
     img = nibabel.load(volume_filename)
+    dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype_from_vol(
+                        img.dataobj)
+    if is_rgb:
+        proxy = np.asarray(img.dataobj)
+        new_proxy = proxy.view(dtype=np.uint8, type=np.ndarray)
+        third = int(new_proxy.shape[0] / 3)
+        new_dataobj = np.stack([
+            new_proxy[0:third],
+            new_proxy[third:2*third],
+            new_proxy[2*third:]
+        ], axis=-1)
+        img = nibabel.Nifti1Image(new_dataobj, img.affine)
+
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options
     )

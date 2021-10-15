@@ -9,10 +9,12 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+  - "3.9"
+  # - "3.10"
 
 matrix:
   allow_failures:
-    # - python: 3.9-dev  # allow tests to fail with this pre-release of Python
+    # - python: 3.11-dev  # allow tests to fail with this pre-release of Python
 
 install: pip install tox-travis
 script: tox

@@ -161,7 +161,7 @@ class AveragingDownscaler(Downscaler):
             raise NotImplementedError
         dtype = chunk.dtype
         # Use a floating-point type for arithmetic
-        work_dtype = np.promote_types(chunk.dtype, np.floating)
+        work_dtype = np.promote_types(chunk.dtype, np.float64)
         chunk = chunk.astype(work_dtype, casting="safe")
 
         half = work_dtype.type(0.5)

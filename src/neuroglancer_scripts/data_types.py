@@ -17,7 +17,7 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-
+NG_MULTICHANNEL_DATATYPES = (('R', 'G', 'B'),)
 NG_INTEGER_DATA_TYPES = ("uint8", "uint16", "uint32", "uint64")
 NG_DATA_TYPES = NG_INTEGER_DATA_TYPES + ("float32",)
 
@@ -77,3 +77,20 @@ def get_chunk_dtype_transformer(input_dtype, output_dtype, warn=True):
         return chunk.astype(output_dtype, casting="unsafe")
 
     return chunk_transformer
+
+
+def get_dtype_from_vol(volume):
+    zero_index = tuple(0 for _ in volume.shape)
+    return get_dtype(volume[zero_index].dtype)
+
+
+def get_dtype(input_dtype):
+    if input_dtype.names is None:
+        return input_dtype, False
+    if input_dtype.names not in NG_MULTICHANNEL_DATATYPES:
+        err = 'tuple datatype {} not yet supported'.format(input_dtype.names)
+        raise NotImplementedError(err)
+    for index, value in enumerate(input_dtype.names):
+        err = 'Multichanneled datatype should have the same datatype'
+        assert input_dtype[index].name == input_dtype[0].name, err
+    return input_dtype[0], True

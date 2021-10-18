@@ -10,6 +10,7 @@ from neuroglancer_scripts.data_types import (
     NG_DATA_TYPES,
     NG_INTEGER_DATA_TYPES,
     get_chunk_dtype_transformer,
+    get_dtype,
 )
 
 
@@ -132,3 +133,24 @@ def test_dtype_conversion_integer_downcasting(dtype):
         np.array([iinfo.min, iinfo.min,
                   iinfo.max, iinfo.max], dtype=dtype)
     )
+
+
+def test_unsupported_tupled_dtype():
+
+    random_val = np.random.rand(81).reshape((3, 3, 3, 3)) * 255
+    random_val = random_val.astype(np.uint8)
+    wrong_type = np.dtype([('A', 'u1'), ('B', 'u1'), ('C', 'u1')])
+    new_data = random_val.copy().view(dtype=wrong_type).reshape((3, 3, 3))
+
+    with pytest.raises(NotImplementedError):
+        get_dtype(new_data.dtype)
+
+
+def test_supported_tupled_dtype():
+    random_val = np.random.rand(81).reshape((3, 3, 3, 3)) * 255
+    random_val = random_val.astype(np.uint8)
+    right_type = np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1')])
+    new_data = random_val.copy().view(dtype=right_type).reshape((3, 3, 3))
+    dtype, isrgb = get_dtype(new_data.dtype)
+    assert dtype.name == 'uint8'
+    assert isrgb

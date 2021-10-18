@@ -21,7 +21,10 @@ jobs:
     - name: Test with tox
       run: |
         tox
-    - uses: codecov/codecov-action@v2
+
+    # only 3.6 is run with codecov
+    - if: ${{ matrix.python-version }} == '3.6'
+      uses: codecov/codecov-action@v2
       with:
         fail_ci_if_error: true # optional (default = false)
         verbose: true # optional (default = false)

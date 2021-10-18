@@ -67,7 +67,7 @@ setuptools.setup(
         "requests >= 2",
         "scikit-image",  # TODO use pillow instead
         "tqdm ~= 4.29",
-        'imagecodecs', # required by scikit-image to read LZW compressed tiff files
+        "imagecodecs",  # required to read LZW compressed tiff files
     ],
     python_requires="~= 3.5",
     extras_require={

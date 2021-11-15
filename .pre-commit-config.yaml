@@ -19,6 +19,11 @@ repos:
     -   id: flake8
         additional_dependencies: [pep8-naming]
 
+-   repo: https://github.com/mgedmin/check-manifest
+    rev: "0.47"
+    hooks:
+    -   id: check-manifest
+
 default_language_version:
     # force all unspecified python hooks to run python3
     python: python3

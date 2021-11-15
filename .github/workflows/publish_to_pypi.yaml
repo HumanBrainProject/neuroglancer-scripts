@@ -25,10 +25,10 @@ jobs:
 
     - name: Build the package
       run: |
-        echo "Installing and upgrading twine, setuptools and wheel"
-        python -m pip install --user --upgrade twine setuptools wheel
+        echo "Installing and upgrading build and twine"
+        python3 -m pip install --user --upgrade build twine
         echo "Package the project"
-        python setup.py sdist bdist_wheel
+        python3 -m build
     - name: Prepare pypi settings
       run: |
         echo "[pypi]" >~/.pypirc

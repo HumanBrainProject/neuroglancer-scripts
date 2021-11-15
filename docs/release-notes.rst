@@ -1,6 +1,33 @@
 Release notes
 =============
 
+1.0.0rc1 (15 November 2021)
+------------------------
+
+New features
+~~~~~~~~~~~~
+
+- Support for RGB NIfTI. Many thanks to Xiao Gui for implementing this feature in `PR #15 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/15>`_.
+
+- Support for LZW-compressed TIFF files. Many thanks to Xiao Gui for implementing this feature in `PR #14 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/14>`_.
+
+
+Python version support
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Add support and tests for Python 3.8, 3.9, and 3.10.
+
+- Drop support for Python 3.4
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fix mesh conversion with recent versions of Nibabel (`commit c03bb5c8 <https://github.com/HumanBrainProject/neuroglancer-scripts/commit/c03bb5c8e10ee474e54b62b57e90940cea035c92>`_).
+
+- Bump the minimum version of tqdm to prevent a blocking crash (see `tqdm bug#613 <https://github.com/tqdm/tqdm/issues/613>`_).
+
+
 0.3.0 (28 November 2018)
 ------------------------
 

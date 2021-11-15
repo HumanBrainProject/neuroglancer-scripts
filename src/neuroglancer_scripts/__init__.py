@@ -29,4 +29,4 @@
 #     and commit
 # 10. Push the master branch and the new tag to Github
 # 11. twine upload dist/*
-__version__ = "0.4.0.dev0"
+__version__ = "1.0.0rc1"

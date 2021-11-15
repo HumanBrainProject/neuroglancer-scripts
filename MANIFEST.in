@@ -3,6 +3,7 @@ include .coveragerc
 include .editorconfig
 include tox.ini
 exclude .pre-commit-config.yaml
+exclude .readthedocs.yaml
 
 prune examples
 prune experimental

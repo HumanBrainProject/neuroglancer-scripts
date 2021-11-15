@@ -8,7 +8,8 @@
 .. todo:: introduction to the high-level APIs
 """
 
-# Version used by setup.py and docs/conf.py (parsed with a regular expression).
+# Version used by setup.cfg and docs/conf.py (parsed with a regular
+# expression).
 #
 # Release checklist (based on https://packaging.python.org/):
 # 1.  Ensure that tests pass for all supported Python version (Travis CI),

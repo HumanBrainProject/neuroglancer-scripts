@@ -1,6 +1,6 @@
 include LICENCE.txt
 include .coveragerc
-include .editorconfig
+exclude .editorconfig
 include tox.ini
 exclude .pre-commit-config.yaml
 exclude .readthedocs.yaml
@@ -11,7 +11,6 @@ prune experimental
 recursive-include docs *.rst
 include docs/conf.py
 include docs/Makefile
-exclude docs/autodoc-requirements.txt
 prune docs/_build
 
 recursive-include script_tests *.py

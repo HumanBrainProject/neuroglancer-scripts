@@ -3,7 +3,6 @@
 import codecs
 import os.path
 import re
-import sys
 
 import setuptools
 
@@ -32,10 +31,6 @@ tests_require = [
     "pytest",
     "requests-mock",
 ]
-
-needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
-pytest_runner = ["pytest-runner"] if needs_pytest else []
-
 
 setuptools.setup(
     name="neuroglancer-scripts",
@@ -85,7 +80,6 @@ setuptools.setup(
             "tox",
         ],
     },
-    setup_requires=pytest_runner,
     tests_require=tests_require,
     entry_points={
         "console_scripts": [

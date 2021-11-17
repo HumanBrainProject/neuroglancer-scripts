@@ -1,7 +1,7 @@
 Release notes
 =============
 
-1.0.0rc3 (17 November 2021)
+1.0.0 (17 November 2021)
 ------------------------
 
 New features

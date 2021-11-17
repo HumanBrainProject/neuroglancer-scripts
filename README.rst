@@ -8,8 +8,8 @@ Tools for converting volumetric images and surface meshes to the pre-computed fo
    :target: https://pypi.python.org/pypi/neuroglancer-scripts
    :alt: PyPI Version
 
-.. image:: https://travis-ci.org/HumanBrainProject/neuroglancer-scripts.svg?branch=master
-   :target: https://travis-ci.org/HumanBrainProject/neuroglancer-scripts
+.. image:: https://github.com/HumanBrainProject/neuroglancer-scripts/actions/workflows/tox.yaml/badge.svg
+   :target: https://github.com/HumanBrainProject/neuroglancer-scripts/actions/workflows/tox.yaml
    :alt: Build Status
 
 .. image:: https://codecov.io/gh/HumanBrainProject/neuroglancer-scripts/branch/master/graph/badge.svg

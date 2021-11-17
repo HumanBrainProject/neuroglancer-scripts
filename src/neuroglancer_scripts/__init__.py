@@ -25,8 +25,10 @@
 #     version should be converted to plain text and included in the tag
 #     message:
 #     pandoc -t plain docs/release-notes.rst
+#     For the GitHub release message, this line is useful:
+#     pandoc --no-wrap -t markdown docs/release-notes.rst
 # 9.  Bump the version number in this file to something that ends with .dev0
 #     and commit
 # 10. Push the master branch and the new tag to Github
 # 11. twine upload dist/*
-__version__ = "1.0.0rc1"
+__version__ = "1.0.0rc2"

@@ -308,11 +308,10 @@ def volume_file_to_precomputed(volume_filename,
     if is_rgb:
         proxy = np.asarray(img.dataobj)
         new_proxy = proxy.view(dtype=np.uint8, type=np.ndarray)
-        third = int(new_proxy.shape[0] / 3)
         new_dataobj = np.stack([
-            new_proxy[0:third],
-            new_proxy[third:2*third],
-            new_proxy[2*third:]
+            new_proxy[:, :, 0::3],
+            new_proxy[:, :, 1::3],
+            new_proxy[:, :, 2::3]
         ], axis=-1)
         img = nibabel.Nifti1Image(new_dataobj, img.affine)
 

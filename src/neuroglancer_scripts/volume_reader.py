@@ -307,12 +307,20 @@ def volume_file_to_precomputed(volume_filename,
                         img.dataobj)
     if is_rgb:
         proxy = np.asarray(img.dataobj)
+        is_fortran = np.isfortran(proxy)
         new_proxy = proxy.view(dtype=np.uint8, type=np.ndarray)
-        new_dataobj = np.stack([
-            new_proxy[:, :, 0::3],
-            new_proxy[:, :, 1::3],
-            new_proxy[:, :, 2::3]
-        ], axis=-1)
+        if is_fortran:
+            new_dataobj = np.stack([
+                new_proxy[0::3, :, :],
+                new_proxy[1::3, :, :],
+                new_proxy[2::3, :, :]
+            ], axis=-1)
+        else:
+            new_dataobj = np.stack([
+                new_proxy[:, :, 0::3],
+                new_proxy[:, :, 1::3],
+                new_proxy[:, :, 2::3]
+            ], axis=-1)
         img = nibabel.Nifti1Image(new_dataobj, img.affine)
 
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(

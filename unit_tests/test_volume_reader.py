@@ -11,27 +11,24 @@ def prepare_nifti_images():
     width = 5
     height = 4
     depth = 7
+
     dim = (width, height, depth)
     mul_dim = width * height * depth
 
-    """
-    bugfix: rgb nifti reading bug
-    tests: added tests for arbitary dimension rgb nii
-    tests: added testing values before and after volume_file_to_precomputed
-
-    previous implementation of reading rgb nii was errorneous.
-    """
     random_rgb_val = np.random.rand(mul_dim * 3).reshape(*dim, 3) * 255
     random_rgb_val = random_rgb_val.astype(np.uint8)
     right_type = np.dtype([("R", "u1"), ("G", "u1"), ("B", "u1")])
     new_data = random_rgb_val.copy().view(dtype=right_type).reshape(dim)
     rgb_img = nib.Nifti1Image(new_data, np.eye(4))
 
+    fortrain_rgb = np.array(new_data, order="F")
+    fortrain_img = nib.Nifti1Image(fortrain_rgb, np.eye(4))
+
     random_uint8_val = np.random.rand(mul_dim).reshape(dim) * 255
     random_uint8_val = random_uint8_val.astype(np.uint8)
     uint8_img = nib.Nifti1Image(random_uint8_val, np.eye(4))
 
-    return [(rgb_img, 3), (uint8_img, 1)]
+    return [(rgb_img, 3), (uint8_img, 1), (fortrain_img, 3)]
 
 
 @pytest.mark.parametrize("nifti_img,expected_num_channel",

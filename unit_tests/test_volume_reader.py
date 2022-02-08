@@ -4,7 +4,7 @@ import pytest
 import json
 from unittest.mock import patch
 from neuroglancer_scripts.volume_reader import nibabel_image_to_info, \
-    volume_file_to_precomputed
+    nibabel_load_proxy
 
 
 def prepare_nifti_images():
@@ -17,11 +17,14 @@ def prepare_nifti_images():
 
     random_rgb_val = np.random.rand(mul_dim * 3).reshape(*dim, 3) * 255
     random_rgb_val = random_rgb_val.astype(np.uint8)
-    right_type = np.dtype([("R", "u1"), ("G", "u1"), ("B", "u1")])
-    new_data = random_rgb_val.copy().view(dtype=right_type).reshape(dim)
+
+    rgb_type = np.dtype([("R", "u1"), ("G", "u1"), ("B", "u1")])
+    new_data = random_rgb_val.copy(order="C").view(
+                dtype=rgb_type).reshape(dim)
     rgb_img = nib.Nifti1Image(new_data, np.eye(4))
 
-    fortrain_rgb = np.array(new_data, order="F")
+    fortrain_rgb = random_rgb_val.reshape(3, *dim).copy(order="F").view(
+                    dtype=rgb_type).reshape(dim)
     fortrain_img = nib.Nifti1Image(fortrain_rgb, np.eye(4))
 
     random_uint8_val = np.random.rand(mul_dim).reshape(dim) * 255
@@ -42,20 +45,11 @@ def test_nibabel_image_to_info(nifti_img, expected_num_channel):
 
 @pytest.mark.parametrize("nifti_img,expected_num_channel",
                          prepare_nifti_images())
-@patch('neuroglancer_scripts.precomputed_io.get_IO_for_existing_dataset',
-       return_value=None)
-@patch('neuroglancer_scripts.volume_reader.nibabel_image_to_precomputed')
 @patch("nibabel.load")
-def test_volume_file_to_precomputed(m_nib_load, m_nib_img_precomp, _,
-                                    nifti_img, expected_num_channel):
+def test_nibabel_load_proxy(m_nib_load, nifti_img, expected_num_channel):
     m_nib_load.return_value = nifti_img
-    m_nib_img_precomp.return_value = "hoho"
-    volume_file_to_precomputed("mock_file_name", "./bla")
-
+    nibabel_image = nibabel_load_proxy("mock_file_name")
     assert m_nib_load.called
-    assert m_nib_img_precomp.called
-
-    nibabel_image = m_nib_img_precomp.call_args[0][0]
 
     if expected_num_channel == 1:
         assert nibabel_image is nifti_img

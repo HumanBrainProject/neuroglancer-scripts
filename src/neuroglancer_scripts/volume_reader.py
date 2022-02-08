@@ -25,6 +25,7 @@ __all__ = [
     "volume_file_to_info",
     "volume_file_to_precomputed",
     "volume_to_precomputed",
+    "nibabel_load_proxy"
 ]
 
 
@@ -239,7 +240,8 @@ def nibabel_image_to_precomputed(img,
         # There is no guarantee that proxy.dtype exists, so we have to
         # read a value from the file to see the result of the scaling
         zero_index = tuple(0 for _ in shape)
-        input_dtype = proxy[zero_index].dtype
+        input_dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype(
+                                proxy[zero_index].dtype)
 
     affine = img.affine
     voxel_sizes = nibabel.affines.voxel_sizes(affine)
@@ -302,26 +304,7 @@ def volume_file_to_precomputed(volume_filename,
                                input_max=None,
                                load_full_volume=True,
                                options={}):
-    img = nibabel.load(volume_filename)
-    dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype_from_vol(
-                        img.dataobj)
-    if is_rgb:
-        proxy = np.asarray(img.dataobj)
-        is_fortran = np.isfortran(proxy)
-        new_proxy = proxy.view(dtype=np.uint8, type=np.ndarray)
-        if is_fortran:
-            new_dataobj = np.stack([
-                new_proxy[0::3, :, :],
-                new_proxy[1::3, :, :],
-                new_proxy[2::3, :, :]
-            ], axis=-1)
-        else:
-            new_dataobj = np.stack([
-                new_proxy[:, :, 0::3],
-                new_proxy[:, :, 1::3],
-                new_proxy[:, :, 2::3]
-            ], axis=-1)
-        img = nibabel.Nifti1Image(new_dataobj, img.affine)
+    img = nibabel_load_proxy(volume_filename)
 
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options
@@ -362,3 +345,29 @@ def volume_file_to_info(volume_filename, dest_url,
         input_max=input_max,
         options=options
     )
+
+
+def nibabel_load_proxy(volume_filename):
+    img = nibabel.load(volume_filename)
+    dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype_from_vol(
+                        img.dataobj)
+    if not is_rgb:
+        return img
+
+    proxy = np.asarray(img.dataobj)
+    is_fortran = np.isfortran(proxy)
+    new_proxy = proxy.view(dtype=np.uint8, type=np.ndarray)
+    if is_fortran:
+        new_dataobj = np.stack([
+            new_proxy[0::3, :, :],
+            new_proxy[1::3, :, :],
+            new_proxy[2::3, :, :]
+        ], axis=-1)
+    else:
+        new_dataobj = np.stack([
+            new_proxy[:, :, 0::3],
+            new_proxy[:, :, 1::3],
+            new_proxy[:, :, 2::3]
+        ], axis=-1)
+    img = nibabel.Nifti1Image(new_dataobj, img.affine)
+    return img

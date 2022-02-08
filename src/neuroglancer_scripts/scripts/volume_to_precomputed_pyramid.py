@@ -9,8 +9,6 @@ import json
 import logging
 import sys
 
-import nibabel
-
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.downscaling
@@ -30,7 +28,8 @@ def volume_to_precomputed_pyramid(volume_filename,
                                   input_max=None,
                                   load_full_volume=True,
                                   options={}):
-    img = nibabel.load(volume_filename)
+    img = volume_reader.nibabel_load_proxy(volume_filename)
+
     formatted_info, _, _, _ = volume_reader.nibabel_image_to_info(
         img,
         ignore_scaling=ignore_scaling,

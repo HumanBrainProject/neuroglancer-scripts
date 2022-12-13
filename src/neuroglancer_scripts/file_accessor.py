@@ -42,13 +42,14 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
     can_read = True
     can_write = True
 
-    def __init__(self, base_dir, flat=False, gzip=True):
+    def __init__(self, base_dir, flat=False, gzip=True, compresslevel=9):
         self.base_path = pathlib.Path(base_dir)
         if flat:
             self.chunk_pattern = _CHUNK_PATTERN_FLAT
         else:
             self.chunk_pattern = _CHUNK_PATTERN_SUBDIR
         self.gzip = gzip
+        self.compresslevel = compresslevel
 
     def file_exists(self, relative_path):
         relative_path = pathlib.Path(relative_path)
@@ -101,7 +102,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
             if self.gzip and mime_type not in NO_COMPRESS_MIME_TYPES:
                 with gzip.open(
                         str(file_path.with_name(file_path.name + ".gz")),
-                        mode) as f:
+                        mode, compresslevel=self.compresslevel) as f:
                     f.write(buf)
             else:
                 with file_path.open(mode) as f:
@@ -146,7 +147,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
             if self.gzip and mime_type not in NO_COMPRESS_MIME_TYPES:
                 with gzip.open(
                         str(chunk_path.with_name(chunk_path.name + ".gz")),
-                        mode) as f:
+                        mode, compresslevel=self.compresslevel) as f:
                     f.write(buf)
             else:
                 with chunk_path.open(mode) as f:

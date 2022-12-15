@@ -69,7 +69,7 @@ def add_argparse_options(parser, write_chunks=True, write_files=True):
         group.add_argument("--no-gzip", "--no-compression",
                            action="store_false", dest="gzip",
                            help="Don't gzip the output.")
-        group.add_argument("--compresslevel", type=int, default=0, choices=range(0,10),
+        group.add_argument("--compresslevel", type=int, default=9, choices=range(0,10),
                            help="The compression level is used for the Gzip")
     if write_chunks:
         group.add_argument(

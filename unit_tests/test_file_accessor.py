@@ -13,10 +13,12 @@ from neuroglancer_scripts.accessor import (
 )
 
 
+@pytest.mark.parametrize("compresslevel", [0, 1, 9])
 @pytest.mark.parametrize("flat", [False, True])
 @pytest.mark.parametrize("gzip", [False, True])
-def test_file_accessor_roundtrip(tmpdir, gzip, flat):
-    a = FileAccessor(str(tmpdir), gzip=gzip, flat=flat)
+def test_file_accessor_roundtrip(tmpdir, gzip, flat, compresslevel):
+    a = FileAccessor(str(tmpdir), gzip=gzip, flat=flat,
+                     compresslevel=compresslevel)
     fake_info = b'{"scales": [{"key": "key"}]}'
     fake_chunk_buf = b"d a t a"
     chunk_coords = (0, 1, 0, 1, 0, 1)

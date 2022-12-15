@@ -37,8 +37,10 @@ def get_accessor_for_url(url, accessor_options={}):
         from neuroglancer_scripts import file_accessor
         flat = accessor_options.get("flat", False)
         gzip = accessor_options.get("gzip", True)
+        compresslevel = accessor_options.get("compresslevel", 9)
         pathname = _convert_split_file_url_to_pathname(r)
-        return file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip)
+        return file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip,
+                                          compresslevel=compresslevel)
     elif r.scheme in ("http", "https"):
         from neuroglancer_scripts import http_accessor
         return http_accessor.HttpAccessor(url)
@@ -68,6 +70,9 @@ def add_argparse_options(parser, write_chunks=True, write_files=True):
         group.add_argument("--no-gzip", "--no-compression",
                            action="store_false", dest="gzip",
                            help="Don't gzip the output.")
+        group.add_argument("--compresslevel", type=int, default=9,
+                           choices=range(0, 10),
+                           help="Gzip compression level (0-9, default 9)")
     if write_chunks:
         group.add_argument(
             "--flat", action="store_true",

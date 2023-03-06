@@ -287,7 +287,7 @@ def nibabel_image_to_precomputed(img,
     )
     if load_full_volume:
         logger.info("Loading full volume to memory... ")
-        volume = img.get_data()
+        volume = np.asanyarray(img.dataobj)
     else:
         volume = proxy
     logger.info("Writing chunks... ")

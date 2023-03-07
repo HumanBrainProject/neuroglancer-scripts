@@ -36,7 +36,8 @@ def test_file_accessor_roundtrip(tmpdir, gzip, flat, compresslevel):
 def test_file_accessor_file_exists(tmpdir):
     a = FileAccessor(str(tmpdir))
     assert a.file_exists("nonexistent_file") is False
-    (tmpdir / "real_file").open("w")  # create an empty file
+    with (tmpdir / "real_file").open("w"):
+        pass  # create an empty file
     assert a.file_exists("real_file") is True
     assert a.file_exists("nonexistent_dir/file") is False
 

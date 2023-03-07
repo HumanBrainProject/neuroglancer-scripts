@@ -1,7 +1,7 @@
 Release notes
 =============
 
-1.1.0 (upcoming)
+1.1.0 (7 March 2023)
 --------------------
 
 New features

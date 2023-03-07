@@ -15,6 +15,7 @@ import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.downscaling
 import neuroglancer_scripts.dyadic_pyramid
+import neuroglancer_scripts.scripts.generate_scales_info
 from neuroglancer_scripts import precomputed_io
 from neuroglancer_scripts import volume_reader
 
@@ -29,6 +30,8 @@ def volume_to_precomputed_pyramid(volume_filename,
                                   input_min=None,
                                   input_max=None,
                                   load_full_volume=True,
+                                  dataset_type=None,
+                                  encoding=None,
                                   options={}):
     img = nibabel.load(volume_filename)
     formatted_info, _, _, _ = volume_reader.nibabel_image_to_info(
@@ -42,7 +45,11 @@ def volume_to_precomputed_pyramid(volume_filename,
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options
     )
-    # TODO fill encoding...
+    neuroglancer_scripts.scripts.generate_scales_info.set_info_params(
+        info,
+        dataset_type=dataset_type,
+        encoding=encoding
+    )
     neuroglancer_scripts.dyadic_pyramid.fill_scales_for_dyadic_pyramid(
         info
     )

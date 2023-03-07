@@ -95,7 +95,7 @@ def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
     if not np.can_cast(vertices.dtype, np.float32):
         # As of a8ce681660864ab3ac7c1086c0b4262e40f24707 Neuroglancer reads
         # everything as float32 anyway
-        logger.warn("Vertex coordinates will be converted to float32")
+        logger.warning("Vertex coordinates will be converted to float32")
     np.savetxt(file, vertices.astype(np.float32), fmt="%.9g")
     file.write("POLYGONS {0:d} {1:d}\n"
                .format(triangles.shape[0], 4 * triangles.shape[0]))
@@ -112,9 +112,9 @@ def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
             assert values.ndim == 2
             num_components = values.shape[1]
             if num_components > 4:
-                logger.warn("The file will not be strictly valid VTK because "
-                            "a SCALAR vertex attribute has more than 4 "
-                            "components")
+                logger.warning("The file will not be strictly valid VTK "
+                               "because a SCALAR vertex attribute has more "
+                               "than 4 components")
             if not np.can_cast(values.dtype, np.float32):
                 # As of a8ce681660864ab3ac7c1086c0b4262e40f24707 Neuroglancer
                 # reads everything as float32 anyway

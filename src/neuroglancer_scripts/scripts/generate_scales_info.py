@@ -35,8 +35,8 @@ def set_info_params(info, dataset_type=None, encoding=None):
 
     if full_scale_info["encoding"] == "compressed_segmentation":
         if info["type"] != "segmentation":
-            logger.warn("using compressed_segmentation encoding but "
-                        "'type' is not 'segmentation'")
+            logger.warning("using compressed_segmentation encoding but "
+                           "'type' is not 'segmentation'")
         if "compressed_segmentation_block_size" not in full_scale_info:
             # TODO clamp block size to chunk size (e.g. thin chunks)
             full_scale_info["compressed_segmentation_block_size"] = [8, 8, 8]
@@ -44,18 +44,18 @@ def set_info_params(info, dataset_type=None, encoding=None):
         if info["data_type"] in ("uint8", "uint16"):
             info["data_type"] = "uint32"
         if info["data_type"] not in ("uint32", "uint64"):
-            logger.warn("data type %s is not supported by the "
-                        "compressed_segmentation encoding",
-                        info["data_type"])
+            logger.warning("data type %s is not supported by the "
+                           "compressed_segmentation encoding",
+                           info["data_type"])
 
     if (info["type"] == "segmentation"
             and info["data_type"] not in data_types.NG_INTEGER_DATA_TYPES):
-        logger.warn('the dataset is of type "segmentation" but has a '
-                    'non-integer data_type (%s)', info["data_type"])
+        logger.warning('the dataset is of type "segmentation" but has a '
+                       'non-integer data_type (%s)', info["data_type"])
 
     if (info["type"] == "segmentation" and info["num_channels"] != 1):
-        logger.warn('the dataset is of type "segmentation" but num_channels '
-                    'is %d (must be 1)', info["data_type"])
+        logger.warning('the dataset is of type "segmentation" but '
+                       'num_channels is %d (must be 1)', info["data_type"])
 
 
 def generate_scales_info(input_fullres_info_filename,

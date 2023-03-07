@@ -69,7 +69,7 @@ Useful commands for development:
 Contributing
 ============
 
-This repository uses `pre-commit`_ to ensure that all committed code follows minimal quality standards. Please install it and configure it to run as a pre-commit hook in your local repository (see above).
+This repository uses `pre-commit`_ to ensure that all committed code follows minimal quality standards. Please install it and configure it to run as a pre-commit hook in your local repository (see above). Also, please note that the code quality checks may need a more recent version of Python than that required by neuroglancer_scripts itself (> 3.8 at the time of this writing).
 
 
 .. _Neuroglancer: https://github.com/google/neuroglancer

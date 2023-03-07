@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.4.0
     hooks:
     -   id: check-added-large-files
     -   id: check-case-conflict
@@ -8,19 +8,21 @@ repos:
     -   id: check-json
     -   id: check-merge-conflict
     -   id: check-symlinks
+    -   id: check-toml
     -   id: check-yaml
     -   id: debug-statements
     -   id: end-of-file-fixer
+    -   id: name-tests-test
     -   id: trailing-whitespace
 
 -   repo: https://github.com/pycqa/flake8
-    rev: 3.9.2
+    rev: 6.0.0
     hooks:
     -   id: flake8
         additional_dependencies: [pep8-naming]
 
 -   repo: https://github.com/mgedmin/check-manifest
-    rev: "0.47"
+    rev: "0.49"
     hooks:
     -   id: check-manifest
 

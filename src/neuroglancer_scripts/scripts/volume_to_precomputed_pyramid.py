@@ -114,17 +114,17 @@ is omitted, it is assumed to be zero.
                        help="input value that will be mapped to the maximum "
                        "output value")
     group.add_argument("--type", default=None,
-                        choices=("image", "segmentation"),
-                        help="Type of dataset (image or segmentation). By"
-                        " default this is inherited from the fullres_info"
-                        " file, with a fallback to image.")
+                       choices=("image", "segmentation"),
+                       help="Type of dataset (image or segmentation). By"
+                       " default this is inherited from the fullres_info"
+                       " file, with a fallback to image.")
     group.add_argument("--encoding", default=None,
-                        choices=("raw", "jpeg", "compressed_segmentation"),
-                        help="data encoding (raw, jpeg, or"
-                        " compressed_segmentation). By default this is"
-                        " inherited from the fullres_info file, with a"
-                        " fallback to raw.")
-    
+                       choices=("raw", "jpeg", "compressed_segmentation"),
+                       help="data encoding (raw, jpeg, or"
+                       " compressed_segmentation). By default this is"
+                       " inherited from the fullres_info file, with a"
+                       " fallback to raw.")
+
     neuroglancer_scripts.accessor.add_argparse_options(parser)
     neuroglancer_scripts.downscaling.add_argparse_options(parser)
     neuroglancer_scripts.chunk_encoding.add_argparse_options(parser,

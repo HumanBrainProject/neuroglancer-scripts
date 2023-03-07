@@ -6,6 +6,7 @@
 
 import gzip
 import json
+import os
 import subprocess
 
 import nibabel
@@ -14,6 +15,11 @@ import pytest
 import PIL.Image
 
 from neuroglancer_scripts.mesh import read_precomputed_mesh
+
+
+# Environment passed to sub-processes so that they raise an error on warnings
+env = os.environ.copy()
+env['PYTHONWARNINGS'] = 'error'
 
 
 @pytest.fixture(scope="module")
@@ -37,34 +43,34 @@ def test_jubrain_example_MPM(examples_dir, tmpdir):
         "--generate-info",
         str(input_nifti),
         str(output_dir)
-    ]) == 0
+    ], env=env) == 0
     assert subprocess.call([
         "generate-scales-info",
         "--type=segmentation",
         "--encoding=compressed_segmentation",
         str(output_dir / "info_fullres.json"),
         str(output_dir)
-    ]) == 0
+    ], env=env) == 0
     assert subprocess.call([
         "volume-to-precomputed",
         str(input_nifti),
         str(output_dir)
-    ]) == 0
+    ], env=env) == 0
     assert subprocess.call([
         "compute-scales",
         "--downscaling-method=stride",  # for test speed
         str(output_dir)
-    ]) == 0
+    ], env=env) == 0
     assert subprocess.call([
         "scale-stats",
         str(output_dir),
-    ]) == 0
+    ], env=env) == 0
     assert subprocess.call([
         "convert-chunks",
         "--copy-info",
         str(output_dir),
         str(output_dir / "copy")
-    ]) == 0
+    ], env=env) == 0
 
 
 def test_all_in_one_conversion(examples_dir, tmpdir):
@@ -86,7 +92,7 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
         "--downscaling-method", "stride",
         str(input_nifti),
         str(output_dir)
-    ]) == 0
+    ], env=env) == 0
     # TODO check the actual data for correct scaling, especially in combination
     # with --mmap / --load-full-volume
 
@@ -125,19 +131,19 @@ def test_slice_conversion(tmpdir):
         "--target-chunk-size", "8",
         str(path_to_converted / "info_fullres.json"),
         str(path_to_converted)
-    ]) == 0
+    ], env=env) == 0
     # Run the converter
     assert subprocess.call([
         "slices-to-precomputed",
         str(path_to_slices),
         str(path_to_converted)
-    ]) == 0
+    ], env=env) == 0
     # Downscale the data to check that it can be read successfully
     assert subprocess.call([
         "compute-scales",
         "--downscaling-method", "stride",
         str(path_to_converted)
-    ]) == 0
+    ], env=env) == 0
 
 
 def dummy_mesh(num_vertices=4, num_triangles=3):
@@ -182,7 +188,7 @@ def test_mesh_conversion(tmpdir):
         "--mesh-name=test",
         str(dummy_gii_path),
         str(dummy_precomputed_path)
-    ]) == 0
+    ], env=env) == 0
     testmesh_path = dummy_precomputed_path / "mesh" / "test.gz"
     with open(str(dummy_precomputed_path / "info")) as f:
         info = json.load(f)
@@ -198,7 +204,7 @@ def test_mesh_conversion(tmpdir):
         "mesh-to-precomputed",
         str(dummy_gii_path),
         str(dummy_precomputed_path)
-    ]) == 0
+    ], env=env) == 0
     assert dummy_mesh_path.exists()
 
     fragments_csv_path = tmpdir / "fragments.csv"
@@ -210,7 +216,7 @@ def test_mesh_conversion(tmpdir):
         "--no-colon-suffix",
         str(fragments_csv_path),
         str(dummy_precomputed_path)
-    ]) == 0
+    ], env=env) == 0
     with (dummy_precomputed_path / "mesh" / "0").open() as f:
         json_content = json.load(f)
     assert "fragments" in json_content
@@ -234,4 +240,4 @@ def test_mesh_conversion_with_transform(tmpdir):
         "--coord-transform", "0,1,0,0.2,1,0,0,0,0,0,-1,0.3",
         str(dummy_gii_path),
         str(dummy_precomputed_path)
-    ]) == 0
+    ], env=env) == 0

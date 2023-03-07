@@ -1,6 +1,29 @@
 Release notes
 =============
 
+1.1.0 (upcoming)
+--------------------
+
+New features
+~~~~~~~~~~~~
+
+- Add a `--compresslevel` option for controlling the GZip compression level. Many thanks to Bradley Lowekamp for implementing this feature in `PR #24 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/24>`_ / `PR #26 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/26>`_.
+
+- Add the `--type` and `--encoding` options to the all-in-one `volume-to-precomputed-pyramid` script. Many thanks to Xiao Gui for implementing this feature in `PR #29 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/29>`_.
+
+
+Python version support
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Add support and tests for Python 3.11.
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fix volume reading with recent Nibabel >= 5.0.0, due to the expired deprecation of `get_data`. Many thanks to Bradley Lowekamp for reporting this bug, and to Xiao Gui for implementing the fix in `PR #28 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/28>`_.
+
+
 1.0.0 (17 November 2021)
 ------------------------
 

@@ -12,11 +12,12 @@
 # expression).
 #
 # Release checklist (based on https://packaging.python.org/):
+# 0.  If this is a new major or minor version, create a X.Y release branch
 # 1.  Ensure that tests pass for all supported Python version (Travis CI),
 #     ensure that the API documentation is complete (sphinx-apidoc -o docs/api/
 #     src/neuroglancer_scripts);
 # 2.  Update the release notes;
-# 3.  Bump the version number in this file;
+# 3.  Bump the version number in this file (without committing yet);
 # 4.  pip install -U build twine
 # 5.  python3 -m build
 # 6.  twine upload --repository-url https://test.pypi.org/legacy/ dist/*
@@ -30,5 +31,6 @@
 # 9.  Bump the version number in this file to something that ends with .dev0
 #     and commit
 # 10. Push the master branch and the new tag to Github
-# 11. twine upload dist/*
+# 11. Create the Release of GitHub, which will also publish the release to PyPI
+#     through an Action (.github/workflows/publish_to_pypi.yaml).
 __version__ = "1.1.0.dev0"

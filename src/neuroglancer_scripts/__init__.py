@@ -27,7 +27,7 @@
 #     message:
 #     pandoc -t plain docs/release-notes.rst
 #     For the GitHub release message, this line is useful:
-#     pandoc --no-wrap -t markdown docs/release-notes.rst
+#     pandoc --wrap=none -t markdown docs/release-notes.rst
 # 9.  Bump the version number in this file to something that ends with .dev0
 #     and commit
 # 10. Push the master branch and the new tag to Github

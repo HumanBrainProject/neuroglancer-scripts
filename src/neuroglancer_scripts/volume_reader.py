@@ -149,13 +149,13 @@ def nibabel_image_to_info(img,
     imperfect_dtype = (input_dtype.name
                        not in neuroglancer_scripts.data_types.NG_DATA_TYPES)
     if imperfect_dtype:
-        logger.warn("The %s data type is not supported by Neuroglancer. "
-                    "float32 was set, please adjust if needed "
-                    "(data_type must be one of %s). The values will be "
-                    "rounded (if targeting an integer type) and cast "
-                    "during the conversion.",
-                    input_dtype.name,
-                    neuroglancer_scripts.data_types.NG_DATA_TYPES)
+        logger.warning("The %s data type is not supported by Neuroglancer. "
+                       "float32 was set, please adjust if needed "
+                       "(data_type must be one of %s). The values will be "
+                       "rounded (if targeting an integer type) and cast "
+                       "during the conversion.",
+                       input_dtype.name,
+                       neuroglancer_scripts.data_types.NG_DATA_TYPES)
     return formatted_info, json_transform, input_dtype, imperfect_dtype
 
 

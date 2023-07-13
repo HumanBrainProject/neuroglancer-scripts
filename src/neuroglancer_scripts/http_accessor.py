@@ -35,6 +35,8 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
     can_write = False
 
     def __init__(self, base_url):
+        self._session = requests.Session()
+
         # Fix the base URL to end with a slash, discard query and fragment
         r = urllib.parse.urlsplit(base_url)
         self.base_url = urllib.parse.urlunsplit((
@@ -55,7 +57,7 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
     def file_exists(self, relative_path):
         file_url = self.base_url + relative_path
         try:
-            r = requests.head(file_url)
+            r = self._session.head(file_url)
             if r.status_code == requests.codes.not_found:
                 return False
             r.raise_for_status()
@@ -67,7 +69,7 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
     def fetch_file(self, relative_path):
         file_url = self.base_url + relative_path
         try:
-            r = requests.get(file_url)
+            r = self._session.get(file_url)
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
             raise DataAccessError("Error reading {0}: {1}"

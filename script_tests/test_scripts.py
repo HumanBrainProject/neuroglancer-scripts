@@ -152,7 +152,7 @@ def dummy_mesh(num_vertices=4, num_triangles=3):
         (num_vertices, 3)
     )
     triangles = np.reshape(
-        np.arange(3 * num_triangles, dtype=np.uint32),
+        np.arange(3 * num_triangles, dtype=np.int32),
         (num_triangles, 3)
     ) % num_vertices
     return vertices, triangles

@@ -43,7 +43,7 @@ jobs:
 
     # Code coverage is run on Python 3.10, see tox.ini
     - if: ${{ matrix.python-version == '3.10' }}
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error: true # optional (default = false)
         verbose: true # optional (default = false)

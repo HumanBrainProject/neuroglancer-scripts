@@ -11,6 +11,7 @@ API.
 
 from collections.abc import Iterator
 import neuroglancer_scripts.accessor
+from neuroglancer_scripts.sharded_base import PrecomputedShardSpec, CompressedMortonCodeBase
 import pathlib
 import math
 import numpy as np
@@ -21,13 +22,6 @@ import json
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 
-_MAX_UINT64 = 0xffffffffffffffff
-_VALID_ENCODING = ("gzip", "raw")
-_VALID_SHARD_WRITE_STRATEGY = (
-    "in memory", # requirement of RAM is higher
-    "on disk", # requirement of disk space is higher (both spacce and iinode). Takes longer.
-    "append",
-)
 
 _ONE = np.uint64(1)
 
@@ -116,24 +110,14 @@ class OnDiskByteArray:
 
 class MiniShard:
     def __init__(self, combined_key: np.uint64, 
-                 minishard_index_encoding,
-                 data_encoding,
-                 shard_bits,
-                 minishard_bits,
+                 shard_spec: PrecomputedShardSpec,
                  offset: np.uint64=np.uint64(0),
                  strategy="on disk") -> None:
-        assert minishard_index_encoding in _VALID_ENCODING
-        assert data_encoding in _VALID_ENCODING
-        
-        self.shard_bits = shard_bits
-        self.minishard_bits = minishard_bits
 
         self._offset = offset
-        self.minishard_index_encoding = minishard_index_encoding
-        self.data_encoding = data_encoding
-
-        self.index_encoder = (lambda b: zlib.compress(b)) if minishard_index_encoding == "gzip" else (lambda b: b)
-        self.data_encoder = (lambda b: zlib.compress(b)) if data_encoding == "gzip" else (lambda b: b)
+        self.shard_spec = shard_spec
+        self.index_encoder = (lambda b: zlib.compress(b)) if self.shard_spec.minishard_index_encoding == "gzip" else (lambda b: b)
+        self.data_encoder = (lambda b: zlib.compress(b)) if self.shard_spec.data_encoding == "gzip" else (lambda b: b)
 
         self.combined_key = combined_key
 
@@ -157,7 +141,7 @@ class MiniShard:
     
     @property
     def next_cmc(self):
-        return np.uint64(self.combined_key + ((_ONE << (self.minishard_bits + self.shard_bits)) * self._appended))
+        return np.uint64(self.combined_key + ((_ONE << (self.shard_spec.minishard_bits + self.shard_spec.shard_bits)) * self._appended))
 
     def store_chunk(self, buf: bytes, cmc: np.uint64):
         chunk_to_store = self.data_encoder(buf)
@@ -167,7 +151,6 @@ class MiniShard:
             return
         self._chunk_buffer[cmc] = chunk_to_store
         
-
     def append(self, buf: bytes, cmc: np.uint64):
         self.databytearray += buf
         new_chunk_id = cmc - self._last_chunk_id
@@ -179,13 +162,10 @@ class MiniShard:
 
         self._appended += np.uint64(1)
 
-    
     def can_be_appended(self, cmc: np.uint64):
         """Check if the compressed-morton-code is ready to be appended"""
         
         if self.next_cmc > cmc:
-            import pdb
-            pdb.set_trace()
             raise RuntimeError(f"cmc {cmc} < next_cmc {self.next_cmc}")
         return self.next_cmc == cmc
     
@@ -205,46 +185,29 @@ class MiniShard:
 
 
 class Shard:
-    def __init__(self, base_dir, shard_bits: int, shard_key: np.uint64, minishard_bits:np.uint64,
-                 minishard_index_encoding,
-                 data_encoding,
-                 preshift_bits=None,):
-        self.preshift_bits = preshift_bits
-        shard_key_str = hex(shard_key)[2:].rjust(math.ceil(shard_bits / 4), "0")
+    def __init__(self, base_dir, shard_key: np.uint64, shard_spec:PrecomputedShardSpec):
+        self.shard_spec = shard_spec
+        
+        shard_key_str = hex(shard_key)[2:].rjust(math.ceil(self.shard_spec.shard_bits / 4), "0")
         
         self.file_path = pathlib.Path(base_dir) / f"{shard_key_str}.shard"
         self.shard_key = shard_key
-        self._minishard_bits = minishard_bits
-        self.shard_bits = shard_bits
-        self.minishard_mask = ~np.uint64(_MAX_UINT64 >> self.minishard_bits << self.minishard_bits)
         self.minishard_dict: Dict[np.uint64, MiniShard] = {}
-
-        self.minishard_index_encoding = minishard_index_encoding
-        self.data_encoding = data_encoding
-    
-    @property
-    def minishard_bits(self):
-        """Readonly once set"""
-        return self._minishard_bits
-    
     
     def store_chunk(self, buf: bytes, cmc: np.uint64):
         minishard_key = self.get_minishard_key(cmc)
         if minishard_key not in self.minishard_dict:
-            self.minishard_dict[minishard_key] = MiniShard((self.shard_key << self.minishard_bits) + minishard_key,
-                                                           minishard_bits=self.minishard_bits,
-                                                           shard_bits=self.shard_bits,
-                                                           minishard_index_encoding=self.minishard_index_encoding,
-                                                           data_encoding=self.data_encoding)
+            combined_key = (self.shard_key << self.shard_spec.minishard_bits) + minishard_key
+            self.minishard_dict[minishard_key] = MiniShard(combined_key, self.shard_spec)
         self.minishard_dict[minishard_key].store_chunk(buf, cmc)
 
     def get_minishard_key(self, cmc: np.uint64) -> np.uint64:
-        return (self.minishard_mask & cmc)
+        return (self.shard_spec.minishard_mask & cmc)
     
     def close(self):
         self.file_path.parent.mkdir(exist_ok=True, parents=True)
         with open(self.file_path, "wb") as fp:
-            fp.write(b"\0"*int((2**self.minishard_bits) * 16))
+            fp.write(b"\0"*int((2**self.shard_spec.minishard_bits) * 16))
             shard_index_ba = bytearray()
 
             # minishard order must always monotoneously increasing
@@ -275,113 +238,59 @@ class Shard:
                 shard_index_ba += struct.pack("<Q", data_size + shard_size_tally)
                 
             
-            if len(shard_index_ba) != (2 ** self.minishard_bits) * 16:
-                print(f"Writing shard index error! Expected {(2 ** self.minishard_bits) * 16} bytes, got {len(shard_index_ba)}")
-                assert len(shard_index_ba) < (2 ** self.minishard_bits) * 16, f"len(shard_index_ba) is larger? this shouldn't happend!"
-                while len(shard_index_ba) < (2 ** self.minishard_bits) * 16:
+            if len(shard_index_ba) != (2 ** self.shard_spec.minishard_bits) * 16:
+                print(f"Writing shard index error! Expected {(2 ** self.shard_spec.minishard_bits) * 16} bytes, got {len(shard_index_ba)}")
+                assert len(shard_index_ba) < (2 ** self.shard_spec.minishard_bits) * 16, f"len(shard_index_ba) is larger? this shouldn't happend!"
+                while len(shard_index_ba) < (2 ** self.shard_spec.minishard_bits) * 16:
                     shard_index_ba += struct.pack("<Q", data_size + shard_size_tally)
                     shard_index_ba += struct.pack("<Q", data_size + shard_size_tally)
                     
             fp.seek(0)
             fp.write(bytes(shard_index_ba))
 
-class ShardedScale:
+class ShardedScale(CompressedMortonCodeBase):
     def __init__(self, base_dir, key, chunk_sizes,
-                 preshift_bits=0,
-                 hash="identity",
-                 minishard_bits=4,
-                 shard_bits=4,
-                 minishard_index_encoding="raw",
-                 data_encoding="raw",
+                 shard_spec: PrecomputedShardSpec,
                  mip_sizes=None):
         
+        assert (
+            chunk_sizes
+            and len(chunk_sizes) == 3
+            and all(isinstance(v, int) for v in chunk_sizes)
+            and len({cz for cz in chunk_sizes}) == 1
+        ), f"chunk_sizes must be defined, len 3 and all int. chunk_sizes must be same in all dimensions.: {chunk_sizes}"
         self.chunk_sizes = chunk_sizes
-        self.mip_sizes = mip_sizes
-        self.grid_sizes = [math.ceil(mipsize / chunksize) for mipsize, chunksize in zip(self.mip_sizes, self.chunk_sizes)]
 
-        assert self.chunk_sizes and len(self.chunk_sizes) == 3 and all(isinstance(v, int) for v in chunk_sizes), f"chunk_sizes must be defined, len 3 and all int. It represents x, y, z dimensions."
-        assert self.grid_sizes and len(self.grid_sizes) == 3 and all(isinstance(v, int) for v in self.grid_sizes), f"grid_sizes must be defined, and must be len 3 all int (should be math.ceil(sizes / chunk_sizes))"
-
+        grid_sizes = [math.ceil(mipsize / chunksize) for mipsize, chunksize in zip(mip_sizes, chunk_sizes)]
+        super().__init__(grid_sizes)
+        self.shard_spec = shard_spec
         self.base_dir = pathlib.Path(base_dir) / key
-        self.preshift_bits = preshift_bits
-
-        self.num_bits = [math.ceil(math.log2(grid_size)) for grid_size in self.grid_sizes]
-        assert sum(self.num_bits) <= 64, f"Cannot use sharded file accessor for self.grid_sizes {self.grid_sizes}. It requires {self.num_bits}, larger than the max possible, 64."
-
-        if self.preshift_bits is None:
-            self.preshift_bits = np.uint64(64 - np.sum(self.num_bits))
-
-        self.hash = hash
-        assert self.hash == "identity"
-
-        assert minishard_bits >= 0
-        self._minishard_bits = np.uint64(minishard_bits)
-
-        assert shard_bits >= 0
-        self._shard_bits = np.uint64(shard_bits)
-        self.minishard_index_encoding = minishard_index_encoding
-        self.data_encoding = data_encoding
-
-        self.minishard_mask = ~(np.uint64(_MAX_UINT64) >> self.minishard_bits << self.minishard_bits)
-        
-        movement = self.minishard_bits + self.shard_bits
-        self.shard_mask = ~(np.uint64(_MAX_UINT64) >> movement << movement)
-        self.shard_mask = self.shard_mask & (~self.minishard_mask)
         self.shard_dict: Dict[np.uint64, Shard] = {}
-    
-    @property
-    def shard_bits(self):
-        """Readonly after setting on init"""
-        return self._shard_bits
-    
-    @property
-    def minishard_bits(self):
-        return self._minishard_bits
 
     def store_chunk(self, buf, chunk_coords):
         
-        cmc = self.compressed_morton_code(chunk_coords)
-        shard_key = self.get_shard_key(cmc)
-        if shard_key not in self.shard_dict:
-            self.shard_dict[shard_key] = Shard(self.base_dir, self.shard_bits, shard_key, self.minishard_bits,
-                                               minishard_index_encoding=self.minishard_index_encoding,
-                                               data_encoding=self.data_encoding)
-        self.shard_dict[shard_key].store_chunk(buf, cmc)
-
-    def compressed_morton_code(self, chunk_coords):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
         xcs, ycs, zcs = self.chunk_sizes
+        
         assert xmin % xcs == 0, f"{xmin!r} must be an integer multiple of the corresponding chunk size {xcs!r}, but is not."
         assert ymin % ycs == 0, f"{ymin!r} must be an integer multiple of the corresponding chunk size {ycs!r}, but is not."
         assert zmin % zcs == 0, f"{zmin!r} must be an integer multiple of the corresponding chunk size {zcs!r}, but is not."
 
         grid_coords = [int(xmin/xcs), int(ymin/ycs), int(zmin/zcs)]
-        assert all(grid_coord <= grid_size for grid_coord, grid_size in zip(grid_coords, self.grid_sizes)), f"{grid_coords!r} must be element-wise less or eq to {self.grid_sizes!r}, but is not"
-
-        j = np.uint64(0)
-        one = np.uint64(1)
-        code = np.uint64(0)
         
-        for i in range(max(self.num_bits)):
-            for dim in range(3):
-                if 2 ** i < self.grid_sizes[dim]:
-                    bit = (((np.uint64(grid_coords[dim]) >> np.uint64(i)) & one) << j)
-                    code |= bit
-                    j += one
-        return code
-    
+        cmc = self.compressed_morton_code(grid_coords)
+        shard_key = self.get_shard_key(cmc)
+        if shard_key not in self.shard_dict:
+            self.shard_dict[shard_key] = Shard(self.base_dir, shard_key, self.shard_spec)
+        self.shard_dict[shard_key].store_chunk(buf, cmc)
+
     def get_shard_key(self, cmc: np.uint64) -> np.uint64:
-        return (self.shard_mask & cmc) >> self.minishard_bits
+        return (self.shard_spec.shard_mask & cmc) >> self.shard_spec.minishard_bits
     
     def to_json(self):
         return {
             "@type": "neuroglancer_uint64_sharded_v1",
-            "preshift_bits": int(self.preshift_bits),
-            "hash": self.hash,
-            "minishard_bits": int(self.minishard_bits),
-            "shard_bits": int(self.shard_bits),
-            "minishard_index_encoding": self.minishard_index_encoding,
-            "data_encoding": self.data_encoding
+            **self.shard_spec.to_dict()
         }
     
     def close(self):
@@ -440,7 +349,8 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor):
     def store_chunk(self, buf, key, chunk_coords, **kwargs):
         assert key in self.key_to_mip_sizes, f"Expecting key {key} in key_to_mip_sizes, but were not: {list(self.key_to_mip_sizes.keys())}"
         if key not in self.shard_dict:
-            self.shard_dict[key] = ShardedScale(base_dir=self.base_dir, key=key, mip_sizes=self.key_to_mip_sizes[key], chunk_sizes=(64, 64, 64))
+            shard_spec = PrecomputedShardSpec(4, 4)
+            self.shard_dict[key] = ShardedScale(base_dir=self.base_dir, key=key, mip_sizes=self.key_to_mip_sizes[key], chunk_sizes=(64, 64, 64), shard_spec=shard_spec)
         self.shard_dict[key].store_chunk(buf, chunk_coords)
 
     def close(self):

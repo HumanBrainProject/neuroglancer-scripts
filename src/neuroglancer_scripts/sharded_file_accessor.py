@@ -170,7 +170,6 @@ class MiniShard:
 
     def append(self, buf: bytes, cmc: np.uint64):
         self.databytearray += buf
-        
         new_chunk_id = cmc - self._last_chunk_id
         self._last_chunk_id = cmc
         self.header = np.append(self.header, np.uint64(new_chunk_id))
@@ -248,8 +247,11 @@ class Shard:
             fp.write(b"\0"*int((2**self.minishard_bits) * 16))
             shard_index_ba = bytearray()
 
+            # minishard order must always monotoneously increasing
+            # by default, python dict iter respects order of insertion
+            sorted_mini_dict = [self.minishard_dict[key] for key in sorted(self.minishard_dict.keys())]
             data_size = 0
-            for minishard in self.minishard_dict.values():
+            for minishard in sorted_mini_dict:
                 minishard.close()
 
                 for b in minishard.databytearray:
@@ -260,7 +262,7 @@ class Shard:
                 del minishard.databytearray
 
             shard_size_tally = 0
-            for minishard in self.minishard_dict.values():
+            for minishard in sorted_mini_dict:
                 # turning [0, 1, 2, 3, 4, 5] into [0, 3, 1, 4, 2, 5]
                 header_bytes = np.reshape(minishard.header, (3, int(len(minishard.header) / 3)), order="F").tobytes(order="C")
                 
@@ -287,10 +289,10 @@ class ShardedScale:
     def __init__(self, base_dir, key, chunk_sizes,
                  preshift_bits=0,
                  hash="identity",
-                 minishard_bits=2,
-                 shard_bits=2,
-                 minishard_index_encoding="gzip",
-                 data_encoding="gzip",
+                 minishard_bits=4,
+                 shard_bits=4,
+                 minishard_index_encoding="raw",
+                 data_encoding="raw",
                  mip_sizes=None):
         
         self.chunk_sizes = chunk_sizes
@@ -418,7 +420,6 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor):
             )
         )
         self.key_to_mip_sizes = key_to_mip_sizes
-        "1048576"
 
     def file_exists(self, relative_path: str):
         return (self.base_dir / relative_path).exists()

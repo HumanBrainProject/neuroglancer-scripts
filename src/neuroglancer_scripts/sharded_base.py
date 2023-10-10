@@ -1,4 +1,4 @@
-from typing import Literal, List, Dict, Any
+from typing import List, Dict, Any
 from abc import ABC, abstractmethod
 import math
 import numpy as np
@@ -8,8 +8,6 @@ _MAX_UINT64 = 0xffffffffffffffff
 
 # spec from https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/sharded.md # noqa
 
-EncodingType = Literal["raw", "gzip"]
-HashType = Literal["identity", "murmurhash3_x86_128"]
 _VALID_ENCODING = ("gzip", "raw")
 
 CHUNK_COORD_ERROR_MSG = (
@@ -20,9 +18,9 @@ CHUNK_COORD_ERROR_MSG = (
 
 class ShardSpec:
     def __init__(self, minishard_bits: int, shard_bits: int,
-                 hash: HashType = "identity",
-                 minishard_index_encoding: EncodingType = "raw",
-                 data_encoding: EncodingType = "raw",
+                 hash: str = "identity",
+                 minishard_index_encoding: str = "raw",
+                 data_encoding: str = "raw",
                  preshift_bits: int = 0):
 
         try:

@@ -1,5 +1,4 @@
 import pytest
-from typing import NamedTuple
 from collections import namedtuple
 import numpy as np
 
@@ -8,13 +7,11 @@ from neuroglancer_scripts.sharded_base import (
 )
 
 
-class ShardSpecArg(NamedTuple):
-    minishard_bits: int
-    shard_bits: int
-    hash: str
-    minishard_index_encoding: str
-    data_encoding: str
-    preshift_bits: int
+ShardSpecArg = namedtuple("ShardSpecArg", ["minishard_bits", "shard_bits",
+                                           "hash",
+                                           "minishard_index_encoding",
+                                           "data_encoding",
+                                           "preshift_bits"])
 
 
 ExpRes = namedtuple("ExpRes", "shard_mask minishard_mask preshift_mask error")

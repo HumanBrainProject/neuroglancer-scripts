@@ -1,8 +1,3 @@
-# Copyright (c) 2016, 2017, 2018 Forschungszentrum Juelich GmbH
-# Author: Xiao Gui <x.gui@fz-juelich.de>
-#
-# This software is made available under the MIT licence, see LICENCE.txt.
-
 """Access to a Neuroglancer sharded pre-computed dataset on the local filesystem.
 
 See the :mod:`~neuroglancer_scripts.accessor` module for a description of the
@@ -12,19 +7,17 @@ API.
 from collections.abc import Iterator
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.sharded_base import (
-    PrecomputedShardSpec, CMCReadWrite, ShardedScaleBase, ShardedIOError
+    ShardSpec, CMCReadWrite, ShardedScaleBase, ReadableMiniShardCMC, ShardedAccessorBase, ShardVolumeSpec, ShardedIOError
 )
 import pathlib
 import math
 import numpy as np
-from typing import Dict, Tuple, List, Union, Any
-import zlib
+from typing import Dict, List, Union, Any
 import struct
 import json
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 
-_ONE = np.uint64(1)
 
 class OnDiskBytesDict(dict):
     def __init__(self, *args, **kwargs) -> None:
@@ -59,7 +52,6 @@ class OnDiskBytesDict(dict):
 
     def get(self, key):
         return self[key]
-        
 
     def pop(self, key):
         value = self[key]
@@ -74,10 +66,12 @@ class OnDiskBytesDict(dict):
     
     def __len__(self):
         return len(self._key_to_filename)
-        
+
+
 class InMemByteArray(bytearray):
     def __iter__(self) -> Iterator[bytes]:
         yield bytes(self)
+
 
 class OnDiskByteArray:
     _READ_SIZE = 4096
@@ -109,69 +103,38 @@ class OnDiskByteArray:
                 yield data
 
 
-class ReadOnlyMiniShard(CMCReadWrite):
-
-    can_read_cmc = True
-    can_write_cmc = False
-
-    def __init__(self, parent_shard: "Shard", header_buffer: bytes, shard_spec: PrecomputedShardSpec) -> None:
-        super().__init__(shard_spec)
-        self.parent_shard = parent_shard
-        header_buffer = zlib.decompress(header_buffer) if shard_spec.minishard_index_encoding == "gzip" else header_buffer
-        self.minishard_index = np.frombuffer(header_buffer, dtype=np.uint64)
-        assert len(self.minishard_index) % 3 == 0, f"self.minishard_index should be divisible by 3, but {len(self.minishard_index)} is not"
-        self.num_chunks = int(len(self.minishard_index) / 3)
-        self.data_encoder = (lambda b: zlib.compress(b)) if shard_spec.data_encoding == "gzip" else (lambda b: b)
-        
-    
-    def fetch_cmc_chunk(self, cmc: np.uint64):
-        idx_tally = self.minishard_index[0]
-        chunk_idx = 0
-
-        while idx_tally < cmc:
-            chunk_idx += 1
-            idx_tally += self.minishard_index[chunk_idx]
-        assert idx_tally == cmc, f"Expecting sum of first {chunk_idx} to equal {cmc}, but did not, resulted in {idx_tally}"
-        
-        byte_length = self.minishard_index[2 * self.num_chunks + chunk_idx]
-
-        # start at end of header
-        byte_offset = self.parent_shard.header_byte_length
-        # sum of all delta offsets (self inclusive)
-        byte_offset += np.sum(
-            self.minishard_index[self.num_chunks:(self.num_chunks + chunk_idx + 1)]
-        )
-        # sum of all PREVIOUS bytelength (self non-inclusive)
-        byte_offset += np.sum(
-            self.minishard_index[2 * self.num_chunks:2 * self.num_chunks + chunk_idx]
-        )
-        buf = self.parent_shard.read_bytes(int(byte_offset), int(byte_length))
-        return self.data_encoder(buf)
-
 class MiniShard(CMCReadWrite):
     
     can_read_cmc = False
     can_write_cmc = True
 
-    def __init__(self, combined_key: np.uint64, 
-                 shard_spec: PrecomputedShardSpec,
+    def __init__(self, shard_spec: ShardSpec,
                  offset: np.uint64=np.uint64(0),
                  strategy="on disk") -> None:
         super().__init__(shard_spec)
         self._offset = offset
 
-        self.index_encoder = (lambda b: zlib.compress(b)) if self.shard_spec.minishard_index_encoding == "gzip" else (lambda b: b)
-        self.data_encoder = (lambda b: zlib.compress(b)) if self.shard_spec.data_encoding == "gzip" else (lambda b: b)
-
-        self.combined_key = combined_key
-
         self._appended = np.uint64(0)
+
         self._last_chunk_id = np.uint64(0)
         self._chunk_buffer: Dict[np.uint64, bytes] = OnDiskBytesDict() if strategy == "on disk" else dict()
 
         self.databytearray: Union[OnDiskByteArray, InMemByteArray] = OnDiskByteArray() if strategy == "on disk" else InMemByteArray()
         self.header = np.array([], dtype=np.uint64)
 
+        self.masked_bits = None
+
+    @property
+    def next_cmc(self) -> np.uint64:
+        next_val = self._appended
+        return (
+            (
+                next_val >> self.shard_spec.preshift_bits
+                << (self.shard_spec.preshift_bits + self.shard_spec.shard_bits + self.shard_spec.minishard_bits)
+            )
+            + self.masked_bits
+            + (next_val & self.shard_spec.preshift_mask)
+        )
 
     @property
     def offset(self):
@@ -182,12 +145,14 @@ class MiniShard(CMCReadWrite):
         self._offset = np.uint64(val)
         self.header[1] = np.uint64(val)
     
-    @property
-    def next_cmc(self):
-        return np.uint64(self.combined_key + ((_ONE << (self.shard_spec.minishard_bits + self.shard_spec.shard_bits)) * self._appended))
-    
     def store_cmc_chunk(self, buf: bytes, cmc: np.uint64):
-        chunk_to_store = self.data_encoder(buf)
+        if not self.masked_bits:
+            self.masked_bits = (
+                (self.shard_spec.minishard_mask + self.shard_spec.shard_mask)
+                << np.uint64(self.shard_spec.preshift_bits)
+            ) & cmc
+            
+        chunk_to_store = self.shard_spec.data_encoder(buf)
         if self.can_be_appended(cmc):
             self.append(chunk_to_store, cmc)
             self.flush_buffer()
@@ -207,7 +172,6 @@ class MiniShard(CMCReadWrite):
 
     def can_be_appended(self, cmc: np.uint64):
         """Check if the compressed-morton-code is ready to be appended"""
-        
         if self.next_cmc > cmc:
             raise RuntimeError(f"cmc {cmc} < next_cmc {self.next_cmc}")
         return self.next_cmc == cmc
@@ -219,12 +183,13 @@ class MiniShard(CMCReadWrite):
             self.append(buffer, self.next_cmc)
         
         if any(key < self.next_cmc for key in self._chunk_buffer.keys()):
-            raise RuntimeError(f"Key exist that is less than id to check")
+            raise RuntimeError(f"Key exist that is less than id to check {self._chunk_buffer.keys()}, {self.next_cmc}")
 
     def close(self):
         while len(self._chunk_buffer) > 0:
             self.append(b'', self.next_cmc)
             self.flush_buffer()
+
 
 class Shard(CMCReadWrite):
 
@@ -235,7 +200,7 @@ class Shard(CMCReadWrite):
     can_read_cmc = False
     can_write_cmc = True
 
-    def __init__(self, base_dir, shard_key: np.uint64, shard_spec:PrecomputedShardSpec):
+    def __init__(self, base_dir, shard_key: np.uint64, shard_spec:ShardSpec):
         super().__init__(shard_spec)
         
         shard_key_str = hex(shard_key)[2:].rjust(math.ceil(self.shard_spec.shard_bits / 4), "0")
@@ -257,14 +222,16 @@ class Shard(CMCReadWrite):
             offsets = self.get_minishards_offsets()
             for offset, end in zip(offsets[::2], offsets[1::2]):
                 minishard_raw_buffer = self.read_bytes(int(offset + self.header_byte_length), int(end - offset))
+                minishard_decoded_buffer = self.shard_spec.index_decoder(minishard_raw_buffer)
 
-                minishard = ReadOnlyMiniShard(self, minishard_raw_buffer, self.shard_spec)
+                minishard = ReadableMiniShardCMC(self, minishard_decoded_buffer, self.shard_spec)
                 first_cmc = minishard.minishard_index[0]
                 minishard_key = self.get_minishard_key(first_cmc)
                 self.minishard_dict[minishard_key] = minishard
 
     def read_bytes(self, offset: int, length: int) -> bytes:
-        assert self.can_read_cmc, f"Shard cannot read"
+        if not self.can_read_cmc:
+            raise ShardedIOError("Writeonly shard")
 
         file_path = self.file_path
         if self.is_legacy:
@@ -279,18 +246,18 @@ class Shard(CMCReadWrite):
             return fp.read(length)
     
     def store_cmc_chunk(self, buf: bytes, cmc: np.uint64):
-        assert self.can_write_cmc, f"file exist, cannot write!"
+        if not self.can_write_cmc:
+            raise ShardedIOError(f"Readonly shard")
+        
         minishard_key = self.get_minishard_key(cmc)
         if minishard_key not in self.minishard_dict:
-            combined_key = (self.shard_key << self.shard_spec.minishard_bits) + minishard_key
-            self.minishard_dict[minishard_key] = MiniShard(combined_key, self.shard_spec)
+            self.minishard_dict[minishard_key] = MiniShard(self.shard_spec)
         self.minishard_dict[minishard_key].store_cmc_chunk(buf, cmc)
 
     def fetch_cmc_chunk(self, cmc: np.uint64):
         minishard_key = self.get_minishard_key(cmc)
         assert minishard_key in self.minishard_dict
         return self.minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
-        
     
     def close(self):
         self.file_path.parent.mkdir(exist_ok=True, parents=True)
@@ -318,14 +285,13 @@ class Shard(CMCReadWrite):
                 # turning [0, 1, 2, 3, 4, 5] into [0, 3, 1, 4, 2, 5]
                 header_byte_buffer = np.reshape(minishard.header, (3, int(len(minishard.header) / 3)), order="F").tobytes(order="C")
                 
-                header_byte_buffer = minishard.index_encoder(header_byte_buffer)
+                header_byte_buffer = self.shard_spec.index_encoder(header_byte_buffer)
                 fp.write(header_byte_buffer)
 
                 shard_index_ba += struct.pack("<Q", data_size + shard_size_tally)
                 
                 shard_size_tally += len(header_byte_buffer)
                 shard_index_ba += struct.pack("<Q", data_size + shard_size_tally)
-                
             
             if len(shard_index_ba) != (2 ** self.shard_spec.minishard_bits) * 16:
                 print(f"Writing shard index error! Expected {(2 ** self.shard_spec.minishard_bits) * 16} bytes, got {len(shard_index_ba)}")
@@ -337,76 +303,52 @@ class Shard(CMCReadWrite):
             fp.seek(0)
             fp.write(bytes(shard_index_ba))
 
+
 class ShardedScale(ShardedScaleBase):
     
     can_read_cmc = True
     can_write_cmc = True
 
-    def __init__(self, base_dir, key, chunk_sizes,
-                 shard_spec: PrecomputedShardSpec,
-                 mip_sizes=None):
-        super().__init__(key, chunk_sizes, shard_spec, mip_sizes)
+    def __init__(self, base_dir, key: str, 
+                 shard_spec: ShardSpec,
+                 shard_volume_spec: ShardVolumeSpec):
+        super().__init__(key, shard_spec, shard_volume_spec)
         self.base_dir = pathlib.Path(base_dir) / key
         self.shard_dict: Dict[np.uint64, Shard] = {}
     
-    def store_cmc_chunk(self, buf: bytes, cmc: np.uint64):
-        shard_key = self.get_shard_key(cmc)
+    def get_shard(self, shard_key: np.uint64):
         if shard_key not in self.shard_dict:
             self.shard_dict[shard_key] = Shard(self.base_dir, shard_key, self.shard_spec)
-        self.shard_dict[shard_key].store_cmc_chunk(buf, cmc)
+        return self.shard_dict[shard_key]
 
-    def store_chunk(self, buf, chunk_coords):
-        cmc = self.get_cmc(chunk_coords)
-        self.store_cmc_chunk(buf, cmc)
-    
-    def fetch_cmc_chunk(self, cmc: np.uint64):
-        shard_key = self.get_shard_key(cmc)
-        if shard_key not in self.shard_dict:
-            self.shard_dict[shard_key] = Shard(self.base_dir, shard_key, self.shard_spec)
-        return self.shard_dict[shard_key].fetch_cmc_chunk(cmc)
-
-    def fetch_chunk(self, chunk_coords):
-        cmc = self.get_cmc(chunk_coords)
-        return self.fetch_cmc_chunk(cmc)
-
-    def to_json(self):
-        return {
-            "@type": "neuroglancer_uint64_sharded_v1",
-            **self.shard_spec.to_dict()
-        }
-    
     def close(self):
         for shard in self.shard_dict.values():
             shard.close()
 
-
-
-class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor):
+class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor, ShardedAccessorBase):
     """Access Neuroglancer sharded precomputed pyramid on the local file system.
     
     :param str base_dir: path to the directory containing the pyramid
     :param dict key_to_mip_sizes: 
     """
-    can_read = True
-    can_write = True
+    can_read = False
+    can_write = False
 
-    def __init__(self, base_dir, key_to_mip_sizes: Dict[str, Union[List[int], Tuple[int]]]) -> None:
-        super().__init__()
+    def __init__(self, base_dir, shard_volume_spec_dict: Dict[str, ShardVolumeSpec]=None) -> None:
+        ShardedAccessorBase.__init__(self)
         self.base_dir = pathlib.Path(base_dir)
         self.shard_dict: Dict[ str, ShardedScale ] = {}
-        assert (
-            key_to_mip_sizes
-            and isinstance(key_to_mip_sizes, dict)
-            and all(
-                (    
-                    len(value) == 3
-                    and all(isinstance(v, int) for v in value)
-                )
-                for value in key_to_mip_sizes.values()
-            )
-        )
-        self.key_to_mip_sizes = key_to_mip_sizes
 
+        if shard_volume_spec_dict:
+            self.shard_volume_spec_dict = shard_volume_spec_dict
+            self.can_write = True
+        
+        try:
+            self.info = json.loads(self.fetch_file("info"))
+            self.can_read = True
+        except IOError:
+            ...
+    
     def file_exists(self, relative_path: str):
         return (self.base_dir / relative_path).exists()
     
@@ -421,31 +363,21 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor):
             fp.write(buf)
     
     def fetch_chunk(self, key, chunk_coords):
-        assert key in self.key_to_mip_sizes, f"Expecting key {key} in key_to_mip_sizes, but were not: {list(self.key_to_mip_sizes.keys())}"
-        info = self.fetch_file("info")
-        scales = json.loads(info).get("scales", [])
         if key not in self.shard_dict:
-            try:
-                scale, = [scale for scale in scales if scale.get("key") == key]
-            except ValueError as e:
-                raise ValueError(f"key {key!r} not found in scales. Possible values are {', '.join([scale.get('key') for scale in scales])}") from e
-            
-            if not scale.get("sharding"):
-                raise ShardedIOError(f"Scale with key {key} not a sharded source")
-            sharding = scale.get("sharding")
-            shard_type = sharding.pop("@type", None)
-            if shard_type != "neuroglancer_uint64_sharded_v1":
-                raise ShardedIOError(f"Shard spec does not have key 'neuroglancer_uint64_sharded_v1'. It is instead {shard_type!r}")
-            shard_spec = PrecomputedShardSpec(**sharding)
-            self.shard_dict[key] = ShardedScale(base_dir=self.base_dir, key=key, mip_sizes=self.key_to_mip_sizes[key], chunk_sizes=(64, 64, 64), shard_spec=shard_spec)
+            sharding = self.get_sharding_spec(key)    
+            chunk_sizes, = self.get_scale(key).get("chunk_sizes", [[]])
+            size = self.get_scale(key).get("size", [])
+            shard_spec = ShardSpec(**sharding)
+            shard_volume_spec = ShardVolumeSpec(chunk_sizes, size)
+            self.shard_dict[key] = ShardedScale(base_dir=self.base_dir, key=key, shard_spec=shard_spec, shard_volume_spec=shard_volume_spec)
         return self.shard_dict[key].fetch_chunk(chunk_coords)
-        
     
     def store_chunk(self, buf, key, chunk_coords, **kwargs):
-        assert key in self.key_to_mip_sizes, f"Expecting key {key} in key_to_mip_sizes, but were not: {list(self.key_to_mip_sizes.keys())}"
+        assert key in self.shard_volume_spec_dict, f"Expecting key {key} in key_to_mip_sizes, but were not: {list(self.shard_volume_spec_dict.keys())}"
         if key not in self.shard_dict:
-            shard_spec = PrecomputedShardSpec(4, 4)
-            self.shard_dict[key] = ShardedScale(base_dir=self.base_dir, key=key, mip_sizes=self.key_to_mip_sizes[key], chunk_sizes=(64, 64, 64), shard_spec=shard_spec)
+            shard_volume_spec = self.shard_volume_spec_dict[key]
+            shard_spec = shard_volume_spec.generate_shard_spec()
+            self.shard_dict[key] = ShardedScale(base_dir=self.base_dir, key=key, shard_spec=shard_spec, shard_volume_spec=self.shard_volume_spec_dict[key])
         self.shard_dict[key].store_chunk(buf, chunk_coords)
 
     def close(self):

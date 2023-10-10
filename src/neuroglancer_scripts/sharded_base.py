@@ -1,16 +1,18 @@
-from typing import Literal, Union, List
-from abc import ABC
+from typing import Literal, List, Dict, Any
+from abc import ABC, abstractmethod
 import math
 import numpy as np
+import zlib
 
 _MAX_UINT64 = 0xffffffffffffffff
 
 # spec from https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/sharded.md
-EncodingType = Union[Literal["raw"], Literal["gzip"]]
-HashType = Union[Literal["identity"], Literal["murmurhash3_x86_128"]] 
+EncodingType = Literal["raw", "gzip"]
+HashType = Literal["identity", "murmurhash3_x86_128"]
 _VALID_ENCODING = ("gzip", "raw")
 
-class PrecomputedShardSpec:
+
+class ShardSpec:
     def __init__(self, minishard_bits: int, shard_bits: int,
         hash:HashType = "identity",
         minishard_index_encoding: EncodingType = "raw",
@@ -22,20 +24,45 @@ class PrecomputedShardSpec:
         self.hash = hash
         self.minishard_index_encoding = minishard_index_encoding
         self.data_encoding = data_encoding
-        self.preshift_bits = preshift_bits
-
-        self._shard_mask = None
-        self._minishard_mask = None
+        self.preshift_bits = np.uint64(preshift_bits)
 
         self._validate()
+        
+        self._shard_mask = None
+        self._minishard_mask = None
+        self._preshift_mask = None
+
+    
+    def data_encoder(self, b: bytes) -> bytes:
+        return zlib.compress(b) if self.data_encoding == "gzip" else b
+    
+    def data_decoder(self, b: bytes) -> bytes:
+        return zlib.decompress(b) if self.data_encoding == "gzip" else b
+    
+    def index_encoder(self, b: bytes) -> bytes:
+        return zlib.compress(b) if self.minishard_index_encoding == "gzip" else b
+    
+    def index_decoder(self, b: bytes) -> bytes:
+        return zlib.decompress(b) if self.minishard_index_encoding == "gzip" else b
 
     def _validate(self):
         assert self.minishard_bits >= 0, "minishard_bits must be >= 0"
         assert self.shard_bits >= 0, "shard_bits must be >= 0"
         assert self.hash == "identity", "Only identity hash is supported at the moment"
-        assert self.preshift_bits == 0, f"non zero preshifted bits is not yet supported"
+        assert self.preshift_bits >= 0, f"preshift_bits needs to be >= 0"
         assert self.data_encoding in _VALID_ENCODING
         assert self.minishard_index_encoding in _VALID_ENCODING
+    
+    def id_hash(self, cmc: np.uint64) -> np.uint64:
+        # murmurhash3_x86_128 not yet supported
+        return cmc
+    
+    def get_minishard_chunk_idx(self, cmc: np.uint64) -> np.uint64:
+        return (
+            cmc >> (self.preshift_bits + self.shard_bits + self.minishard_bits)
+            << self.preshift_bits
+            + self.preshift_mask & cmc
+        )
     
     def to_dict(self):
         return {
@@ -44,7 +71,7 @@ class PrecomputedShardSpec:
             "hash": self.hash,
             "minishard_index_encoding": self.minishard_index_encoding,
             "data_encoding": self.data_encoding,
-            "preshift_bits": self.preshift_bits,
+            "preshift_bits": int(self.preshift_bits),
         }
 
     @property
@@ -61,25 +88,42 @@ class PrecomputedShardSpec:
             movement = np.uint64(self.minishard_bits)
             self._minishard_mask = ~(np.uint64(_MAX_UINT64) >> movement << movement)
         return self._minishard_mask
+    
+    @property
+    def preshift_mask(self) -> np.uint64:
+        if not self._preshift_mask:
+            movement = np.uint64(self.preshift_bits)
+            self._preshift_mask = ~(np.uint64(_MAX_UINT64) >> movement << movement)
+        return self._preshift_mask
 
-class CompressedMortonCodeBase(ABC):
-    """Base abstract class for compressed morton code accessor
 
-    :param List[int] grid_sizes: num of chunks in x,y,z. e.g. 0,64 64,128 0,64 will become 0,1,0
-    """
-
-    def __init__(self, grid_sizes: List[int]):
-        self.grid_sizes = grid_sizes
+class ShardVolumeSpec:
+    def __init__(self, chunk_sizes: List[int], sizes: List[int]):
+        assert (
+            sizes
+            and len(sizes) == 3
+            and all((
+                isinstance(v, int)
+                and v > 0
+            ) for v in sizes)
+        ), f"sizes must be defined, and must be len 3 all int (should be math.ceil(sizes / chunk_sizes))"
+        self.sizes = sizes
 
         assert (
-            self.grid_sizes
-            and len(self.grid_sizes) == 3
-            and all(isinstance(v, int)
-        ) for v in self.grid_sizes), f"grid_sizes must be defined, and must be len 3 all int (should be math.ceil(sizes / chunk_sizes))"
-
+            chunk_sizes
+            and len(chunk_sizes) == 3
+            and all((
+                isinstance(v, int)
+                and v > 0
+            ) for v in chunk_sizes)
+            and len({cz for cz in chunk_sizes}) == 1
+        ), f"chunk_sizes must be defined, len 3 and all int. chunk_sizes must be same in all dimensions.: {chunk_sizes}"
+        self.chunk_sizes = chunk_sizes
+        
+        self.grid_sizes = [math.ceil(size/chunk_size) for chunk_size, size in zip(self.chunk_sizes, self.sizes)]
         self.num_bits = [math.ceil(math.log2(grid_size)) for grid_size in self.grid_sizes]
         assert sum(self.num_bits) <= 64, f"Cannot use sharded file accessor for self.grid_sizes {self.grid_sizes}. It requires {self.num_bits}, larger than the max possible, 64."
-    
+
     def compressed_morton_code(self, grid_coords: List[int]):
         assert all(grid_coord <= grid_size for grid_coord, grid_size in zip(grid_coords, self.grid_sizes)), f"{grid_coords!r} must be element-wise less or eq to {self.grid_sizes!r}, but is not"
         
@@ -94,13 +138,29 @@ class CompressedMortonCodeBase(ABC):
                     code |= bit
                     j += one
         return code
+    
+    def get_cmc(self, chunk_coords: List[int]) -> np.uint64:
+        xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
+        xcs, ycs, zcs = self.chunk_sizes
+        
+        assert xmin % xcs == 0, f"{xmin!r} must be an integer multiple of the corresponding chunk size {xcs!r}, but is not."
+        assert ymin % ycs == 0, f"{ymin!r} must be an integer multiple of the corresponding chunk size {ycs!r}, but is not."
+        assert zmin % zcs == 0, f"{zmin!r} must be an integer multiple of the corresponding chunk size {zcs!r}, but is not."
+
+        grid_coords = [int(xmin/xcs), int(ymin/ycs), int(zmin/zcs)]
+        
+        return self.compressed_morton_code(grid_coords)
+
+    def generate_shard_spec(self) -> ShardSpec:
+        return ShardSpec(4, 4, "identity", "gzip", "gzip", 1)
+
 
 class CMCReadWrite(ABC):
     
     can_read_cmc = False
     can_write_cmc = False
 
-    def __init__(self, shard_spec: PrecomputedShardSpec) -> None:
+    def __init__(self, shard_spec: ShardSpec) -> None:
         self.shard_spec = shard_spec
         self.header_byte_length = int(2 ** self.shard_spec.minishard_bits * 16)
 
@@ -113,11 +173,14 @@ class CMCReadWrite(ABC):
     def close(self):
         pass
 
+    def _hash(self, cmc: np.uint64):
+        return self.shard_spec.id_hash(cmc >> np.uint64(self.shard_spec.preshift_bits))
+
     def get_shard_key(self, cmc: np.uint64) -> np.uint64:
-        return (self.shard_spec.shard_mask & cmc) >> self.shard_spec.minishard_bits
+        return (self.shard_spec.shard_mask & self._hash(cmc)) >> self.shard_spec.minishard_bits
 
     def get_minishard_key(self, cmc: np.uint64) -> np.uint64:
-        return (self.shard_spec.minishard_mask & cmc)
+        return (self.shard_spec.minishard_mask & self._hash(cmc))
     
     def read_bytes(self, offset:int, length: int) -> bytes:
         raise NotImplementedError
@@ -127,36 +190,121 @@ class CMCReadWrite(ABC):
         header_byte_length = self.read_bytes(0, self.header_byte_length)
         return np.frombuffer(header_byte_length, dtype=np.uint64)
 
-class ShardedScaleBase(CompressedMortonCodeBase, CMCReadWrite):
-    
-    def __init__(self, key, chunk_sizes,
-                 shard_spec: PrecomputedShardSpec,
-                 mip_sizes=None):
-        assert (
-            chunk_sizes
-            and len(chunk_sizes) == 3
-            and all(isinstance(v, int) for v in chunk_sizes)
-            and len({cz for cz in chunk_sizes}) == 1
-        ), f"chunk_sizes must be defined, len 3 and all int. chunk_sizes must be same in all dimensions.: {chunk_sizes}"
-        self.chunk_sizes = chunk_sizes
 
-        grid_sizes = [math.ceil(mipsize / chunksize) for mipsize, chunksize in zip(mip_sizes, chunk_sizes)]
-        CompressedMortonCodeBase.__init__(self, grid_sizes)
+class ReadableMiniShardCMC(CMCReadWrite):
+    
+    can_read_cmc = True
+    can_write_cmc = False
+
+    def __init__(self, parent_shard: "CMCReadWrite", header_buffer: bytes, shard_spec: ShardSpec) -> None:
+        super().__init__(shard_spec)
+        
+        assert parent_shard.can_read_cmc
+
+        self.parent_shard = parent_shard
+        self.minishard_index = np.frombuffer(header_buffer, dtype=np.uint64)
+        assert len(self.minishard_index) % 3 == 0, f"self.minishard_index should be divisible by 3, but {len(self.minishard_index)} is not"
+        self.num_chunks = int(len(self.minishard_index) / 3)
+        
+    def fetch_cmc_chunk(self, cmc: np.uint64):
+        idx_tally = self.minishard_index[0]
+        chunk_idx = 0
+
+        while idx_tally < cmc:
+            chunk_idx += 1
+            idx_tally += self.minishard_index[chunk_idx]
+        assert idx_tally == cmc, f"Expecting sum of first {chunk_idx} to equal {cmc}, but did not, resulted in {idx_tally}"
+        
+        byte_length = self.minishard_index[2 * self.num_chunks + chunk_idx]
+
+        # start at end of header
+        byte_offset = self.parent_shard.header_byte_length
+        # sum of all delta offsets (self inclusive)
+        byte_offset += np.sum(
+            self.minishard_index[self.num_chunks:(self.num_chunks + chunk_idx + 1)]
+        )
+        # sum of all PREVIOUS bytelength (self non-inclusive)
+        byte_offset += np.sum(
+            self.minishard_index[2 * self.num_chunks:2 * self.num_chunks + chunk_idx]
+        )
+        buf = self.parent_shard.read_bytes(int(byte_offset), int(byte_length))
+        return self.shard_spec.data_decoder(buf)
+
+
+class ShardedScaleBase(CMCReadWrite, ABC):
+    
+    def __init__(self, key, shard_spec: ShardSpec,
+                 shard_volume_spec: ShardVolumeSpec):
         CMCReadWrite.__init__(self, shard_spec)
 
         self.key = key
-    
-    def get_cmc(self, chunk_coords) -> np.uint64:
+        self.shard_volume_spec = shard_volume_spec
         
-        xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
-        xcs, ycs, zcs = self.chunk_sizes
+    @abstractmethod
+    def get_shard(self, shard_key: np.uint64) -> CMCReadWrite:
+        raise NotImplementedError
         
-        assert xmin % xcs == 0, f"{xmin!r} must be an integer multiple of the corresponding chunk size {xcs!r}, but is not."
-        assert ymin % ycs == 0, f"{ymin!r} must be an integer multiple of the corresponding chunk size {ycs!r}, but is not."
-        assert zmin % zcs == 0, f"{zmin!r} must be an integer multiple of the corresponding chunk size {zcs!r}, but is not."
+    def store_cmc_chunk(self, buf: bytes, cmc: np.uint64):
+        shard_key = self.get_shard_key(cmc)
+        shard = self.get_shard(shard_key)
+        assert shard.can_write_cmc
+        return shard.store_cmc_chunk(buf, cmc)
 
-        grid_coords = [int(xmin/xcs), int(ymin/ycs), int(zmin/zcs)]
-        
-        return self.compressed_morton_code(grid_coords)
+    def store_chunk(self, buf, chunk_coords):
+        cmc = self.shard_volume_spec.get_cmc(chunk_coords)
+        return self.store_cmc_chunk(buf, cmc)
+    
+    def fetch_cmc_chunk(self, cmc: np.uint64):
+        shard_key = self.get_shard_key(cmc)
+        shard = self.get_shard(shard_key)
+        assert shard.can_read_cmc
+        return shard.fetch_cmc_chunk(cmc)
+
+    def fetch_chunk(self, chunk_coords):
+        cmc = self.shard_volume_spec.get_cmc(chunk_coords)
+        return self.fetch_cmc_chunk(cmc)
+
+    def to_json(self):
+        return {
+            "@type": "neuroglancer_uint64_sharded_v1",
+            **self.shard_spec.to_dict()
+        }
+
+
+class ShardedAccessorBase(ABC):
+    
+    @property
+    def info(self):
+        if hasattr(self, "_info"):
+            return self._info
+        raise AttributeError(f"Info not yet defined")
+    
+    @info.setter
+    def info(self, val):
+        assert isinstance(val, dict), f".info must be a dictionary"
+        assert val.get("scales"), f".info must have scales property"
+        for scale in val.get("scales"):
+            key = scale.get("key")
+            if not scale.get("sharding"):
+                raise ShardedIOError(f"Scale with key {key} not a sharded source")
+            sharding = scale.get("sharding")
+            shard_type = sharding.pop("@type", None)
+            if shard_type != "neuroglancer_uint64_sharded_v1":
+                raise ShardedIOError(f"Shard spec does not have key 'neuroglancer_uint64_sharded_v1'. It is instead {shard_type!r}")
+        self._info = val
+    
+    def get_scale(self, key) -> Dict[str, Any]:
+        scales = self.info.get("scales")
+        try:
+            scale, = [scale for scale in scales if scale.get("key") == key]
+            return scale
+        except ValueError as e:
+            raise ValueError(f"key {key!r} not found in scales. Possible values are {', '.join([scale.get('key') for scale in scales])}") from e
+
+    def get_sharding_spec(self, key):
+        scale = self.get_scale(key)
+        sharding = scale.get("sharding")
+        sharding.pop("@type", None)
+        return sharding
 
 class ShardedIOError(IOError): pass

@@ -25,14 +25,24 @@ class ShardSpec:
                  data_encoding: EncodingType = "raw",
                  preshift_bits: int = 0):
 
+        try:
+            assert minishard_bits >= 0, "minishard_bits must be >= 0"
+            assert shard_bits >= 0, "shard_bits must be >= 0"
+            assert hash == "identity", (
+                "Only identity hash is supported at the moment"
+            )
+            assert preshift_bits >= 0, "preshift_bits needs to be >= 0"
+            assert data_encoding in _VALID_ENCODING
+            assert minishard_index_encoding in _VALID_ENCODING
+        except AssertionError as e:
+            raise ShardedIOError from e
+
         self.minishard_bits = np.uint64(minishard_bits)
         self.shard_bits = np.uint64(shard_bits)
         self.hash = hash
         self.minishard_index_encoding = minishard_index_encoding
         self.data_encoding = data_encoding
         self.preshift_bits = np.uint64(preshift_bits)
-
-        self._validate()
 
         self._shard_mask = None
         self._minishard_mask = None
@@ -57,19 +67,6 @@ class ShardSpec:
             if self.minishard_index_encoding == "gzip"
             else b
         )
-
-    def _validate(self):
-        try:
-            assert self.minishard_bits >= 0, "minishard_bits must be >= 0"
-            assert self.shard_bits >= 0, "shard_bits must be >= 0"
-            assert self.hash == "identity", (
-                "Only identity hash is supported at the moment"
-            )
-            assert self.preshift_bits >= 0, "preshift_bits needs to be >= 0"
-            assert self.data_encoding in _VALID_ENCODING
-            assert self.minishard_index_encoding in _VALID_ENCODING
-        except AssertionError as e:
-            raise ShardedIOError from e
 
     def id_hash(self, cmc: np.uint64) -> np.uint64:
         # murmurhash3_x86_128 not yet supported

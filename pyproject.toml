@@ -1,9 +1,6 @@
 [build-system]
-# We need support for entry_points in setup.cfg, which needs setuptools>=51.0.0
-# according to the setuptools documentation. However, in my testing it works
-# with version 50.3.2 which is the last to retain Python 3.5 compatibility.
 requires = [
-    "setuptools>=50.3.2",
+    "setuptools>=51.0.0",
     "wheel",
 ]
 build-backend = "setuptools.build_meta"

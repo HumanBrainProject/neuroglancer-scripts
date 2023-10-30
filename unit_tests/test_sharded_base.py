@@ -191,7 +191,7 @@ preshift_mask_args = [
 
 
 @pytest.mark.parametrize("minishard_bits, shard_bits, preshift_bits, "
-                         "expected_shard_mask", preshift_mask_args)
+                         "exp_shard_mask", preshift_mask_args)
 def test_preshift_mask(minishard_bits, shard_bits, preshift_bits,
                        exp_shard_mask):
     spec = ShardSpec(minishard_bits=minishard_bits, shard_bits=shard_bits,

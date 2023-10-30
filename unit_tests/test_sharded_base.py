@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 
 from neuroglancer_scripts.sharded_base import (
     ShardVolumeSpec, ShardSpec, CMCReadWrite, ShardedIOError,
-    ReadableMiniShardCMC, ShardedScaleBase, ShardedAccessorBase,
+    ReadableMiniShardCMC, ShardedScaleBase, ShardedAccessorBase, ShardCMC
 )
 
 
@@ -200,7 +200,6 @@ def test_preshift_mask(minishard_bits, shard_bits, preshift_bits,
 
 
 # shard volume tests
-
 shard_volume_spec_init = [
     ((64, 64, 64), (6400, 6400, 6400), (100, 100, 100), False),
     ((64, 64, 64), (1, 6400, 6400), (1, 100, 100), False),
@@ -336,6 +335,7 @@ header_content_args = [
 ]
 
 
+# ShardCMC
 @pytest.mark.parametrize("shard_spec_fixture_name, expected_header_byte, "
                          "read_bytes_return, expected_fn_return",
                          header_content_args)
@@ -343,8 +343,11 @@ def test_get_minishard_offset(shard_spec_fixture_name, expected_header_byte,
                               read_bytes_return,
                               expected_fn_return,
                               request):
+    class DummyShardCMC(ShardCMC):
+        def file_exists(self, filepath) -> bool:
+            return False
     shard_spec: ShardSpec = request.getfixturevalue(shard_spec_fixture_name)
-    cmc_rw = CMCReadWrite(shard_spec)
+    cmc_rw = DummyShardCMC(np.uint64(1), shard_spec)
     cmc_rw.can_read_cmc = True
     with patch.object(cmc_rw, "read_bytes",
                       return_value=read_bytes_return) as read_bytes_mock:

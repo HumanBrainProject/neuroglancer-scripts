@@ -10,13 +10,12 @@ from neuroglancer_scripts.sharded_base import (
     ShardSpec,
     CMCReadWrite,
     ShardedScaleBase,
-    ReadableMiniShardCMC,
     ShardedAccessorBase,
     ShardVolumeSpec,
-    ShardedIOError
+    ShardedIOError,
+    ShardCMC,
 )
 import pathlib
-import math
 import numpy as np
 from typing import Dict, List, Union, Any
 import struct
@@ -230,7 +229,7 @@ class MiniShard(CMCReadWrite):
             self.flush_buffer()
 
 
-class Shard(CMCReadWrite):
+class Shard(ShardCMC):
 
     # legacy shard has two files, .index and .data
     # latest implementation is the concatentation of [.index,.data] into .shard
@@ -240,40 +239,12 @@ class Shard(CMCReadWrite):
     can_write_cmc = True
 
     def __init__(self, base_dir, shard_key: np.uint64, shard_spec: ShardSpec):
-        super().__init__(shard_spec)
+        self.root_dir = pathlib.Path(base_dir)
+        super().__init__(shard_key, shard_spec)
+        self.file_path = pathlib.Path(base_dir) / f"{self.shard_key_str}.shard"
 
-        shard_key_str = hex(shard_key)[2:].rjust(
-            math.ceil(self.shard_spec.shard_bits / 4), "0"
-        )
-
-        self.file_path = pathlib.Path(base_dir) / f"{shard_key_str}.shard"
-        self.shard_key = shard_key
-        self.minishard_dict: Dict[np.uint64, CMCReadWrite] = {}
-
-        if self.file_path.is_file():
-            self.can_write_cmc = False
-            self.can_read_cmc = True
-
-        if self.file_path.with_suffix(".index").is_file():
-            self.can_write_cmc = False
-            self.can_read_cmc = True
-            self.is_legacy = True
-
-        if self.can_read_cmc:
-            offsets = self.get_minishards_offsets()
-            for offset, end in zip(offsets[::2], offsets[1::2]):
-                start = int(offset + self.header_byte_length)
-                length = int(end - offset)
-                minishard_raw_buffer = self.read_bytes(start, length)
-                minishard_decoded_buffer = (
-                    self.shard_spec.index_decoder(minishard_raw_buffer)
-                )
-
-                minishard = ReadableMiniShardCMC(self,
-                                                 minishard_decoded_buffer)
-                first_cmc = minishard.minishard_index[0]
-                minishard_key = self.get_minishard_key(first_cmc)
-                self.minishard_dict[minishard_key] = minishard
+    def file_exists(self, filepath: str) -> bool:
+        return (self.root_dir / filepath).is_file()
 
     def read_bytes(self, offset: int, length: int) -> bytes:
         if not self.can_read_cmc:

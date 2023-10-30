@@ -1,22 +1,21 @@
 from typing import Dict
 import numpy as np
-import math
 import json
 
 from neuroglancer_scripts.sharded_base import (
     ShardSpec,
     CMCReadWrite,
     ShardedScaleBase,
-    ReadableMiniShardCMC,
     ShardedAccessorBase,
     ShardVolumeSpec,
     ShardedIOError,
+    ShardCMC,
 )
 import neuroglancer_scripts.http_accessor
 import requests
 
 
-class HttpShard(CMCReadWrite):
+class HttpShard(ShardCMC):
 
     # legacy shard has two files, .index and .data
     # latest implementation is the concatentation of [.index,.data] into .shard
@@ -28,40 +27,14 @@ class HttpShard(CMCReadWrite):
     def __init__(self, base_url, session: requests.Session,
                  shard_key: np.uint64,
                  shard_spec: ShardSpec):
-        super().__init__(shard_spec)
-
-        self.shard_key_str = hex(shard_key)[2:].rjust(
-            math.ceil(self.shard_spec.shard_bits / 4), "0"
-        )
-
-        self.base_url = base_url
         self._session = session
-        self.shard_key = shard_key
-        self.minishard_dict: Dict[np.uint64, CMCReadWrite] = {}
+        self.base_url = base_url.rstrip("/") + "/"
+        super().__init__(shard_key, shard_spec)
 
-        if (
-            self.file_exists(f"{self.shard_key_str}.index")
-            and self.file_exists(f"{self.shard_key_str}.data")
-        ):
-            self.is_legacy = True
-        else:
-            assert self.file_exists(f"{self.shard_key_str}.shard")
-
-        offsets = self.get_minishards_offsets()
-        for offset, end in zip(offsets[::2], offsets[1::2]):
-            start = int(offset + self.header_byte_length)
-            length = int(end - offset)
-            minishard_raw_buffer = self.read_bytes(start, length)
-            minishard_decoded_buffer = self.shard_spec.index_decoder(
-                minishard_raw_buffer)
-
-            minishard = ReadableMiniShardCMC(self, minishard_decoded_buffer)
-            first_cmc = minishard.minishard_index[0]
-            minishard_key = self.get_minishard_key(first_cmc)
-            self.minishard_dict[minishard_key] = minishard
+        assert self.can_read_cmc
 
     def file_exists(self, filepath):
-        resp = self._session.get(f"{self.base_url}{filepath}")
+        resp = self._session.head(f"{self.base_url}{filepath}")
         if resp.status_code in (200, 404):
             return resp.status_code == 200
         resp.raise_for_status()
@@ -70,7 +43,7 @@ class HttpShard(CMCReadWrite):
     def read_bytes(self, offset: int, length: int) -> bytes:
         if not self.can_read_cmc:
             raise ShardedIOError("Shard cannot read")
-        self._session.get(f"{self.base_url}")
+
         file_url = f"{self.base_url}{self.shard_key_str}"
         if self.is_legacy:
             if offset < self.header_byte_length:
@@ -127,20 +100,20 @@ class ShardedHttpAccessor(neuroglancer_scripts.http_accessor.HttpAccessor,
     def __init__(self, base_url):
         neuroglancer_scripts.http_accessor.HttpAccessor.__init__(self,
                                                                  base_url)
-        self.shard_dict: Dict[str, HttpShardedScale] = {}
+        self.shard_scale_dict: Dict[str, HttpShardedScale] = {}
         self.info = json.loads(self.fetch_file("info"))
 
     def fetch_chunk(self, key, chunk_coords):
-        if key not in self.shard_dict:
+        if key not in self.shard_scale_dict:
             sharding = self.get_sharding_spec(key)
             scale = self.get_scale(key)
             chunk_sizes, = scale.get("chunk_sizes", [[]])
             sizes = scale.get("size")
             shard_spec = ShardSpec(**sharding)
             shard_volume_spec = ShardVolumeSpec(chunk_sizes, sizes)
-            self.shard_dict[key] = HttpShardedScale(self.base_url,
-                                                    self._session,
-                                                    key,
-                                                    shard_spec,
-                                                    shard_volume_spec)
-        return self.shard_dict[key].fetch_chunk(chunk_coords)
+            self.shard_scale_dict[key] = HttpShardedScale(self.base_url,
+                                                          self._session,
+                                                          key,
+                                                          shard_spec,
+                                                          shard_volume_spec)
+        return self.shard_scale_dict[key].fetch_chunk(chunk_coords)

@@ -206,7 +206,7 @@ shard_volume_spec_init = [
 
     ((128, 64, 64), (6400, 6400, 6400), None, True),
     ((-64, -64, -64), (6400, 6400, 6400), None, True),
-    ((64, 64, 64), (6.4e10, 64, 64), None, True),
+    ((64, 64, 64), (640_000_000, 640_000_000, 640_000_000), None, True),
 ]
 
 
@@ -229,32 +229,51 @@ def shard_volume_spec():
     )
 
 
-@pytest.mark.parametrize("grid_coords,expected", [
-    ((0, 0, 0), 0b0),
-    ((1, 0, 0), 0b1),
-    ((0, 1, 0), 0b10),
-    ((1, 1, 0), 0b11),
-    ((1, 1, 1), 0b111),
-    ((2, 0, 0), 0b1000),
+@pytest.mark.parametrize("grid_coords,expected,err_flag", [
+    ((0, 0, 0), 0b0, False),
+    ((1, 0, 0), 0b1, False),
+    ((0, 1, 0), 0b10, False),
+    ((1, 1, 0), 0b11, False),
+    ((1, 1, 1), 0b111, False),
+    ((2, 0, 0), 0b1000, False),
+    ((2, 0, 0), 0b1000, False),
+    ((-1, 0, 0), None, True),
+    ((0, -1, 0), None, True),
+    ((0, 0, -1), None, True),
+    ((0.5, 0, 0), None, True),
+    ((101, 0, 0), None, True),
 ])
 def test_compressed_morton_code(shard_volume_spec: ShardVolumeSpec,
                                 grid_coords,
-                                expected):
+                                expected,
+                                err_flag):
+    if err_flag:
+        with pytest.raises(ShardedIOError):
+            shard_volume_spec.compressed_morton_code(grid_coords)
+        return
     cmc = shard_volume_spec.compressed_morton_code(grid_coords)
     assert cmc == expected
 
 
-@pytest.mark.parametrize("chunk_coords,expected", [
-    ((0, 64, 0, 64, 0, 64), 0b0),
-    ((64, 128, 0, 64, 0, 64), 0b1),
-    ((0, 64, 64, 128, 0, 64), 0b10),
-    ((64, 128, 64, 128, 0, 64), 0b11),
-    ((64, 128, 64, 128, 64, 128), 0b111),
-    ((128, 196, 0, 64, 0, 64), 0b1000),
+@pytest.mark.parametrize("chunk_coords,expected,err_flag", [
+    ((0, 64, 0, 64, 0, 64), 0b0, False),
+    ((64, 128, 0, 64, 0, 64), 0b1, False),
+    ((0, 64, 64, 128, 0, 64), 0b10, False),
+    ((64, 128, 64, 128, 0, 64), 0b11, False),
+    ((64, 128, 64, 128, 64, 128), 0b111, False),
+    ((128, 196, 0, 64, 0, 64), 0b1000, False),
+    ((0, 64, 32, 64, 0, 64), None, True),
+    ((32, 64, 0, 64, 0, 64), None, True),
+    ((0, 64, 0, 64, 32, 64), None, True),
 ])
 def test_get_cmc(shard_volume_spec: ShardVolumeSpec,
                  chunk_coords,
-                 expected):
+                 expected,
+                 err_flag):
+    if err_flag:
+        with pytest.raises(ShardedIOError):
+            shard_volume_spec.get_cmc(chunk_coords)
+        return
     cmc = shard_volume_spec.get_cmc(chunk_coords)
     assert cmc == expected
 
@@ -383,7 +402,7 @@ readableminishard_init_args = [
     (get_parent_shard(can_read=False), get_header_buffer([1, 2, 3, 4, 5, 6]),
      None,
      True),
-    (get_parent_shard(can_read=False),
+    (get_parent_shard(can_read=True),
      get_header_buffer([1, 2, 3, 4, 5, 6, 7]),
      None,
      True),
@@ -579,7 +598,7 @@ info_setter_args = [
                     "key": f"foo{idx}",
                     "sharding": {
                         "@type": "neuroglancer_uint64_sharded_v1"
-                    } if idx % 2 == 0 else None
+                    } if idx % 2 == 0 else {}
                 } for idx in range(2)
             ]
         } ,
@@ -597,8 +616,14 @@ info_setter_args = [
 def test_info_setter(info, raise_error_flag):
 
     acc = ShardedAccessorBase()
+
+    with pytest.raises(AttributeError):
+        len(acc.info)
+
     if raise_error_flag:
         with pytest.raises(Exception):
             acc.info = info
         return
+
     acc.info = info
+    len(acc.info)

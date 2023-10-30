@@ -19,8 +19,14 @@ import json
 
 def test_ondisk_bytes_dict():
     val = OnDiskBytesDict()
-    val['foo'] = b"bar"
+    val['foo'] = b"bazz"
     assert 'foo' in val
+    assert val['foo'] == b'bazz'
+    assert val.get("foo") == b'bazz'
+    assert list(val.keys()) == ["foo"]
+    assert len(val) == 1
+
+    val['foo'] = b"bar"
     assert val['foo'] == b'bar'
     assert val.get("foo") == b'bar'
     assert list(val.keys()) == ["foo"]
@@ -79,6 +85,11 @@ def test_minishard_store_cmc_chunk(shard_spec_2_2_2: ShardSpec, pre_calls, cmc,
                                    expect_append_called,
                                    exp_apd):
     shard = MiniShard(shard_spec_2_2_2, strategy="in memory")
+
+    # Accessing next_cmc before calling store_cmc_chunk will raise
+    with pytest.raises(ShardedIOError):
+        print(shard.next_cmc)
+
     for pre_call in pre_calls:
         shard.store_cmc_chunk(*pre_call)
 
@@ -95,6 +106,9 @@ def test_minishard_store_cmc_chunk(shard_spec_2_2_2: ShardSpec, pre_calls, cmc,
     len_after = len(shard._chunk_buffer)
 
     assert exp_apd == (len_before != len_after)
+
+    # Accessing next_cmc after calling store_cmc_chunk will be ok
+    print(shard.next_cmc)
 
 
 append_args = [
@@ -133,17 +147,25 @@ def test_append(shard_spec_2_2_2: ShardSpec, append_calls, ex_ba, ex_last_chid,
 
 
 can_be_appended_args = [
-    (0b001100, True),
-    (0b001101, False),
+    (0b001100, 0, True, False),
+    (0b001101, 0, False, False),
+    (0b001100, 1, None, True),
 ]
 
 
-@pytest.mark.parametrize("cmc, can_be_appended", can_be_appended_args)
-def test_can_be_appended(shard_spec_2_2_2: ShardSpec, cmc, can_be_appended):
+@pytest.mark.parametrize("cmc, appended, can_be_appended, raise_flag",
+                         can_be_appended_args)
+def test_can_be_appended(shard_spec_2_2_2: ShardSpec, cmc, appended,
+                         can_be_appended, raise_flag):
     shard = MiniShard(shard_spec_2_2_2, strategy="in memory")
+    shard._appended = np.uint64(appended)
     spec = shard.shard_spec
     shard.masked_bits = ((spec.minishard_mask | spec.shard_mask)
                          << spec.preshift_bits) & np.uint64(cmc)
+    if raise_flag:
+        with pytest.raises(RuntimeError):
+            shard.can_be_appended(cmc)
+        return
     assert shard.can_be_appended(cmc) == can_be_appended
 
 
@@ -311,6 +333,11 @@ def test_read_bytes(use_shard_str, byte_start, byte_length, expected_result,
     shard, hb, bb = request.getfixturevalue(use_shard_str)
     expected_bytes = None
 
+    shard.can_read_cmc = False
+    with pytest.raises(ShardedIOError):
+        shard.read_bytes(0, 1)
+    shard.can_read_cmc = True
+
     if expected_result == "header":
         expected_bytes = hb * byte_length
 
@@ -365,6 +392,12 @@ def test_shard_store_cmc_chunk(ms_store_cmc_chunk_mock, get_minishard_key_mock,
         modern_shard.minishard_dict.__setitem__.assert_called_once()
 
     ms_store_cmc_chunk_mock.assert_called_once_with(b"foo", np.uint64(123))
+
+    # test flag
+    modern_shard.can_write_cmc = False
+    with pytest.raises(ShardedIOError):
+        modern_shard.store_cmc_chunk(b"foo", np.uint64(123))
+    modern_shard.can_write_cmc = True
 
 
 @pytest.mark.parametrize("key_exist", [True, False])

@@ -147,6 +147,11 @@ class ShardVolumeSpec:
                                  "max possible, 64.")
 
     def compressed_morton_code(self, grid_coords: List[int]):
+        if any(
+            not isinstance(grid_coord, int) or grid_coord < 0
+            for grid_coord in grid_coords
+        ):
+            raise ShardedIOError(f"{grid_coords!r} needs to be int, and >= 0")
         if not all(
             grid_coord <= grid_size
             for grid_coord, grid_size in zip(grid_coords, self.grid_sizes)
@@ -174,15 +179,15 @@ class ShardVolumeSpec:
 
         if xmin % xcs != 0:
             raise ShardedIOError(
-                CHUNK_COORD_ERROR_MSG.format(f"{xmin!r}", f"{xcs!r}")
+                CHUNK_COORD_ERROR_MSG.format(value=xmin, chunk_size=xcs)
             )
         if ymin % ycs != 0:
             raise ShardedIOError(
-                CHUNK_COORD_ERROR_MSG.format(f"{ymin!r}", f"{ycs!r}")
+                CHUNK_COORD_ERROR_MSG.format(value=ymin, chunk_size=ycs)
             )
         if zmin % zcs != 0:
             raise ShardedIOError(
-                CHUNK_COORD_ERROR_MSG.format(f"{zmin!r}", f"{zcs!r}")
+                CHUNK_COORD_ERROR_MSG.format(value=zmin, chunk_size=zcs)
             )
 
         grid_coords = [int(xmin/xcs), int(ymin/ycs), int(zmin/zcs)]

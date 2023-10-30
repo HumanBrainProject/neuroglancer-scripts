@@ -4,7 +4,7 @@ See the :mod:`~neuroglancer_scripts.accessor` module for a description of the
 API.
 """
 
-from collections.abc import Iterator
+from typing import Iterator
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.sharded_base import (
     ShardSpec,

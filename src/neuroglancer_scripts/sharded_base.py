@@ -70,13 +70,6 @@ class ShardSpec:
         # murmurhash3_x86_128 not yet supported
         return cmc
 
-    def get_minishard_chunk_idx(self, cmc: np.uint64) -> np.uint64:
-        return (
-            cmc >> (self.preshift_bits + self.shard_bits + self.minishard_bits)
-            << self.preshift_bits
-            + self.preshift_mask & cmc
-        )
-
     def to_dict(self):
         return {
             "minishard_bits": int(self.minishard_bits),
@@ -235,8 +228,8 @@ class CMCReadWrite(ABC):
 
     def get_minishards_offsets(self):
         assert self.can_read_cmc
-        header_byte_length = self.read_bytes(0, self.header_byte_length)
-        return np.frombuffer(header_byte_length, dtype=np.uint64)
+        header_content = self.read_bytes(0, self.header_byte_length)
+        return np.frombuffer(header_content, dtype=np.uint64)
 
 
 class ReadableMiniShardCMC(CMCReadWrite):
@@ -244,11 +237,9 @@ class ReadableMiniShardCMC(CMCReadWrite):
     can_read_cmc = True
     can_write_cmc = False
 
-    def __init__(self, parent_shard: "CMCReadWrite", header_buffer: bytes,
-                 shard_spec: ShardSpec):
-        super().__init__(shard_spec)
-
+    def __init__(self, parent_shard: "CMCReadWrite", header_buffer: bytes):
         assert parent_shard.can_read_cmc
+        super().__init__(parent_shard.shard_spec)
 
         self.parent_shard = parent_shard
         self.minishard_index = np.frombuffer(header_buffer, dtype=np.uint64)

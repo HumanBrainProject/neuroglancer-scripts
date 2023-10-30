@@ -26,6 +26,10 @@ from uuid import uuid4
 
 
 class OnDiskBytesDict(dict):
+    """Implementation of dict, but uses disk rather than RAM.
+    This can be useful where dictionaries can grow arbitrary in
+    size. Performance is clearly not as good as in memory dict."""
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -73,11 +77,20 @@ class OnDiskBytesDict(dict):
 
 
 class InMemByteArray(bytearray):
+    """Override the __iter__ operator of builtin bytearray
+    to return an iterator of bytes. See OnDiskByteArray."""
+
     def __iter__(self) -> Iterator[bytes]:
         yield bytes(self)
 
 
 class OnDiskByteArray:
+    """Implementation of OnDisk bytes. This can be useful
+    when the bytearray can grow arbitrary in size. In addition
+    to the worse performance is the different behavior of
+    __iter__. Since the bytearray can be arbitrary in size,
+    the __iter__ method now returns an Iterator of bytes."""
+
     _READ_SIZE = 4096
 
     def __init__(self) -> None:
@@ -136,6 +149,11 @@ class MiniShard(CMCReadWrite):
 
     @property
     def next_cmc(self) -> np.uint64:
+        if self.masked_bits is None:
+            raise ShardedIOError("self.masked_bits not"
+                                 "yet defined. next_cmc should "
+                                 "in general not be accessed prior"
+                                 "to store_cmc_chunk().")
         next_val = self._appended
         return (
             (
@@ -160,8 +178,8 @@ class MiniShard(CMCReadWrite):
     def store_cmc_chunk(self, buf: bytes, cmc: np.uint64):
         if not self.masked_bits:
             self.masked_bits = (
-                (self.shard_spec.minishard_mask + self.shard_spec.shard_mask)
-                << np.uint64(self.shard_spec.preshift_bits)
+                (self.shard_spec.minishard_mask | self.shard_spec.shard_mask)
+                << self.shard_spec.preshift_bits
             ) & cmc
 
         chunk_to_store = self.shard_spec.data_encoder(buf)
@@ -206,6 +224,7 @@ class MiniShard(CMCReadWrite):
                                  f"{self.next_cmc}")
 
     def close(self):
+        self.flush_buffer()
         while len(self._chunk_buffer) > 0:
             self.append(b'', self.next_cmc)
             self.flush_buffer()
@@ -251,8 +270,7 @@ class Shard(CMCReadWrite):
                 )
 
                 minishard = ReadableMiniShardCMC(self,
-                                                 minishard_decoded_buffer,
-                                                 self.shard_spec)
+                                                 minishard_decoded_buffer)
                 first_cmc = minishard.minishard_index[0]
                 minishard_key = self.get_minishard_key(first_cmc)
                 self.minishard_dict[minishard_key] = minishard

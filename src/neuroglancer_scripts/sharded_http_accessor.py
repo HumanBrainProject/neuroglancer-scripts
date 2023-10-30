@@ -55,8 +55,7 @@ class HttpShard(CMCReadWrite):
             minishard_decoded_buffer = self.shard_spec.index_decoder(
                 minishard_raw_buffer)
 
-            minishard = ReadableMiniShardCMC(self, minishard_decoded_buffer,
-                                             self.shard_spec)
+            minishard = ReadableMiniShardCMC(self, minishard_decoded_buffer)
             first_cmc = minishard.minishard_index[0]
             minishard_key = self.get_minishard_key(first_cmc)
             self.minishard_dict[minishard_key] = minishard

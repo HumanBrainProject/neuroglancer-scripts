@@ -10,6 +10,7 @@ The central component here is the :class:`Accessor` base class. Use
 """
 
 import urllib.parse
+import json
 
 __all__ = [
     "get_accessor_for_url",
@@ -35,15 +36,52 @@ def get_accessor_for_url(url, accessor_options={}):
     r = urllib.parse.urlsplit(url)
     if r.scheme in ("", "file"):
         from neuroglancer_scripts import file_accessor
+        from neuroglancer_scripts import sharded_base
         flat = accessor_options.get("flat", False)
         gzip = accessor_options.get("gzip", True)
         compresslevel = accessor_options.get("compresslevel", 9)
         pathname = _convert_split_file_url_to_pathname(r)
-        return file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip,
-                                          compresslevel=compresslevel)
+
+        accessor = file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip,
+                                              compresslevel=compresslevel)
+        is_sharding = False
+
+        if "sharding" in accessor_options:
+            is_sharding = True
+        if not is_sharding:
+            try:
+                info = json.loads(accessor.fetch_file("info"))
+                if sharded_base.ShardedAccessorBase.info_is_sharded(info):
+                    is_sharding = True
+            except Exception:
+                ...
+
+        if is_sharding:
+            from neuroglancer_scripts import sharded_file_accessor
+            return sharded_file_accessor.ShardedFileAccessor(pathname)
+
+        return accessor
+
     elif r.scheme in ("http", "https"):
         from neuroglancer_scripts import http_accessor
-        return http_accessor.HttpAccessor(url)
+        from neuroglancer_scripts import sharded_base
+        accessor = http_accessor.HttpAccessor(url)
+
+        is_sharding = False
+        if "sharding" in accessor_options:
+            is_sharding = True
+        if not is_sharding:
+            try:
+                info = json.loads(accessor.fetch_file("info"))
+                if sharded_base.ShardedAccessorBase.info_is_sharded(info):
+                    is_sharding = True
+            except Exception:
+                ...
+
+        if is_sharding:
+            from neuroglancer_scripts import sharded_http_accessor
+            return sharded_http_accessor.ShardedHttpAccessor(url)
+        return accessor
     else:
         raise URLError("Unsupported URL scheme {0} (must be file, http, or "
                        "https)".format(r.scheme))

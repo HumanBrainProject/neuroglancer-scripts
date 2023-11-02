@@ -281,8 +281,8 @@ def test_init_shard_minishards(read_bytes_mock, get_minishards_offsets_mock,
         call(0 + shard.header_byte_length, 5),
         call(5 + shard.header_byte_length, 10),
     ])
-    assert "foo" in shard.minishard_dict
-    assert "bar" in shard.minishard_dict
+    assert "foo" in shard.ro_minishard_dict
+    assert "bar" in shard.ro_minishard_dict
 
 
 header_bytes_length = int(2 ** 2 * 16)
@@ -367,7 +367,7 @@ dummy_value = "foo-bar"
 def test_shard_store_cmc_chunk(ms_store_cmc_chunk_mock, get_minishard_key_mock,
                                key_exist,
                                shard_spec_2_2_2: ShardSpec,
-                               writable_shard: Shard):
+                               writable_shard):
 
     # setup
     modern_shard, *_ = writable_shard
@@ -406,19 +406,19 @@ def test_shard_store_cmc_chunk(ms_store_cmc_chunk_mock, get_minishard_key_mock,
 def test_fetch_cmc_chunk(ms_fetch_cmc_chunk_mock, get_minishard_key_mock,
                          key_exist,
                          shard_spec_2_2_2: ShardSpec,
-                         writable_shard: Shard):
+                         writable_shard):
 
     modern_shard, *_ = writable_shard
     minishard = MiniShard(shard_spec_2_2_2, strategy="in memory")
-    modern_shard.minishard_dict = MagicMock()
-    modern_shard.minishard_dict.__getitem__.return_value = minishard
-    modern_shard.minishard_dict.__contains__.return_value = key_exist
+    modern_shard.ro_minishard_dict = MagicMock()
+    modern_shard.ro_minishard_dict.__getitem__.return_value = minishard
+    modern_shard.ro_minishard_dict.__contains__.return_value = key_exist
     ms_fetch_cmc_chunk_mock.return_value = b"foo-bar"
 
     if not key_exist:
         with pytest.raises(AssertionError):
             modern_shard.fetch_cmc_chunk(np.uint64(123))
-        modern_shard.minishard_dict.__contains__.assert_called_once_with(
+        modern_shard.ro_minishard_dict.__contains__.assert_called_once_with(
             dummy_value)
         get_minishard_key_mock.assert_called_once_with(np.uint64(123))
         ms_fetch_cmc_chunk_mock.assert_not_called()
@@ -426,7 +426,7 @@ def test_fetch_cmc_chunk(ms_fetch_cmc_chunk_mock, get_minishard_key_mock,
 
     assert modern_shard.fetch_cmc_chunk(np.uint64(123)) == b"foo-bar"
     ms_fetch_cmc_chunk_mock.assert_called_once_with(np.uint64(123))
-    modern_shard.minishard_dict.__getitem__.assert_called_once_with(
+    modern_shard.ro_minishard_dict.__getitem__.assert_called_once_with(
         dummy_value)
 
 
@@ -436,6 +436,7 @@ def test_shard_close(minishard_close_mock, offset_mock, tmpdir,
                      shard_spec_1_1_1):
     shard_key = np.uint64(1)
     shard = Shard(tmpdir, shard_key, shard_spec_1_1_1)
+    shard.dirty = True
 
     minishard0 = MiniShard(shard_spec_1_1_1, strategy="in memory")
     minishard1 = MiniShard(shard_spec_1_1_1, strategy="in memory")

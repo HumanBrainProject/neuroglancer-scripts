@@ -242,6 +242,8 @@ class Shard(ShardCMC):
         self.root_dir = pathlib.Path(base_dir)
         super().__init__(shard_key, shard_spec)
         self.file_path = pathlib.Path(base_dir) / f"{self.shard_key_str}.shard"
+        self.populate_minishard_dict()
+        self.dirty = False
 
     def file_exists(self, filepath: str) -> bool:
         return (self.root_dir / filepath).is_file()
@@ -265,6 +267,7 @@ class Shard(ShardCMC):
     def store_cmc_chunk(self, buf: bytes, cmc: np.uint64):
         if not self.can_write_cmc:
             raise ShardedIOError("Readonly shard")
+        self.dirty = True
 
         minishard_key = self.get_minishard_key(cmc)
         if minishard_key not in self.minishard_dict:
@@ -273,10 +276,12 @@ class Shard(ShardCMC):
 
     def fetch_cmc_chunk(self, cmc: np.uint64):
         minishard_key = self.get_minishard_key(cmc)
-        assert minishard_key in self.minishard_dict
-        return self.minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
+        assert minishard_key in self.ro_minishard_dict
+        return self.ro_minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
 
     def close(self):
+        if not self.dirty:
+            return
         self.file_path.parent.mkdir(exist_ok=True, parents=True)
         with open(self.file_path, "wb") as fp:
             fp.write(b"\0"*int((2**self.shard_spec.minishard_bits) * 16))
@@ -320,9 +325,9 @@ class Shard(ShardCMC):
 
             sh_idx_len = len(sh_idx_buf)
             if sh_idx_len != (2 ** self.shard_spec.minishard_bits) * 16:
-                print(f"Writing shard index error! Expected "
+                print(f"Writing shard index: Expected "
                       f"{(2 ** self.shard_spec.minishard_bits) * 16} bytes, "
-                      f"got {sh_idx_len}")
+                      f"got {sh_idx_len}. Padding the rest with empty bytes.")
 
                 if sh_idx_len >= (2 ** self.shard_spec.minishard_bits) * 16:
                     raise ShardedIOError(
@@ -333,9 +338,11 @@ class Shard(ShardCMC):
                 while sh_idx_len < (2 ** self.shard_spec.minishard_bits) * 16:
                     sh_idx_buf += struct.pack("<Q", data_size + sh_size)
                     sh_idx_buf += struct.pack("<Q", data_size + sh_size)
+                    sh_idx_len = len(sh_idx_buf)
 
             fp.seek(0)
             fp.write(bytes(sh_idx_buf))
+        self.dirty = False
 
 
 class ShardedScale(ShardedScaleBase):
@@ -370,23 +377,24 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
     :param dict key_to_mip_sizes:
     """
     can_read = False
-    can_write = False
+    can_write = True
 
     def __init__(self, base_dir,
-                 shard_volume_spec_dict: Dict[str, ShardVolumeSpec] = None):
+                 shard_volume_spec_dict: Dict[str, ShardVolumeSpec] = {}):
         ShardedAccessorBase.__init__(self)
         self.base_dir = pathlib.Path(base_dir)
         self.shard_dict: Dict[str, ShardedScale] = {}
-
-        if shard_volume_spec_dict:
-            self.shard_volume_spec_dict = shard_volume_spec_dict
-            self.can_write = True
+        self.ro_shard_dict: Dict[str, ShardedScale] = {}
+        self.shard_volume_spec_dict = shard_volume_spec_dict
 
         try:
             self.info = json.loads(self.fetch_file("info"))
             self.can_read = True
         except IOError:
             ...
+
+        import atexit
+        atexit.register(self.close)
 
     def file_exists(self, relative_path: str):
         return (self.base_dir / relative_path).exists()
@@ -402,7 +410,7 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
             fp.write(buf)
 
     def fetch_chunk(self, key, chunk_coords):
-        if key not in self.shard_dict:
+        if key not in self.ro_shard_dict:
             sharding = self.get_sharding_spec(key)
             chunk_sizes, = self.get_scale(key).get("chunk_sizes", [[]])
             size = self.get_scale(key).get("size", [])
@@ -412,18 +420,41 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
                                          key=key,
                                          shard_spec=shard_spec,
                                          shard_volume_spec=shard_volume_spec)
-            self.shard_dict[key] = sharded_scale
-        return self.shard_dict[key].fetch_chunk(chunk_coords)
+            self.ro_shard_dict[key] = sharded_scale
+        return self.ro_shard_dict[key].fetch_chunk(chunk_coords)
 
     def store_chunk(self, buf, key, chunk_coords, **kwargs):
-        if key not in self.shard_volume_spec_dict:
+        shard_volume_spec: ShardVolumeSpec = None
+        shard_spec: ShardSpec = None
+        if key in (self.shard_volume_spec_dict or {}):
+            shard_volume_spec = self.shard_volume_spec_dict[key]
+        try:
+            found_scale = [s for s in self.info.get("scales", [])
+                           if s.get("key") == key]
+            if len(found_scale) > 0:
+                scale, *_ = found_scale
+                chunk_sizes, = scale.get("chunk_sizes")
+                size = scale.get("size")
+                shard_volume_spec = ShardVolumeSpec(chunk_sizes, size)
+                sharding = scale.get("sharding")
+                if sharding:
+                    sharding_kwargs = {key: value
+                                       for key, value in sharding.items()
+                                       if key != "@type"}
+                    shard_spec = ShardSpec(**sharding_kwargs)
+        except Exception:
+            ...
+
+        if not shard_volume_spec:
             raise ShardedIOError(
-                f"Expecting key {key} in shard_volume_spec_dict, but were not."
-                f"Existing keys: {list(self.shard_volume_spec_dict.keys())}")
+                f"Expecting key {key} in shard_volume_spec_dict, or defined in"
+                " 'info' file, but were not. Existing keys: "
+                f"{list(self.shard_volume_spec_dict.keys())}. Existing info:"
+                f"{json.dumps(self.info, indent=4)}")
 
         if key not in self.shard_dict:
-            shard_volume_spec = self.shard_volume_spec_dict[key]
-            shard_spec = shard_volume_spec.generate_shard_spec()
+            if not shard_spec:
+                shard_spec = shard_volume_spec.generate_shard_spec()
             sharded_scale = ShardedScale(base_dir=self.base_dir,
                                          key=key,
                                          shard_spec=shard_spec,

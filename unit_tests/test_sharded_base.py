@@ -204,6 +204,10 @@ shard_volume_spec_init = [
     ((64, 64, 64), (6400, 6400, 6400), (100, 100, 100), False),
     ((64, 64, 64), (1, 6400, 6400), (1, 100, 100), False),
 
+    ((64, 64, 64), (6400, 6400), None, True),
+    ((64, 64), (6400, 6400, 6400), None, True),
+    ((64, 64, 64), (6400, 6400, -6400), None, True),
+    ((64, 64, 64), (6400, 6400, 6.4e3), None, True),
     ((128, 64, 64), (6400, 6400, 6400), None, True),
     ((-64, -64, -64), (6400, 6400, 6400), None, True),
     ((64, 64, 64), (640_000_000, 640_000_000, 640_000_000), None, True),
@@ -485,6 +489,17 @@ def mocked_get_shard_base():
     )
 
 
+@pytest.mark.parametrize("test_arg, exp_flag", [
+    ({"sharding": {"@type": "neuroglancer_uint64_sharded_v1"}}, True),
+    ({"sharding": {"@type": "foo-bar"}}, False),
+    ("foo", False),
+    ([], False),
+    ({}, False),
+])
+def test_is_sharded(test_arg, exp_flag):
+    assert ShardedScaleBase.is_sharded(test_arg) == exp_flag
+
+
 def test_store_cmc_chunk(mocked_get_shard_base):
     b = b"foo"
     shard_key = np.uint(456)
@@ -585,6 +600,18 @@ info_setter_args = [
             "scales": [
                 {
                     "key": "foo",
+                }
+            ]
+        } ,
+        True
+    ),
+
+    (
+        {
+            "scales": [
+                {
+                    "key": "foo",
+                    "sharding": {}
                 }
             ]
         } ,

@@ -30,7 +30,7 @@ class HttpShard(ShardCMC):
         self._session = session
         self.base_url = base_url.rstrip("/") + "/"
         super().__init__(shard_key, shard_spec)
-
+        self.populate_minishard_dict()
         assert self.can_read_cmc
 
     def file_exists(self, filepath):

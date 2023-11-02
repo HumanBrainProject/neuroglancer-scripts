@@ -72,6 +72,7 @@ class ShardSpec:
 
     def to_dict(self):
         return {
+            "@type": "neuroglancer_uint64_sharded_v1",
             "minishard_bits": int(self.minishard_bits),
             "shard_bits": int(self.shard_bits),
             "hash": self.hash,
@@ -242,6 +243,9 @@ class ShardCMC(CMCReadWrite, ABC):
         )
         self.shard_key = shard_key
         self.minishard_dict: Dict[np.uint64, CMCReadWrite] = {}
+        self.ro_minishard_dict: Dict[np.uint64, CMCReadWrite] = {}
+
+        self.can_read_cmc = False
 
         if self.file_exists(f"{self.shard_key_str}.shard"):
             self.is_legacy = False
@@ -252,8 +256,8 @@ class ShardCMC(CMCReadWrite, ABC):
         ):
             self.is_legacy = True
             self.can_read_cmc = True
-        else:
-            self.can_read_cmc = False
+
+    def populate_minishard_dict(self):
 
         if self.can_read_cmc:
             offsets = self.get_minishards_offsets()
@@ -268,7 +272,7 @@ class ShardCMC(CMCReadWrite, ABC):
                                                  minishard_decoded_buffer)
                 first_cmc = minishard.minishard_index[0]
                 minishard_key = self.get_minishard_key(first_cmc)
-                self.minishard_dict[minishard_key] = minishard
+                self.ro_minishard_dict[minishard_key] = minishard
 
     def get_minishards_offsets(self):
         assert self.can_read_cmc
@@ -365,6 +369,14 @@ class ShardedScaleBase(CMCReadWrite, ABC):
             **self.shard_spec.to_dict()
         }
 
+    @staticmethod
+    def is_sharded(scale: Dict[str, Any]) -> bool:
+        try:
+            return (scale["sharding"]["@type"]
+                    == "neuroglancer_uint64_sharded_v1")
+        except Exception:
+            return False
+
 
 class ShardedAccessorBase(ABC):
 
@@ -407,6 +419,11 @@ class ShardedAccessorBase(ABC):
         sharding = scale.get("sharding")
         sharding.pop("@type", None)
         return sharding
+
+    @staticmethod
+    def info_is_sharded(info_json):
+        return all(ShardedScaleBase.is_sharded(s)
+                   for s in info_json.get("scales", []))
 
 
 class ShardedIOError(IOError):

@@ -57,6 +57,11 @@ omitted, it is assumed to be zero.
                        help="input value that will be mapped to the maximum "
                        "output value")
 
+    group.add_argument("--sharding", type=str, default=None,
+                       help="enable sharding. Value must be int,int,int, "
+                       "representing minishard encoding bits, shard encoding"
+                       "bits and preshift bits respectively.")
+
     neuroglancer_scripts.accessor.add_argparse_options(parser)
     neuroglancer_scripts.chunk_encoding.add_argparse_options(parser,
                                                              allow_lossy=False)

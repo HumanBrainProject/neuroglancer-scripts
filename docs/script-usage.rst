@@ -21,7 +21,7 @@ OUTSIDE_VALUE] volume_filename dest_url``.
 
 You may want to use :ref:`convert-chunks <convert-chunks>` in a second step, to
 further compres your dataset with JPEG or ``compressed_segmentation``
-encoding).
+encoding.
 
 
 Converting image volumes

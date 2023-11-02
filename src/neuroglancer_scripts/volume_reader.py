@@ -16,7 +16,7 @@ from neuroglancer_scripts.accessor import DataAccessError
 import neuroglancer_scripts.data_types
 from neuroglancer_scripts import precomputed_io
 import neuroglancer_scripts.transform
-
+from neuroglancer_scripts.sharded_base import ShardSpec
 
 __all__ = [
     "store_nibabel_image_to_fullres_info",
@@ -130,6 +130,19 @@ def nibabel_image_to_info(img,
              resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
 
     info = json.loads(formatted_info)  # ensure well-formed JSON
+
+    sharding = options.get("sharding")
+    if sharding:
+        try:
+            minishardbits, shardbits, preshiftbits = sharding.split(",")
+            encoding = "gzip" if options.get("gzip") else "raw"
+            spec = ShardSpec(int(minishardbits), int(shardbits), "identity",
+                             encoding, encoding, int(preshiftbits))
+            info['scales'][0]['sharding'] = spec.to_dict()
+            formatted_info = json.dumps(info, indent=4)
+        except Exception as e:
+            raise Exception("Shard spec failed.") from e
+
     logger.info("the following info has been generated:\n%s", formatted_info)
 
     # We need to take the voxel scaling out of img.affine, and convert the

@@ -172,7 +172,8 @@ Conversion of the grey-level template image (sharded precomputed)
 
 At this point, you need to edit ``/build/output/info_fullres.json`` to set
 ``"data_type": "uint8"``. This is done to reduce the size of the final volume
-and better normalization.
+and better normalization. Seprately, by way of nibabel, we also determined the
+min and max of the volume to be 10.203 and 32766.0 respectively.
 
 .. code-block:: sh
 
@@ -184,3 +185,57 @@ and better normalization.
       ./build/WHS_SD_rat_T2star_v1.nii.gz \
       ./build/output/
   compute-scales ./build/output/
+
+
+.. _Conversion of Big Brain to sharded precomputed format:
+
+Big Brain (20um) has been converted to neuroglancer precomputed format, and
+accessible at
+https://neuroglancer.humanbrainproject.eu/precomputed/BigBrainRelease.2015/8bit.
+Using this as the source volume, a sharded volume will be created.
+
+.. code-block:: sh
+  mkdir sharded_bigbrain/
+  curl --output sharded_bigbrain/info \
+    https://neuroglancer.humanbrainproject.eu/precomputed/BigBrainRelease.2015/8bit/info
+
+At this point, sharded_bigbrain/info was edited to contain the desired sharding
+specification. For a smaller scale test run, 20um and 40um scales can be
+removed.
+
+.. code-block:: diff
+
+   {
+     "type": "image",
+     "data_type": "uint8",
+     "num_channels": 1,
+     "scales": [
+       {
+         "chunk_sizes": [[64,64,64]],
+         "encoding": "raw",
+         "key": "20um",
+         "resolution": [21166.6666666666666, 20000, 21166.6666666666666],
+         "size": [6572, 7404, 5711],
+   -      "voxel_offset": [0, 0, 0]
+   +      "voxel_offset": [0, 0, 0],
+   +      "sharding": {
+   +         "@type": "neuroglancer_uint64_sharded_v1",
+   +         "data_encoding": "gzip",
+   +         "hash": "identity",
+   +         "minishard_bits": 2,
+   +         "minishard_index_encoding": "gzip",
+   +         "preshift_bits": 0,
+   +         "shard_bits": 2
+   +      }
+       },
+       // ...truncated for brevity
+     ]
+   }
+
+Start the conversion process.
+
+.. code-block:: sh
+
+  convert-chunks \
+    https://neuroglancer.humanbrainproject.eu/precomputed/BigBrainRelease.2015/8bit \
+    ./sharded_bigbrain/

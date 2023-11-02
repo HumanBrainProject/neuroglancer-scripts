@@ -74,3 +74,9 @@ This repository uses `pre-commit`_ to ensure that all committed code follows min
 
 .. _Neuroglancer: https://github.com/google/neuroglancer
 .. _pre-commit: https://pre-commit.com/
+
+
+Acknowledgments
+===============
+
+`cloud-volume <https://github.com/seung-lab/cloud-volume>_` for compressed morton code and shard/minishard mask implementation.

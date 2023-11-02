@@ -45,8 +45,7 @@ def get_accessor_for_url(url, accessor_options={}):
         accessor = file_accessor.FileAccessor(pathname, flat=flat, gzip=gzip,
                                               compresslevel=compresslevel)
         is_sharding = False
-
-        if "sharding" in accessor_options:
+        if accessor_options.get("sharding"):
             is_sharding = True
         if not is_sharding:
             try:

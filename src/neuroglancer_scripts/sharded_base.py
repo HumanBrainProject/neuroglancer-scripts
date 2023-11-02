@@ -422,8 +422,11 @@ class ShardedAccessorBase(ABC):
 
     @staticmethod
     def info_is_sharded(info_json):
-        return all(ShardedScaleBase.is_sharded(s)
-                   for s in info_json.get("scales", []))
+        scales = info_json.get("scales", [])
+        return (
+            len(scales) > 0
+            and all(ShardedScaleBase.is_sharded(s) for s in scales)
+        )
 
 
 class ShardedIOError(IOError):

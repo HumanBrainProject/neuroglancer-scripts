@@ -15,7 +15,7 @@ two Nifti files based on the JuBrain human brain atlas, as published in version
 Note that you need to use `git-lfs <https://git-lfs.github.com/>`_ in order to
 see the contents of the NIfTI files (otherwise you can download them `from the
 repository on Github
-<https://github.com/HumanBrainProject/neuroglancer-scripts/tree/master/JuBrain>`_.)
+<https://github.com/HumanBrainProject/neuroglancer-scripts/tree/master/examples>`_.)
 
 Conversion of the grey-level template image (MNI Colin27 T1 MRI)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

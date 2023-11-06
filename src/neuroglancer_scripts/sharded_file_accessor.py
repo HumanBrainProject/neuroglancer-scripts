@@ -379,13 +379,11 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
     can_read = False
     can_write = True
 
-    def __init__(self, base_dir,
-                 shard_volume_spec_dict: Dict[str, ShardVolumeSpec] = {}):
+    def __init__(self, base_dir):
         ShardedAccessorBase.__init__(self)
         self.base_dir = pathlib.Path(base_dir)
         self.shard_dict: Dict[str, ShardedScale] = {}
         self.ro_shard_dict: Dict[str, ShardedScale] = {}
-        self.shard_volume_spec_dict = shard_volume_spec_dict
 
         try:
             self.info = json.loads(self.fetch_file("info"))
@@ -423,38 +421,34 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
             self.ro_shard_dict[key] = sharded_scale
         return self.ro_shard_dict[key].fetch_chunk(chunk_coords)
 
-    def store_chunk(self, buf, key, chunk_coords, **kwargs):
-        shard_volume_spec: ShardVolumeSpec = None
-        shard_spec: ShardSpec = None
-        if key in (self.shard_volume_spec_dict or {}):
-            shard_volume_spec = self.shard_volume_spec_dict[key]
+    def get_volume_shard_spec(self, key: str):
         try:
             found_scale = [s for s in self.info.get("scales", [])
                            if s.get("key") == key]
-            if len(found_scale) > 0:
-                scale, *_ = found_scale
-                chunk_sizes, = scale.get("chunk_sizes")
-                size = scale.get("size")
-                shard_volume_spec = ShardVolumeSpec(chunk_sizes, size)
-                sharding = scale.get("sharding")
-                if sharding:
-                    sharding_kwargs = {key: value
-                                       for key, value in sharding.items()
-                                       if key != "@type"}
-                    shard_spec = ShardSpec(**sharding_kwargs)
-        except Exception:
-            ...
+            assert len(found_scale) == 1, ("Expecting one and only one scale "
+                                           f"with key {key}, but got "
+                                           f"{len(found_scale)}")
 
-        if not shard_volume_spec:
-            raise ShardedIOError(
-                f"Expecting key {key} in shard_volume_spec_dict, or defined in"
-                " 'info' file, but were not. Existing keys: "
-                f"{list(self.shard_volume_spec_dict.keys())}. Existing info:"
-                f"{json.dumps(self.info, indent=4)}")
+            scale, *_ = found_scale
+            sharding = scale.get("sharding")
 
+            chunk_sizes, = scale.get("chunk_sizes")
+            size = scale.get("size")
+            shard_volume_spec = ShardVolumeSpec(chunk_sizes, size)
+
+            sharding_kwargs = {key: value
+                               for key, value in sharding.items()
+                               if key != "@type"}
+            shard_spec = ShardSpec(**sharding_kwargs)
+
+            return shard_volume_spec, shard_spec
+        except Exception as e:
+            raise ShardedIOError from e
+
+    def store_chunk(self, buf, key, chunk_coords, **kwargs):
         if key not in self.shard_dict:
-            if not shard_spec:
-                shard_spec = shard_volume_spec.generate_shard_spec()
+            shard_volume_spec, shard_spec = self.get_volume_shard_spec(key)
+
             sharded_scale = ShardedScale(base_dir=self.base_dir,
                                          key=key,
                                          shard_spec=shard_spec,
@@ -463,6 +457,8 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
         self.shard_dict[key].store_chunk(buf, chunk_coords)
 
     def close(self):
+        if len(self.shard_dict) == 0:
+            return
         scale_arr = []
         for scale in self.shard_dict.values():
             scale.close()

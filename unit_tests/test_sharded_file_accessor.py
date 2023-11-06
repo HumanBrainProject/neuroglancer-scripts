@@ -485,6 +485,91 @@ def test_shard_close(minishard_close_mock, offset_mock, tmpdir,
             == np.array([6, 9, 7, 10, 8, 11], dtype=np.uint64).tobytes())
 
 
+def test_shard_close_toomany_minishards(tmpdir, shard_spec_1_1_1):
+
+    shard_key = np.uint64(1)
+    shard = Shard(tmpdir, shard_key, shard_spec_1_1_1)
+    shard.dirty = True
+
+    minishard0 = MiniShard(shard_spec_1_1_1, strategy="in memory")
+    minishard1 = MiniShard(shard_spec_1_1_1, strategy="in memory")
+    minishard2 = MiniShard(shard_spec_1_1_1, strategy="in memory")
+
+    minishard0.databytearray = [b"0", b"0"]
+    minishard0.header = np.array([0, 1, 2, 3, 4, 5], dtype=np.uint64)
+
+    minishard1.databytearray = [b"0", b"0"]
+    minishard1.header = np.array([0, 1, 2, 3, 4, 5], dtype=np.uint64)
+
+    minishard2.databytearray = [b"0", b"0"]
+    minishard2.header = np.array([0, 1, 2, 3, 4, 5], dtype=np.uint64)
+
+    shard.minishard_dict = {
+        "c": minishard2,
+        "b": minishard1,
+        "a": minishard0,
+    }
+    with pytest.raises(ShardedIOError):
+        shard.close()
+
+
+@patch.object(MiniShard, 'offset', new_callable=PropertyMock, return_value=0)
+@patch.object(MiniShard, 'close', return_value=1)
+def test_shard_close_toofew_minishards(minishard_close_mock, offset_mock,
+                                       tmpdir, shard_spec_1_1_1):
+
+    shard_key = np.uint64(1)
+    shard = Shard(tmpdir, shard_key, shard_spec_1_1_1)
+    shard.dirty = True
+
+    minishard0 = MiniShard(shard_spec_1_1_1, strategy="in memory")
+    shard.minishard_dict = {
+        "a": minishard0,
+    }
+
+    minishard0.databytearray = [b"0", b"0"]
+    minishard0.header = np.array([0, 1, 2, 3, 4, 5], dtype=np.uint64)
+
+    shard.close()
+    assert minishard_close_mock.call_count == 1
+
+    with open(pathlib.Path(tmpdir) / "1.shard", "rb") as fp:
+        b = fp.read()
+
+    hdr_size = int((2**shard.shard_spec.minishard_bits) * 16)
+    msh_hdr_size = 6 * 8  # only true for raw encoders
+
+    # check file length
+    assert len(b) == (hdr_size + 2 + (12 * 4))
+
+    # check header
+    sh_hdr = np.array([
+        2, 6 * 8 + 2,  # minishard1 hdr offset_start, offset_end
+        6 * 8 + 2, 6 * 8 + 2 ,  # empty shard, same start & end
+    ], dtype=np.uint64).tobytes()
+    assert b[:len(sh_hdr)] == sh_hdr
+
+    # check volume, esp that dict is sorted
+    assert b[len(sh_hdr): len(sh_hdr)+2] == b"00"
+
+    # check minishard hdrs
+    offset0 = len(sh_hdr) + 2
+    assert (b[offset0 : offset0 + msh_hdr_size]
+            == np.array([0, 3, 1, 4, 2, 5], dtype=np.uint64).tobytes())
+
+
+def test_shard_close_not_dirty(tmpdir, shard_spec_1_1_1):
+    shard_key = np.uint64(1)
+    shard = Shard(tmpdir, shard_key, shard_spec_1_1_1)
+    shard.file_path = MagicMock()
+    shard.file_path.parent.mkdir.side_effect = Exception("foobar")
+    with pytest.raises(Exception):
+        shard.dirty = True
+        shard.close()
+    shard.dirty = False
+    shard.close()
+
+
 # ShardedScale
 @pytest.fixture
 def sharded_scale(tmpdir, shard_spec_2_2_2):
@@ -570,11 +655,40 @@ def faccessor_r(tmpdir):
 
 @pytest.fixture
 def faccessor_w(tmpdir):
-    shard_volume_spec_dict = {
-        "20mm": ShardVolumeSpec([64, 64, 64], [256, 256, 256]),
-        "40mm": ShardVolumeSpec([64, 64, 64], [128, 128, 128]),
-    }
-    return ShardedFileAccessor(tmpdir, shard_volume_spec_dict)
+    with open(tmpdir / "info", "w") as fp:
+        json.dump({
+            "scales": [
+                {
+                    "size": [256, 256, 256],
+                    "chunk_sizes": [[64, 64, 64]],
+                    "key": "20mm",
+                    "sharding": {
+                        "@type": "neuroglancer_uint64_sharded_v1",
+                        "minishard_bits": 2,
+                        "shard_bits": 2,
+                        "hash": "identity",
+                        "minishard_index_encoding": "raw",
+                        "data_encoding": "raw",
+                        "preshift_bits": 0
+                    }
+                },
+                {
+                    "size": [128, 128, 128],
+                    "chunk_sizes": [[64, 64, 64]],
+                    "key": "40mm",
+                    "sharding": {
+                        "@type": "neuroglancer_uint64_sharded_v1",
+                        "minishard_bits": 2,
+                        "shard_bits": 2,
+                        "hash": "identity",
+                        "minishard_index_encoding": "raw",
+                        "data_encoding": "raw",
+                        "preshift_bits": 0
+                    }
+                }
+            ]
+        }, fp=fp)
+    yield ShardedFileAccessor(tmpdir)
 
 
 def test_readable(faccessor_r: ShardedFileAccessor):

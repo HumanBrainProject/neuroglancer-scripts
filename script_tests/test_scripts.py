@@ -97,6 +97,54 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
     # with --mmap / --load-full-volume
 
 
+def test_sharded_conversion(examples_dir, tmpdir):
+    input_nifti = examples_dir / "JuBrain" / "colin27T1_seg.nii.gz"
+    # The file may be present but be a git-lfs pointer file, so we need to open
+    # it to make sure that it is the actual correct file.
+    try:
+        gzip.open(str(input_nifti)).read(348)
+    except OSError as exc:
+        pytest.skip("Cannot find a valid example file {0} for testing: {1}"
+                    .format(input_nifti, exc))
+
+    output_dir = tmpdir / "MPM"
+    assert subprocess.call([
+        "volume-to-precomputed",
+        "--generate-info",
+        "--sharding 2,2,0",
+        str(input_nifti),
+        str(output_dir)
+    ], env=env) == 0
+    assert subprocess.call([
+        "generate-scales-info",
+        "--type=segmentation",
+        "--encoding=compressed_segmentation",
+        str(output_dir / "info_fullres.json"),
+        str(output_dir)
+    ], env=env) == 0
+    assert subprocess.call([
+        "volume-to-precomputed",
+        "--sharding 2,2,0",
+        str(input_nifti),
+        str(output_dir)
+    ], env=env) == 0
+    assert subprocess.call([
+        "compute-scales",
+        "--downscaling-method=stride",  # for test speed
+        str(output_dir)
+    ], env=env) == 0
+    assert subprocess.call([
+        "scale-stats",
+        str(output_dir),
+    ], env=env) == 0
+    assert subprocess.call([
+        "convert-chunks",
+        "--copy-info",
+        str(output_dir),
+        str(output_dir / "copy")
+    ], env=env) == 0
+
+
 def test_slice_conversion(tmpdir):
     # Prepare dummy slices
     path_to_slices = tmpdir / "slices"

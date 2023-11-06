@@ -23,15 +23,27 @@ def show_scales_info(info):
     for scale in info["scales"]:
         scale_name = scale["key"]
         size = scale["size"]
+
+        shard_info = "Unsharded"
+        shard_spec = scale.get("sharding")
+        sharding_num_directories = None
+        if shard_spec:
+            shard_bits = shard_spec.get("shard_bits")
+            shard_info = f"Sharded: {shard_bits}bits"
+            sharding_num_directories = 2 ** shard_bits + 1
+
         for chunk_size in scale["chunk_sizes"]:
             size_in_chunks = [(s - 1) // cs + 1 for s,
                               cs in zip(size, chunk_size)]
             num_chunks = np.prod(size_in_chunks)
-            num_directories = size_in_chunks[0] * (1 + size_in_chunks[1])
+            num_directories = (
+                sharding_num_directories
+                if sharding_num_directories is not None
+                else size_in_chunks[0] * (1 + size_in_chunks[1]))
             size_bytes = np.prod(size) * dtype.itemsize * num_channels
-            print("Scale {}, chunk size {}:"
+            print("Scale {}, {}, chunk size {}:"
                   " {:,d} chunks, {:,d} directories, raw uncompressed size {}B"
-                  .format(scale_name, chunk_size,
+                  .format(scale_name, shard_info, chunk_size,
                           num_chunks, num_directories,
                           readable_count(size_bytes)))
             total_size += size_bytes

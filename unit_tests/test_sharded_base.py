@@ -617,6 +617,19 @@ info_setter_args = [
         } ,
         True
     ),
+    (
+        {
+            "scales": [
+                {
+                    "key": "foo",
+                    "sharding": {
+                        "@type": "foo-bar"
+                    }
+                }
+            ]
+        } ,
+        True
+    ),
 
     (
         {

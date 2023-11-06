@@ -195,9 +195,6 @@ class ShardVolumeSpec:
 
         return self.compressed_morton_code(grid_coords)
 
-    def generate_shard_spec(self) -> ShardSpec:
-        return ShardSpec(4, 4, "identity", "gzip", "gzip", 1)
-
 
 class CMCReadWrite(ABC):
 

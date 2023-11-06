@@ -5,8 +5,10 @@
 
 import argparse
 import pathlib
+import json
 
 import pytest
+from unittest.mock import patch
 
 from neuroglancer_scripts.accessor import (
     get_accessor_for_url,
@@ -17,6 +19,9 @@ from neuroglancer_scripts.accessor import (
 )
 from neuroglancer_scripts.file_accessor import FileAccessor
 from neuroglancer_scripts.http_accessor import HttpAccessor
+from neuroglancer_scripts.sharded_base import ShardedAccessorBase
+from neuroglancer_scripts.sharded_file_accessor import ShardedFileAccessor
+from neuroglancer_scripts.sharded_http_accessor import ShardedHttpAccessor
 
 
 @pytest.mark.parametrize("accessor_options", [
@@ -38,6 +43,57 @@ def test_get_accessor_for_url(accessor_options):
         get_accessor_for_url("weird://", accessor_options)
     with pytest.raises(URLError, match="decod"):
         get_accessor_for_url("file:///%ff", accessor_options)
+
+
+valid_info_str = json.dumps({
+            "scales": [
+                {
+                    "key": "foo",
+                    "sharding": {
+                        "@type": "neuroglancer_uint64_sharded_v1"
+                    }
+                }
+            ]
+        })
+
+
+@patch.object(ShardedAccessorBase, "info_is_sharded")
+@pytest.mark.parametrize("scheme", ["https://", "http://", "file:///", ""])
+@pytest.mark.parametrize("fetch_file_returns, info_is_sharded_returns, exp", [
+    (Exception("foobar"), None, False),
+    ('mal formed json', None, False),
+    (valid_info_str, Exception("foobar"), False),
+    (valid_info_str, False, False),
+    (valid_info_str, True, True),
+])
+def test_sharded_accessor_via_info(info_is_sharded_mock, fetch_file_returns,
+                                   info_is_sharded_returns, exp, scheme):
+
+    if isinstance(info_is_sharded_returns, Exception):
+        info_is_sharded_mock.side_effect = info_is_sharded_returns
+    else:
+        info_is_sharded_mock.return_value = info_is_sharded_returns
+
+    assert scheme in ("https://", "http://", "file:///", "")
+    if scheme in ("file:///", ""):
+        base_acc_cls = FileAccessor
+        shard_accessor_cls = ShardedFileAccessor
+    if scheme in ("https://", "http://"):
+        base_acc_cls = HttpAccessor
+        shard_accessor_cls = ShardedHttpAccessor
+    with patch.object(base_acc_cls, "fetch_file") as fetch_file_mock:
+        if isinstance(fetch_file_returns, Exception):
+            fetch_file_mock.side_effect = fetch_file_returns
+        else:
+            fetch_file_mock.return_value = fetch_file_returns
+
+        result = get_accessor_for_url(f"{scheme}example/")
+        assert isinstance(result, shard_accessor_cls if exp else base_acc_cls)
+
+        if info_is_sharded_returns is None:
+            info_is_sharded_mock.assert_not_called()
+        else:
+            info_is_sharded_mock.assert_called_once()
 
 
 @pytest.mark.parametrize("write_chunks", [True, False])

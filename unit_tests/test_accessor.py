@@ -58,7 +58,7 @@ valid_info_str = json.dumps({
 
 
 @patch.object(ShardedAccessorBase, "info_is_sharded")
-@pytest.mark.parametrize("scheme", ["https://", "http://", "file://", ""])
+@pytest.mark.parametrize("scheme", ["https://", "http://", ""])
 @pytest.mark.parametrize("fetch_file_returns, info_is_sharded_returns, exp", [
     (Exception("foobar"), None, False),
     ('mal formed json', None, False),

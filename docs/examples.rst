@@ -156,7 +156,8 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
 
 .. _Waxholm Rat:
 
-T2 Star template used in this example can be found at
+In the ``examples/Waxholm`` directory of the source distribution, you will find
+``WHS_SD_rat_T2star_v1.nii.gz``, sourced from
 `nitrc <https://www.nitrc.org/frs/?group_id=1081>`
 
 Conversion of the grey-level template image (sharded precomputed)

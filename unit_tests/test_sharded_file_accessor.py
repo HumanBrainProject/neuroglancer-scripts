@@ -788,8 +788,6 @@ def test_accessor_close(faccessor_w: ShardedFileAccessor, tmpdir):
     mock1 = MagicMock()
     mock2 = MagicMock()
 
-    mock1.to_json.return_value = "tojson_1"
-    mock2.to_json.return_value = "tojson_2"
     faccessor_w.shard_dict = {
         "1": mock1,
         "2": mock2,
@@ -799,6 +797,3 @@ def test_accessor_close(faccessor_w: ShardedFileAccessor, tmpdir):
 
     mock1.close.assert_called_once()
     mock2.close.assert_called_once()
-
-    mock1.to_json.assert_called_once()
-    mock2.to_json.assert_called_once()

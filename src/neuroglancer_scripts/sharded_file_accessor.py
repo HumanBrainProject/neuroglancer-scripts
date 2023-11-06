@@ -382,6 +382,8 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
     def __init__(self, base_dir):
         ShardedAccessorBase.__init__(self)
         self.base_dir = pathlib.Path(base_dir)
+        self.base_dir.mkdir(exist_ok=True, parents=True)
+
         self.shard_dict: Dict[str, ShardedScale] = {}
         self.ro_shard_dict: Dict[str, ShardedScale] = {}
 

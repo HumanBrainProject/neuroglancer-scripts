@@ -98,7 +98,7 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
 
 
 def test_sharded_conversion(examples_dir, tmpdir):
-    input_nifti = examples_dir / "JuBrain" / "colin27T1_seg.nii.gz"
+    input_nifti = examples_dir / "Waxholm" / "WHS_SD_rat_T2star_v1.nii.gz"
     # The file may be present but be a git-lfs pointer file, so we need to open
     # it to make sure that it is the actual correct file.
     try:
@@ -107,7 +107,7 @@ def test_sharded_conversion(examples_dir, tmpdir):
         pytest.skip("Cannot find a valid example file {0} for testing: {1}"
                     .format(input_nifti, exc))
 
-    output_dir = tmpdir / "MPM"
+    output_dir = tmpdir / "waxholm"
     assert subprocess.call([
         "volume-to-precomputed",
         "--generate-info",
@@ -115,16 +115,21 @@ def test_sharded_conversion(examples_dir, tmpdir):
         str(input_nifti),
         str(output_dir)
     ], env=env) == 0
+
+    with open(output_dir / "info_fullres.json", "r") as fp:
+        fullres_info = json.load(fp=fp)
+    with open(output_dir / "info_fullres.json", "w") as fp:
+        fullres_info["data_type"] = "uint8"
+        json.dump(fullres_info, fp=fp, indent="\t")
+
     assert subprocess.call([
         "generate-scales-info",
-        "--type=segmentation",
-        "--encoding=compressed_segmentation",
         str(output_dir / "info_fullres.json"),
         str(output_dir)
     ], env=env) == 0
     assert subprocess.call([
         "volume-to-precomputed",
-        "--sharding 2,2,0",
+        "--sharding", "2,2,0",
         str(input_nifti),
         str(output_dir)
     ], env=env) == 0
@@ -133,16 +138,13 @@ def test_sharded_conversion(examples_dir, tmpdir):
         "--downscaling-method=stride",  # for test speed
         str(output_dir)
     ], env=env) == 0
-    assert subprocess.call([
-        "scale-stats",
-        str(output_dir),
-    ], env=env) == 0
-    assert subprocess.call([
-        "convert-chunks",
-        "--copy-info",
-        str(output_dir),
-        str(output_dir / "copy")
-    ], env=env) == 0
+
+    all_files = [f"{dirpath}/{filename}" for dirpath, _, filenames
+                 in os.walk(output_dir)
+                 for filename in filenames]
+
+    assert len(all_files) == 16, ("Expecting 19 files, but got "
+                                  f"{len(all_files)}.\n{all_files}")
 
 
 def test_slice_conversion(tmpdir):

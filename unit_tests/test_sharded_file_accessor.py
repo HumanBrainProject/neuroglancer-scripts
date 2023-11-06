@@ -802,6 +802,3 @@ def test_accessor_close(faccessor_w: ShardedFileAccessor, tmpdir):
 
     mock1.to_json.assert_called_once()
     mock2.to_json.assert_called_once()
-
-    with open(pathlib.Path(tmpdir) / "segments.json", "r") as fp:
-        assert json.load(fp=fp) == ["tojson_1", "tojson_2"]

@@ -459,11 +459,5 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
     def close(self):
         if len(self.shard_dict) == 0:
             return
-        scale_arr = []
         for scale in self.shard_dict.values():
             scale.close()
-            scale_arr.append(scale.to_json())
-
-        scale_str = json.dumps(scale_arr)
-        self.store_file("segments.json", scale_str.encode("utf-8"),
-                        overwrite=True)

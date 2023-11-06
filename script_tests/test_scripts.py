@@ -111,7 +111,7 @@ def test_sharded_conversion(examples_dir, tmpdir):
     assert subprocess.call([
         "volume-to-precomputed",
         "--generate-info",
-        "--sharding 2,2,0",
+        "--sharding", "2,2,0",
         str(input_nifti),
         str(output_dir)
     ], env=env) == 0

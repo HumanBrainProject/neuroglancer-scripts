@@ -58,7 +58,7 @@ valid_info_str = json.dumps({
 
 
 @patch.object(ShardedAccessorBase, "info_is_sharded")
-@pytest.mark.parametrize("scheme", ["https://", "http://", "file:///", ""])
+@pytest.mark.parametrize("scheme", ["https://", "http://", "file://", ""])
 @pytest.mark.parametrize("fetch_file_returns, info_is_sharded_returns, exp", [
     (Exception("foobar"), None, False),
     ('mal formed json', None, False),
@@ -74,8 +74,8 @@ def test_sharded_accessor_via_info(info_is_sharded_mock, fetch_file_returns,
     else:
         info_is_sharded_mock.return_value = info_is_sharded_returns
 
-    assert scheme in ("https://", "http://", "file:///", "")
-    if scheme in ("file:///", ""):
+    assert scheme in ("https://", "http://", "file://", "")
+    if scheme in ("file://", ""):
         base_acc_cls = FileAccessor
         shard_accessor_cls = ShardedFileAccessor
     if scheme in ("https://", "http://"):

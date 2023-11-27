@@ -234,6 +234,11 @@ def test_minishard_close(shard_spec_2_2_2: ShardSpec, pre_store_cmc,
 
 
 # Shard
+def test_shard_kwargs(tmpdir, shard_spec_2_2_2):
+    shard = Shard(tmpdir, np.uint64(0), shard_spec_2_2_2, foo="bar")
+    assert shard.kwargs == {"foo": "bar"}
+
+
 @pytest.mark.parametrize("write_files, readable, legacy", [
     ((), False, False),
     (("{shard_key_str}.shard",), True, False),
@@ -571,6 +576,12 @@ def test_shard_close_not_dirty(tmpdir, shard_spec_1_1_1):
 
 
 # ShardedScale
+def test_shardscale_kwargs(tmpdir, shard_spec_2_2_2):
+    vol_spec = ShardVolumeSpec([64, 64, 64], [128, 128, 128])
+    scale = ShardedScale(tmpdir, "5mm", shard_spec_2_2_2, vol_spec, foo="bar")
+    assert scale.kwargs == {"foo": "bar"}
+
+
 @pytest.fixture
 def sharded_scale(tmpdir, shard_spec_2_2_2):
     vol_spec = ShardVolumeSpec([64, 64, 64], [128, 128, 128])
@@ -644,6 +655,11 @@ shard_scale_info = {
         }
     ]
 }
+
+
+def test_shardedfileaccessor_kwargs(tmpdir):
+    accessor = ShardedFileAccessor(tmpdir, foo="bar")
+    assert accessor.kwargs == {"foo": "bar"}
 
 
 @pytest.fixture

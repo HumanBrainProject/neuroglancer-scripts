@@ -346,7 +346,7 @@ class ShardedScaleBase(CMCReadWrite, ABC):
         assert shard.can_write_cmc
         return shard.store_cmc_chunk(buf, cmc)
 
-    def store_chunk(self, buf, chunk_coords):
+    def store_chunk(self, buf, chunk_coords, **kwargs):
         cmc = self.shard_volume_spec.get_cmc(chunk_coords)
         return self.store_cmc_chunk(buf, cmc)
 

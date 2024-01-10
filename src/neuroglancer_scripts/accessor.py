@@ -1,5 +1,7 @@
-# Copyright (c) 2018 Forschungszentrum Juelich GmbH
+# Copyright (c) 2018, 2023 Forschungszentrum Juelich GmbH
+#
 # Author: Yann Leprince <y.leprince@fz-juelich.de>
+# Author: Xiao Gui <xgui3783@gmail.com>
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 

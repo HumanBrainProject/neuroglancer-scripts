@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 #
-# Copyright (c) 2016, 2017, Forschungszentrum Juelich GmbH
+# Copyright (c) 2016, 2017, 2023 Forschungszentrum Juelich GmbH
 # Author: Yann Leprince <y.leprince@fz-juelich.de>
+# Author: Xiao Gui <xgui3783@gmail.com>
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 

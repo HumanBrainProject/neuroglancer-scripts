@@ -1,3 +1,8 @@
+# Copyright (c) 2023, 2024 Forschungszentrum Juelich GmbH
+# Author: Xiao Gui <xgui3783@gmail.com>
+#
+# This software is made available under the MIT licence, see LICENCE.txt.
+
 import pytest
 from unittest.mock import patch, MagicMock, call, PropertyMock
 from neuroglancer_scripts.sharded_file_accessor import (

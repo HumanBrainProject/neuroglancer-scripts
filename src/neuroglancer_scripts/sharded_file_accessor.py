@@ -1,3 +1,8 @@
+# Copyright (c) 2023, 2024 Forschungszentrum Juelich GmbH
+# Author: Xiao Gui <xgui3783@gmail.com>
+#
+# This software is made available under the MIT licence, see LICENCE.txt.
+
 """Access to a Neuroglancer sharded precomputed dataset on a local filesystem.
 
 See the :mod:`~neuroglancer_scripts.accessor` module for a description of the

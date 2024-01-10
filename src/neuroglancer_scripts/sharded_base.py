@@ -1,37 +1,11 @@
-# BSD 3-Clause License
+# Copyright (c) 2023, 2024 Forschungszentrum Juelich GmbH
+# Author: Xiao Gui <xgui3783@gmail.com>
 #
-# Copyright (c) 2017, Ignacio Tartavull, William Silversmith, and later authors. # noqa
-# All rights reserved.
+# This software is made available under the MIT licence, see LICENCE.txt.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE # noqa
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# Minor later modifications (c) 2024 by Xiao Gui <xgui3783@gmail.com>
-# Minor modifications made from https://github.com/seung-lab/cloud-volume/blob/aebf4e2/cloudvolume/datasource/precomputed/image/common.py # noqa
-#
-# This software is made available under the BSD 3-Clause license.
+# Implementation of compressed_morton_code is based on code released under the
+# BSD 3-clause licence by Copyright (c) 2017, Ignacio Tartavull, William
+# Silversmith, and later authors (see below).
 
 from typing import List, Dict, Any
 from abc import ABC, abstractmethod
@@ -182,6 +156,13 @@ class ShardVolumeSpec:
                                  f"requires {self.num_bits}, larger than the "
                                  "max possible, 64.")
 
+    # The compressed_morton_code method is based on code released under the BSD
+    # 3-Clause License, Copyright (c) 2017, Ignacio Tartavull, William
+    # Silversmith, and later authors:
+    #
+    # https://github.com/seung-lab/cloud-volume/blob/aebf4e2dcc89013b95c2510e43b8e98a850dcaaa/cloudvolume/datasource/precomputed/image/common.py  # noqa
+    #
+    # Minor later modifications (c) 2024 by Xiao Gui <xgui3783@gmail.com>
     def compressed_morton_code(self, grid_coords: List[int]):
         if any(
             not isinstance(grid_coord, int) or grid_coord < 0

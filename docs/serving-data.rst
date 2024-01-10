@@ -99,3 +99,50 @@ following Apache configuration (e.g. put it in a ``.htaccess`` file):
        AddEncoding x-gzip .gz
        AddType application/octet-stream .gz
    </IfModule>
+
+
+Serving sharded data
+====================
+
+
+Content-Encoding
+----------------
+
+Sharded data must be served without any `Content-Encoding header
+<https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding>_`.
+
+
+HTTP Range request
+------------------
+
+Sharded data must be served by a webserver that supports `Range header
+<https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range>_`.
+
+For development uses, python's bundled SimpleHTTPServer  `does not support
+this <https://github.com/python/cpython/issues/86809>_`. Recommended
+alternatives are:
+
+- `http-server (NodeJS)<https://www.npmjs.com/package/http-server>_`
+
+- `RangeHTTPServer(Python) <https://github.com/danvk/RangeHTTPServer>_`
+
+For production uses, most modern static web servers supports range requests.
+The below is a list of web servers that were tested and works with sharded
+volumes.
+
+- nginx 1.25.3
+
+- httpd 2.4.58
+
+- caddy 2.7.5
+
+In addition, most object storage also supports range requests without
+additional configurations.
+
+
+Enable Access-Control-Allow-Origin header
+-----------------------------------------
+
+`Access-Control-Allow-Origin
+<https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin>_`
+will need to be enabled if the volume is expected to be accessed cross origin.

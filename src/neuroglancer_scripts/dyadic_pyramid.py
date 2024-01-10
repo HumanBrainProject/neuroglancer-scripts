@@ -148,10 +148,14 @@ def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
 
 
 def compute_dyadic_scales(precomputed_io, downscaler):
+    from neuroglancer_scripts import sharded_file_accessor
     for i in range(len(precomputed_io.info["scales"]) - 1):
         compute_dyadic_downscaling(
             precomputed_io.info, i, downscaler, precomputed_io, precomputed_io
         )
+        if isinstance(precomputed_io.accessor,
+                      sharded_file_accessor.ShardedFileAccessor):
+            precomputed_io.accessor.close()
 
 
 def compute_dyadic_downscaling(info, source_scale_index, downscaler,

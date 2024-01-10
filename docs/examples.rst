@@ -188,6 +188,7 @@ https://neuroglancer.humanbrainproject.eu/precomputed/BigBrainRelease.2015/8bit.
 Using this as the source volume, a sharded volume will be created.
 
 .. code-block:: sh
+
   mkdir sharded_bigbrain/
   curl --output sharded_bigbrain/info \
     https://neuroglancer.humanbrainproject.eu/precomputed/BigBrainRelease.2015/8bit/info

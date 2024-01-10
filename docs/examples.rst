@@ -154,12 +154,6 @@ BigBrain is a very large image (6572 × 7404 × 5711 voxels) reconstructed from
    link-mesh-fragments --no-colon-suffix mesh_labels.csv classif/
 
 
-.. _Waxholm Rat:
-
-In the ``examples/Waxholm`` directory of the source distribution, you will find
-``WHS_SD_rat_T2star_v1.nii.gz``, sourced from
-`nitrc <https://www.nitrc.org/frs/?group_id=1081>`
-
 Conversion of the grey-level template image (sharded precomputed)
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -167,25 +161,23 @@ Conversion of the grey-level template image (sharded precomputed)
 
    volume-to-precomputed \
        --generate-info \
-       --sharded 2,2,0 \
-       ./build/WHS_SD_rat_T2star_v1.nii.gz \
-       ./build/output/
+       --sharding 1,1,0 \
+       colin27T1_seg.nii.gz \
+       colin27T1_seg_sharded
 
-At this point, you need to edit ``/build/output/info_fullres.json`` to set
-``"data_type": "uint8"``. This is done to reduce the size of the final volume
-and better normalization. Seprately, by way of nibabel, we also determined the
-min and max of the volume to be 10.203 and 32766.0 respectively.
+At this point, you need to edit ``colin27T1_seg_sharded/info_fullres.json`` to set
+``"data_type": "uint8"``. This is needed because ``colin27T1_seg.nii.gz`` uses
+a peculiar encoding, with slope and intercept set in the NIfTI header, even
+though only integers between 0 and 255 are encoded.
 
 .. code-block:: sh
 
-  generate-scales-info ./build/output/info_fullres.json ./build/output/
+  generate-scales-info colin27T1_seg_sharded/info_fullres.json colin27T1_seg_sharded/
   volume-to-precomputed \
-      --sharding 2,2,0 \
-      --input-max 32766.0 \
-      --input-min 10.203 \
-      ./build/WHS_SD_rat_T2star_v1.nii.gz \
-      ./build/output/
-  compute-scales ./build/output/
+      --sharding 1,1,0 \
+      colin27T1_seg.nii.gz \
+      colin27T1_seg_sharded/
+  compute-scales colin27T1_seg_sharded/
 
 
 .. _Conversion of Big Brain to sharded precomputed format:

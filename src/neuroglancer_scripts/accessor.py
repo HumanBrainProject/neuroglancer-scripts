@@ -52,7 +52,10 @@ def get_accessor_for_url(url, accessor_options={}):
                 info = json.loads(accessor.fetch_file("info"))
                 if sharded_base.ShardedAccessorBase.info_is_sharded(info):
                     is_sharding = True
-            except Exception:
+            except (DataAccessError, json.JSONDecodeError):
+                # In the event that info does not exist
+                # Or info is malformed
+                # Fallback to default behavior
                 ...
 
         if is_sharding:
@@ -74,7 +77,10 @@ def get_accessor_for_url(url, accessor_options={}):
                 info = json.loads(accessor.fetch_file("info"))
                 if sharded_base.ShardedAccessorBase.info_is_sharded(info):
                     is_sharding = True
-            except Exception:
+            except (DataAccessError, json.JSONDecodeError):
+                # In the event that info does not exist
+                # Or info is malformed
+                # Fallback to default behavior
                 ...
 
         if is_sharding:

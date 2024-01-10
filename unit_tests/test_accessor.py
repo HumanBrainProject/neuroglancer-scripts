@@ -16,6 +16,7 @@ from neuroglancer_scripts.accessor import (
     convert_file_url_to_pathname,
     Accessor,
     URLError,
+    DataAccessError,
 )
 from neuroglancer_scripts.file_accessor import FileAccessor
 from neuroglancer_scripts.http_accessor import HttpAccessor
@@ -60,9 +61,8 @@ valid_info_str = json.dumps({
 @patch.object(ShardedAccessorBase, "info_is_sharded")
 @pytest.mark.parametrize("scheme", ["https://", "http://", ""])
 @pytest.mark.parametrize("fetch_file_returns, info_is_sharded_returns, exp", [
-    (Exception("foobar"), None, False),
+    (DataAccessError("foobar"), None, False),
     ('mal formed json', None, False),
-    (valid_info_str, Exception("foobar"), False),
     (valid_info_str, False, False),
     (valid_info_str, True, True),
 ])

@@ -98,7 +98,7 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
 
 
 def test_sharded_conversion(examples_dir, tmpdir):
-    input_nifti = examples_dir / "Waxholm" / "WHS_SD_rat_T2star_v1.nii.gz"
+    input_nifti = examples_dir / "JuBrain" / "colin27T1_seg.nii.gz"
     # The file may be present but be a git-lfs pointer file, so we need to open
     # it to make sure that it is the actual correct file.
     try:
@@ -107,14 +107,14 @@ def test_sharded_conversion(examples_dir, tmpdir):
         pytest.skip("Cannot find a valid example file {0} for testing: {1}"
                     .format(input_nifti, exc))
 
-    output_dir = tmpdir / "waxholm"
+    output_dir = tmpdir / "colin27T1_seg_sharded"
     assert subprocess.call([
         "volume-to-precomputed",
         "--generate-info",
-        "--sharding", "2,2,0",
+        "--sharding", "1,1,0",
         str(input_nifti),
         str(output_dir)
-    ], env=env) == 0
+    ], env=env) == 4  # datatype not supported by neuroglancer
 
     with open(output_dir / "info_fullres.json", "r") as fp:
         fullres_info = json.load(fp=fp)
@@ -129,7 +129,7 @@ def test_sharded_conversion(examples_dir, tmpdir):
     ], env=env) == 0
     assert subprocess.call([
         "volume-to-precomputed",
-        "--sharding", "2,2,0",
+        "--sharding", "1,1,0",
         str(input_nifti),
         str(output_dir)
     ], env=env) == 0
@@ -143,8 +143,8 @@ def test_sharded_conversion(examples_dir, tmpdir):
                  in os.walk(output_dir)
                  for filename in filenames]
 
-    assert len(all_files) == 16, ("Expecting 19 files, but got "
-                                  f"{len(all_files)}.\n{all_files}")
+    assert len(all_files) == 7, ("Expecting 7 files, but got "
+                                 f"{len(all_files)}.\n{all_files}")
 
 
 def test_slice_conversion(tmpdir):

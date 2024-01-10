@@ -381,8 +381,18 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
     :param str base_dir: path to the directory containing the pyramid
     :param dict key_to_mip_sizes:
     """
-    can_read = False
+    can_read = True
     can_write = True
+
+    @property
+    def info(self):
+        if hasattr(self, '_info'):
+            return self._info
+        return json.loads(self.fetch_file("info"))
+
+    @info.setter
+    def info(self, val):
+        self._info = val
 
     def __init__(self, base_dir, **kwargs):
         ShardedAccessorBase.__init__(self)
@@ -391,12 +401,6 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
 
         self.shard_dict: Dict[str, ShardedScale] = {}
         self.ro_shard_dict: Dict[str, ShardedScale] = {}
-
-        try:
-            self.info = json.loads(self.fetch_file("info"))
-            self.can_read = True
-        except IOError:
-            ...
 
         import atexit
         atexit.register(self.close)

@@ -88,8 +88,8 @@ def get_accessor_for_url(url, accessor_options={}):
             return sharded_http_accessor.ShardedHttpAccessor(url)
         return accessor
     else:
-        raise URLError("Unsupported URL scheme {0} (must be file, http, or "
-                       "https)".format(r.scheme))
+        raise URLError(f"Unsupported URL scheme {r.scheme} (must be file, "
+                       "http, or https)")
 
 
 def add_argparse_options(parser, write_chunks=True, write_files=True):

@@ -34,8 +34,8 @@ def test_jubrain_example_MPM(examples_dir, tmpdir):
     try:
         gzip.open(str(input_nifti)).read(348)
     except OSError as exc:
-        pytest.skip("Cannot find a valid example file {0} for testing: {1}"
-                    .format(input_nifti, exc))
+        pytest.skip(f"Cannot find a valid example file {input_nifti} for "
+                    f"testing: {exc}")
 
     output_dir = tmpdir / "MPM"
     assert subprocess.call([
@@ -80,8 +80,8 @@ def test_all_in_one_conversion(examples_dir, tmpdir):
     try:
         gzip.open(str(input_nifti)).read(348)
     except OSError as exc:
-        pytest.skip("Cannot find a valid example file {0} for testing: {1}"
-                    .format(input_nifti, exc))
+        pytest.skip(f"Cannot find a valid example file {input_nifti} for "
+                    f"testing: {exc}")
 
     output_dir = tmpdir / "colin27T1_seg"
     assert subprocess.call([
@@ -104,8 +104,8 @@ def test_sharded_conversion(examples_dir, tmpdir):
     try:
         gzip.open(str(input_nifti)).read(348)
     except OSError as exc:
-        pytest.skip("Cannot find a valid example file {0} for testing: {1}"
-                    .format(input_nifti, exc))
+        pytest.skip(f"Cannot find a valid example file {input_nifti} for "
+                    f"testing: {exc}")
 
     output_dir = tmpdir / "colin27T1_seg_sharded"
     assert subprocess.call([
@@ -116,7 +116,7 @@ def test_sharded_conversion(examples_dir, tmpdir):
         str(output_dir)
     ], env=env) == 4  # datatype not supported by neuroglancer
 
-    with open(output_dir / "info_fullres.json", "r") as fp:
+    with open(output_dir / "info_fullres.json") as fp:
         fullres_info = json.load(fp=fp)
     with open(output_dir / "info_fullres.json", "w") as fp:
         fullres_info["data_type"] = "uint8"

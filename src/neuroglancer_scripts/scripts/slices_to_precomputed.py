@@ -106,8 +106,8 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
 
     for filename_list in slice_filename_lists:
         if len(filename_list) != input_size[2]:
-            raise ValueError("{} slices found where {} were expected"
-                             .format(len(filename_list), input_size[2]))
+            raise ValueError(f"{len(filename_list)} slices found where "
+                             f"{input_size[2]} were expected")
 
     for slice_chunk_idx in trange((input_size[2] - 1)
                                   // input_chunk_size[2] + 1,
@@ -126,7 +126,7 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
         slice_slicing = np.s_[first_slice
                               : last_slice
                               : input_axis_inversions[2]]
-        tqdm.write("Reading slices {0} to {1} ({2}B memory needed)... "
+        tqdm.write("Reading slices {} to {} ({}B memory needed)... "
                    .format(first_slice, last_slice - input_axis_inversions[2],
                            readable_count(input_size[0]
                                           * input_size[1]
@@ -152,8 +152,8 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                 block = block[np.newaxis, :, :, :]
             else:
                 raise ValueError(
-                    "block has unexpected dimensionality (ndim={})"
-                    .format(block.ndim)
+                    f"block has unexpected dimensionality (ndim={block.ndim})"
+
                 )
             return block
 

@@ -124,15 +124,15 @@ directory (see the link-mesh-fragments command).
         try:
             matrix = np.fromstring(args.coord_transform, sep=",")
         except ValueError as exc:
-            parser.error("cannot parse --coord-transform: {}"
-                         .format(exc.args[0]))
+            parser.error(f"cannot parse --coord-transform: {exc.args[0]}"
+                         )
         if len(matrix) == 12:
             matrix = matrix.reshape(3, 4)
         elif len(matrix) == 16:
             matrix = matrix.reshape(4, 4)
         else:
             parser.error("--coord-transform must have 12 or 16 elements"
-                         " ({} passed)".format(len(matrix)))
+                         f" ({len(matrix)} passed)")
 
         args.coord_transform = matrix
 

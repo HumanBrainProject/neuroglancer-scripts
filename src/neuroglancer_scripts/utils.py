@@ -92,7 +92,7 @@ def readable_count(count):
             return num_str + " " + prefix
     # Fallback: use the last prefix
     factor, prefix = _IEC_PREFIXES[-1]
-    return "{:,.0f} {}".format(count / factor, prefix)
+    return f"{count / factor:,.0f} {prefix}"
 
 
 LENGTH_UNITS = collections.OrderedDict([

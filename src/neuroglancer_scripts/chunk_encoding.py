@@ -48,14 +48,14 @@ def get_encoder(info, scale_info, encoder_options={}):
         num_channels = info["num_channels"]
         encoding = scale_info["encoding"]
     except KeyError as exc:
-        raise InvalidInfoError("The info dict is missing an essential key {0}"
-                               .format(exc)) from exc
+        raise InvalidInfoError("The info dict is missing an essential key "
+                               f"{exc}") from exc
     if not isinstance(num_channels, int) or not num_channels > 0:
-        raise InvalidInfoError("Invalid value {0} for num_channels (must be "
-                               "a positive integer)".format(num_channels))
+        raise InvalidInfoError(f"Invalid value {num_channels} for "
+                               "num_channels (must be a positive integer)")
     if data_type not in NEUROGLANCER_DATA_TYPES:
-        raise InvalidInfoError("Invalid data_type {0} (should be one of {1})"
-                               .format(data_type, NEUROGLANCER_DATA_TYPES))
+        raise InvalidInfoError(f"Invalid data_type {data_type} (should be one "
+                               f"of {NEUROGLANCER_DATA_TYPES})")
     try:
         if encoding == "raw":
             return RawChunkEncoder(data_type, num_channels)
@@ -75,7 +75,7 @@ def get_encoder(info, scale_info, encoder_options={}):
                                     jpeg_plane=jpeg_plane,
                                     jpeg_quality=jpeg_quality)
         else:
-            raise InvalidInfoError("Invalid encoding {0}".format(encoding))
+            raise InvalidInfoError(f"Invalid encoding {encoding}")
     except IncompatibleEncoderError as exc:
         raise InvalidInfoError(str(exc)) from exc
 
@@ -191,8 +191,8 @@ class RawChunkEncoder(ChunkEncoder):
                 (self.num_channels,
                  chunk_size[2], chunk_size[1], chunk_size[0]))
         except Exception as exc:
-            raise InvalidFormatError("Cannot decode raw-encoded chunk: {0}"
-                                     .format(exc)) from exc
+            raise InvalidFormatError(f"Cannot decode raw-encoded chunk: {exc}"
+                                     ) from exc
 
 
 class CompressedSegmentationEncoder(ChunkEncoder):

@@ -56,7 +56,7 @@ def volume_to_precomputed_pyramid(volume_filename,
             info, accessor
         )
     except neuroglancer_scripts.accessor.DataAccessError as exc:
-        logger.error("Cannot write info: {0}".format(exc))
+        logger.error(f"Cannot write info: {exc}")
         return 1
     volume_reader.nibabel_image_to_precomputed(
         img, precomputed_writer,

@@ -42,18 +42,15 @@ def show_scales_info(info):
                 if sharding_num_directories is not None
                 else size_in_chunks[0] * (1 + size_in_chunks[1]))
             size_bytes = np.prod(size) * dtype.itemsize * num_channels
-            print("Scale {}, {}, chunk size {}:"
-                  " {:,d} chunks, {:,d} directories, raw uncompressed size {}B"
-                  .format(scale_name, shard_info, chunk_size,
-                          num_chunks, num_directories,
-                          readable_count(size_bytes)))
+            print(f"Scale {scale_name}, {shard_info}, chunk size {chunk_size}:"
+                  f" {num_chunks:,d} chunks, {num_directories:,d} directories,"
+                  f" raw uncompressed size {readable_count(size_bytes)}B")
             total_size += size_bytes
             total_chunks += num_chunks
             total_directories += num_directories
     print("---")
-    print("Total: {:,d} chunks, {:,d} directories, raw uncompressed size {}B"
-          .format(total_chunks, total_directories,
-                  readable_count(total_size)))
+    print(f"Total: {total_chunks:,d} chunks, {total_directories:,d} "
+          f"directories, raw uncompressed size {readable_count(total_size)}B")
 
 
 def show_scale_file_info(url, options={}):

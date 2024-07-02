@@ -422,7 +422,7 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
 
     def store_file(self, relative_path, buf, overwrite=False, **kwargs):
         if not overwrite and self.file_exists(relative_path):
-            raise IOError(f"file at {relative_path} already exists")
+            raise OSError(f"file at {relative_path} already exists")
         with open(self.base_dir / relative_path, "wb") as fp:
             fp.write(buf)
 

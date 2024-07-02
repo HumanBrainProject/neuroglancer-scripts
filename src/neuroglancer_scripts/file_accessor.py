@@ -63,7 +63,7 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                 return True
         except OSError as exc:
             raise DataAccessError(
-                "Error fetching {0}: {1}".format(file_path, exc)) from exc
+                f"Error fetching {file_path}: {exc}") from exc
         return False
 
     def fetch_file(self, relative_path):
@@ -79,13 +79,13 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                 f = gzip.open(str(file_path.with_name(file_path.name + ".gz")),
                               "rb")
             else:
-                raise DataAccessError("Cannot find {0} in {1}".format(
-                    relative_path, self.base_path))
+                raise DataAccessError(f"Cannot find {relative_path} in "
+                                      f"{self.base_path}")
             with f:
                 return f.read()
         except OSError as exc:
             raise DataAccessError(
-                "Error fetching {0}: {1}".format(file_path, exc)) from exc
+                f"Error fetching {file_path}: {exc}") from exc
 
     def store_file(self, relative_path, buf,
                    mime_type="application/octet-stream",
@@ -107,8 +107,8 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                 with file_path.open(mode) as f:
                     f.write(buf)
         except OSError as exc:
-            raise DataAccessError("Error storing {0}: {1}"
-                                  .format(file_path, exc)) from exc
+            raise DataAccessError(f"Error storing {file_path}: {exc}"
+                                  ) from exc
 
     def fetch_chunk(self, key, chunk_coords):
         f = None
@@ -124,17 +124,17 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                     )
             if f is None:
                 raise DataAccessError(
-                    "Cannot find chunk {0} in {1}" .format(
-                        self._flat_chunk_basename(key, chunk_coords),
-                        self.base_path)
+                    "Cannot find chunk "
+                    f"{self._flat_chunk_basename(key, chunk_coords)} in "
+                    f"{self.base_path}"
                 )
             with f:
                 return f.read()
         except OSError as exc:
             raise DataAccessError(
-                "Error accessing chunk {0} in {1}: {2}" .format(
-                    self._flat_chunk_basename(key, chunk_coords),
-                    self.base_path, exc)) from exc
+                "Error accessing chunk "
+                f"{self._flat_chunk_basename(key, chunk_coords)} in "
+                f"{self.base_path}: {exc}" ) from exc
 
     def store_chunk(self, buf, key, chunk_coords,
                     mime_type="application/octet-stream",
@@ -153,9 +153,9 @@ class FileAccessor(neuroglancer_scripts.accessor.Accessor):
                     f.write(buf)
         except OSError as exc:
             raise DataAccessError(
-                "Error storing chunk {0} in {1}: {2}" .format(
-                    self._flat_chunk_basename(key, chunk_coords),
-                    self.base_path, exc)) from exc
+                "Error storing chunk "
+                f"{self._flat_chunk_basename(key, chunk_coords)} in "
+                f"{self.base_path}: {exc}" ) from exc
 
     def _chunk_path(self, key, chunk_coords, pattern=None):
         if pattern is None:

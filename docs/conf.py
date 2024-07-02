@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # neuroglancer-scripts documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb  2 15:05:24 2018.

@@ -420,7 +420,7 @@ class ShardedAccessorBase(ABC):
     def get_scale(self, key) -> Dict[str, Any]:
         scales = self.info.get("scales")
         try:
-            scale, = [scale for scale in scales if scale.get("key") == key]
+            scale, = (scale for scale in scales if scale.get("key") == key)
             return scale
         except ValueError as e:
             raise ValueError(f"key {key!r} not found in scales. Possible "

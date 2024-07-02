@@ -512,7 +512,6 @@ def test_store_cmc_chunk(mocked_get_shard_base):
 
     base, shard_spec, svs = mocked_get_shard_base
     shard_magic_mock = MagicMock()
-    get_shard_key_mock = MagicMock()
     with patch.object(base, "get_shard_key",
                       return_value=shard_key) as get_shard_key_mock:
         with patch.object(base, "get_shard",
@@ -540,7 +539,6 @@ def test_shard_fetch_cmc_chunk(mocked_get_shard_base):
 
     base, shard_spec, svs = mocked_get_shard_base
     shard_magic_mock = MagicMock()
-    get_shard_key_mock = MagicMock()
     with patch.object(base, "get_shard_key",
                       return_value=shard_key) as get_shard_key_mock:
         with patch.object(base, "get_shard",

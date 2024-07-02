@@ -5,13 +5,13 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-# flake8: noqa
+# noqa
 
 """
 Convert a mesh from STL ASCII to Neuroglancer pre-computed mesh format
 
-Currently STL triangles are just written to the output as is, i.e. normals are not considered
-and equal vertices are not reused.
+Currently STL triangles are just written to the output as is, i.e. normals are
+not considered and equal vertices are not reused.
 """
 
 import gzip
@@ -78,10 +78,13 @@ def parse_command_line(argv):
     """Parse the script's command line."""
     import argparse
     parser = argparse.ArgumentParser(
-        description="""Convert a mesh from STL ASCII to Neuroglancer pre-computed mesh format""")
+        description="Convert a mesh from STL ASCII to Neuroglancer "
+                    "pre-computed mesh format")
     parser.add_argument("input_filename")
     parser.add_argument("output_filename")
-    parser.add_argument("--voxel-size", help="Voxel size in mm. Only isotropic voxels are supported for now. Default is 1.0",
+    parser.add_argument("--voxel-size", help="Voxel size in mm. Only "
+                        "isotropic voxels are supported for now. Default is "
+                        "1.0",
                         type=float, default=1.0)
     parser.add_argument("--no-compression", help="Don't gzip the output.",
                         action="store_false", dest="compress")
@@ -93,7 +96,8 @@ def main(argv):
     """The script's entry point."""
     args = parse_command_line(argv)
     return stl_file_to_precomputed(
-        args.input_filename, args.output_filename, args.voxel_size, args.compress) or 0
+        args.input_filename, args.output_filename, args.voxel_size,
+        args.compress) or 0
 
 
 if __name__ == "__main__":

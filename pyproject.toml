@@ -4,3 +4,20 @@ requires = [
     "wheel",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+target-version = "py37"  # py36 does not exist
+line-length = 79
+indent-width = 4
+
+[tool.ruff.lint]
+extend-select = [
+    "F",
+    "E",
+    "W",
+    "N",
+    "NPY201",
+]
+ignore = [
+    "N802",  # Gives false positives when a name contains an uppercase acronym
+]

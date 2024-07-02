@@ -3,20 +3,19 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import pytest
 from unittest.mock import MagicMock, patch
+
 import numpy as np
-
-from requests import Session, exceptions as re_exc
-
+import pytest
 from neuroglancer_scripts.sharded_http_accessor import (
     HttpShard,
-    ShardSpec,
     HttpShardedScale,
-    ShardVolumeSpec,
     ShardedHttpAccessor,
+    ShardSpec,
+    ShardVolumeSpec,
 )
-
+from requests import Session
+from requests import exceptions as re_exc
 
 hdr_len = int(2 ** 2 * 16)
 

@@ -7,16 +7,15 @@
 
 import sys
 
+import neuroglancer_scripts.mesh
 import nibabel
 import numpy as np
-
-import neuroglancer_scripts.mesh
 
 
 def mesh_file_to_vtk(input_filename, output_filename, data_format="ascii",
                      coord_transform=None):
     """Convert a mesh file read by nibabel to VTK format"""
-    print("Reading {}".format(input_filename))
+    print(f"Reading {input_filename}")
     mesh = nibabel.load(input_filename)
     print()
     print("Summary")
@@ -45,7 +44,7 @@ def mesh_file_to_vtk(input_filename, output_filename, data_format="ascii",
     # Gifti uses millimetres, Neuroglancer expects nanometres
     points *= 1e6
 
-    with open(output_filename, "wt") as output_file:
+    with open(output_filename, "w") as output_file:
         neuroglancer_scripts.mesh.save_mesh_as_neuroglancer_vtk(
             output_file, points, triangles
         )
@@ -79,15 +78,15 @@ Convert a mesh (readable by nibabel, e.g. in Gifti format) to VTK file format
         try:
             matrix = np.fromstring(args.coord_transform, sep=",")
         except ValueError as exc:
-            parser.error("cannot parse --coord-transform: {}"
-                         .format(exc.args[0]))
+            parser.error(f"cannot parse --coord-transform: {exc.args[0]}"
+                         )
         if len(matrix) == 12:
             matrix = matrix.reshape(3, 4)
         elif len(matrix) == 16:
             matrix = matrix.reshape(4, 4)
         else:
             parser.error("--coord-transform must have 12 or 16 elements"
-                         " ({} passed)".format(len(matrix)))
+                         f" ({len(matrix)} passed)")
 
         args.coord_transform = matrix
 

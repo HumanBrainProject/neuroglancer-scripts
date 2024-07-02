@@ -9,24 +9,25 @@ See the :mod:`~neuroglancer_scripts.accessor` module for a description of the
 API.
 """
 
-from typing import Iterator
+import json
+import pathlib
+import struct
+from tempfile import TemporaryDirectory
+from typing import Any, Dict, Iterator, List, Union
+from uuid import uuid4
+
+import numpy as np
+
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.sharded_base import (
-    ShardSpec,
     CMCReadWrite,
-    ShardedScaleBase,
-    ShardedAccessorBase,
-    ShardVolumeSpec,
-    ShardedIOError,
     ShardCMC,
+    ShardedAccessorBase,
+    ShardedIOError,
+    ShardedScaleBase,
+    ShardSpec,
+    ShardVolumeSpec,
 )
-import pathlib
-import numpy as np
-from typing import Dict, List, Union, Any
-import struct
-import json
-from tempfile import TemporaryDirectory
-from uuid import uuid4
 
 
 class OnDiskBytesDict(dict):
@@ -421,7 +422,7 @@ class ShardedFileAccessor(neuroglancer_scripts.accessor.Accessor,
 
     def store_file(self, relative_path, buf, overwrite=False, **kwargs):
         if not overwrite and self.file_exists(relative_path):
-            raise IOError(f"file at {relative_path} already exists")
+            raise OSError(f"file at {relative_path} already exists")
         with open(self.base_dir / relative_path, "wb") as fp:
             fp.write(buf)
 

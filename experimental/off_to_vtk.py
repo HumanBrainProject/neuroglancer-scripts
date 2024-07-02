@@ -19,7 +19,7 @@ import pyvtk
 def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
                          coord_transform=None):
     """Convert a mesh file from OFF format to VTK format"""
-    print("Reading {}".format(input_filename))
+    print(f"Reading {input_filename}")
     with gzip.open(input_filename, "rt") as f:
         header_keyword = f.readline().strip()
         match = re.match(r"(ST)?(C)?(N)?(4)?(n)?OFF", header_keyword)
@@ -32,7 +32,7 @@ def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
         assert match
         num_vertices = int(match.group(1))
         num_triangles = int(match.group(2))
-        vertices = np.empty((num_vertices, 3), dtype=np.float)
+        vertices = np.empty((num_vertices, 3), dtype=float)
         for i in range(num_vertices):
             components = f.readline().split()
             assert len(components) >= 3
@@ -48,8 +48,8 @@ def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
             triangles[i, 1] = float(components[2])
             triangles[i, 2] = float(components[3])
     print()
-    print("{0} vertices and {1} triangles read"
-          .format(num_vertices, num_triangles))
+    print(f"{num_vertices} vertices and {num_triangles} triangles read"
+          )
 
     points = vertices
 
@@ -108,15 +108,15 @@ Convert a mesh (readable by nibabel, e.g. in Gifti format) to VTK file format
         try:
             matrix = np.fromstring(args.coord_transform, sep=",")
         except ValueError as exc:
-            parser.error("cannot parse --coord-transform: {}"
-                         .format(exc.args[0]))
+            parser.error(f"cannot parse --coord-transform: {exc.args[0]}"
+                         )
         if len(matrix) == 12:
             matrix = matrix.reshape(3, 4)
         elif len(matrix) == 16:
             matrix = matrix.reshape(4, 4)
         else:
             parser.error("--coord-transform must have 12 or 16 elements"
-                         " ({} passed)".format(len(matrix)))
+                         f" ({len(matrix)} passed)")
 
         args.coord_transform = matrix
 

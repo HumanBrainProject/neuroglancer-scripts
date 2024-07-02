@@ -10,8 +10,7 @@ import math
 import numpy as np
 from tqdm import tqdm
 
-from neuroglancer_scripts.utils import (LENGTH_UNITS, ceil_div, format_length)
-
+from neuroglancer_scripts.utils import LENGTH_UNITS, ceil_div, format_length
 
 __all__ = [
     "choose_unit_for_key",
@@ -31,8 +30,8 @@ def choose_unit_for_key(resolution_nm):
             and (format_length(resolution_nm, unit)
                  != format_length(resolution_nm * 2, unit))):
             return unit
-    raise NotImplementedError("cannot find a suitable unit for {} nm"
-                              .format(resolution_nm))
+    raise NotImplementedError("cannot find a suitable unit for "
+                              f"{resolution_nm} nm")
 
 
 def fill_scales_for_dyadic_pyramid(info, target_chunk_size=64,
@@ -176,15 +175,15 @@ def compute_dyadic_downscaling(info, source_scale_index, downscaler,
     if new_size != [ceil_div(os, ds)
                     for os, ds in zip(old_size, downscaling_factors)]:
         raise ValueError("Unsupported downscaling factor between scales "
-                         "{} and {} (only 1 and 2 are supported)"
-                         .format(old_key, new_key))
+                         f"{old_key} and {new_key} "
+                         "(only 1 and 2 are supported)")
 
     downscaler.check_factors(downscaling_factors)
 
     if chunk_reader.scale_is_lossy(old_key):
         logger.warning(
             "Using data stored in a lossy format (scale %s) as an input "
-            "for downscaling (to scale %s)" % (old_key, new_key)
+            "for downscaling (to scale %s)", old_key, new_key
         )
 
     half_chunk = [osz // f
@@ -211,7 +210,7 @@ def compute_dyadic_downscaling(info, source_scale_index, downscaler,
     # TODO how to do progress report correctly with logging?
     for x_idx, y_idx, z_idx in tqdm(
             np.ndindex(chunk_range), total=np.prod(chunk_range),
-            desc="computing scale {}".format(new_key),
+            desc=f"computing scale {new_key}",
             unit="chunks", leave=True):
         xmin = new_chunk_size[0] * x_idx
         xmax = min(new_chunk_size[0] * (x_idx + 1), new_size[0])

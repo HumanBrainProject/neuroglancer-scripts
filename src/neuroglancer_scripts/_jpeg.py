@@ -10,7 +10,6 @@ import io
 import numpy as np
 import PIL.Image
 
-
 from neuroglancer_scripts.chunk_encoding import InvalidFormatError
 
 
@@ -47,17 +46,17 @@ def decode_chunk(buf, chunk_size, num_channels):
         img = PIL.Image.open(io_buf)
     except Exception as exc:
         raise InvalidFormatError(
-            "The JPEG-encoded chunk could not be decoded: {0}"
-            .format(exc)) from exc
+            f"The JPEG-encoded chunk could not be decoded: {exc}"
+            ) from exc
 
     if num_channels == 1 and img.mode != "L":
         raise InvalidFormatError(
-            "The JPEG chunk is encoded with mode={0} instead of L"
-            .format(img.mode))
+            f"The JPEG chunk is encoded with mode={img.mode} instead of L"
+            )
     if num_channels == 3 and img.mode != "RGB":
         raise InvalidFormatError(
-            "The JPEG chunk is encoded with mode={0} instead of RGB"
-            .format(img.mode))
+            f"The JPEG chunk is encoded with mode={img.mode} instead of RGB"
+            )
 
     flat_chunk = np.asarray(img)
     if num_channels == 3:
@@ -68,7 +67,6 @@ def decode_chunk(buf, chunk_size, num_channels):
                                    chunk_size[2], chunk_size[1], chunk_size[0])
     except Exception:
         raise InvalidFormatError("The JPEG-encoded chunk has an incompatible "
-                                 "shape ({0} elements, expecting {1})"
-                                 .format(flat_chunk.size // num_channels,
-                                         np.prod(chunk_size)))
+                                 f"shape ({flat_chunk.size // num_channels} "
+                                 f"elements, expecting {np.prod(chunk_size)})")
     return chunk

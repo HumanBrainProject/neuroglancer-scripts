@@ -43,9 +43,11 @@ jobs:
       run: |
         tox
 
+    # 2024-07-02: disable CodeCov (temporarily?), uploads do not work even with a token
     # Code coverage is run on Python 3.10, see tox.ini
-    - if: ${{ matrix.python-version == '3.10' }}
-      uses: codecov/codecov-action@v3
-      with:
-        fail_ci_if_error: true # optional (default = false)
-        verbose: true # optional (default = false)
+    #- if: ${{ matrix.python-version == '3.10' }}
+    #  uses: codecov/codecov-action@v4
+    #  with:
+    #    token: ${{ secrets.CODECOV_TOKEN }}
+    #    fail_ci_if_error: true # optional (default = false)
+    #    verbose: true # optional (default = false)

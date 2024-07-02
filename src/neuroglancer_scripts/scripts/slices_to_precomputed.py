@@ -5,8 +5,8 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import numpy as np
 import skimage.io
@@ -14,11 +14,13 @@ from tqdm import tqdm, trange
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
 from neuroglancer_scripts import precomputed_io
-from neuroglancer_scripts.utils import (permute, invert_permutation,
-                                        readable_count)
-
+from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
+from neuroglancer_scripts.utils import (
+    invert_permutation,
+    permute,
+    readable_count,
+)
 
 # Generated with the following Python expression:
 # >>> from itertools import *
@@ -104,8 +106,8 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
 
     for filename_list in slice_filename_lists:
         if len(filename_list) != input_size[2]:
-            raise ValueError("{} slices found where {} were expected"
-                             .format(len(filename_list), input_size[2]))
+            raise ValueError(f"{len(filename_list)} slices found where "
+                             f"{input_size[2]} were expected")
 
     for slice_chunk_idx in trange((input_size[2] - 1)
                                   // input_chunk_size[2] + 1,
@@ -124,7 +126,7 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
         slice_slicing = np.s_[first_slice
                               : last_slice
                               : input_axis_inversions[2]]
-        tqdm.write("Reading slices {0} to {1} ({2}B memory needed)... "
+        tqdm.write("Reading slices {} to {} ({}B memory needed)... "
                    .format(first_slice, last_slice - input_axis_inversions[2],
                            readable_count(input_size[0]
                                           * input_size[1]
@@ -150,8 +152,8 @@ def slices_to_raw_chunks(slice_filename_lists, dest_url, input_orientation,
                 block = block[np.newaxis, :, :, :]
             else:
                 raise ValueError(
-                    "block has unexpected dimensionality (ndim={})"
-                    .format(block.ndim)
+                    f"block has unexpected dimensionality (ndim={block.ndim})"
+
                 )
             return block
 

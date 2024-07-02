@@ -4,10 +4,9 @@
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 import numpy as np
-
 from neuroglancer_scripts.transform import (
-    nifti_to_neuroglancer_transform,
     matrix_as_compact_urlsafe_json,
+    nifti_to_neuroglancer_transform,
 )
 
 

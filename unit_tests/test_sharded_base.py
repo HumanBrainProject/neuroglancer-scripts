@@ -3,17 +3,22 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import pytest
-from collections import namedtuple
-import numpy as np
 import zlib
-from unittest.mock import patch, MagicMock
+from collections import namedtuple
+from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pytest
 from neuroglancer_scripts.sharded_base import (
-    ShardVolumeSpec, ShardSpec, CMCReadWrite, ShardedIOError,
-    ReadableMiniShardCMC, ShardedScaleBase, ShardedAccessorBase, ShardCMC
+    CMCReadWrite,
+    ReadableMiniShardCMC,
+    ShardCMC,
+    ShardedAccessorBase,
+    ShardedIOError,
+    ShardedScaleBase,
+    ShardSpec,
+    ShardVolumeSpec,
 )
-
 
 ShardSpecArg = namedtuple("ShardSpecArg", ["minishard_bits", "shard_bits",
                                            "hash",
@@ -512,7 +517,6 @@ def test_store_cmc_chunk(mocked_get_shard_base):
 
     base, shard_spec, svs = mocked_get_shard_base
     shard_magic_mock = MagicMock()
-    get_shard_key_mock = MagicMock()
     with patch.object(base, "get_shard_key",
                       return_value=shard_key) as get_shard_key_mock:
         with patch.object(base, "get_shard",
@@ -540,7 +544,6 @@ def test_shard_fetch_cmc_chunk(mocked_get_shard_base):
 
     base, shard_spec, svs = mocked_get_shard_base
     shard_magic_mock = MagicMock()
-    get_shard_key_mock = MagicMock()
     with patch.object(base, "get_shard_key",
                       return_value=shard_key) as get_shard_key_mock:
         with patch.object(base, "get_shard",

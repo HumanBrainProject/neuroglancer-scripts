@@ -16,9 +16,7 @@ import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.downscaling
 import neuroglancer_scripts.dyadic_pyramid
 import neuroglancer_scripts.scripts.generate_scales_info
-from neuroglancer_scripts import precomputed_io
-from neuroglancer_scripts import volume_reader
-
+from neuroglancer_scripts import precomputed_io, volume_reader
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +56,7 @@ def volume_to_precomputed_pyramid(volume_filename,
             info, accessor
         )
     except neuroglancer_scripts.accessor.DataAccessError as exc:
-        logger.error("Cannot write info: {0}".format(exc))
+        logger.error(f"Cannot write info: {exc}")
         return 1
     volume_reader.nibabel_image_to_precomputed(
         img, precomputed_writer,

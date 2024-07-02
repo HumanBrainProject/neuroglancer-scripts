@@ -13,9 +13,7 @@ from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-from neuroglancer_scripts import data_types
-from neuroglancer_scripts import precomputed_io
-
+from neuroglancer_scripts import data_types, precomputed_io
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +29,7 @@ def convert_chunks_for_scale(chunk_reader,
 
     if chunk_reader.scale_is_lossy(key):
         logger.warning("Using data stored in a lossy format as an input for "
-                       "conversion (for scale %s)" % key)
+                       "conversion (for scale %s)", key)
 
     for chunk_size in scale_info["chunk_sizes"]:
         chunk_range = ((size[0] - 1) // chunk_size[0] + 1,
@@ -40,7 +38,7 @@ def convert_chunks_for_scale(chunk_reader,
         for x_idx, y_idx, z_idx in tqdm(
                 np.ndindex(chunk_range), total=np.prod(chunk_range),
                 unit="chunk",
-                desc="converting scale {}".format(key)):
+                desc=f"converting scale {key}"):
             xmin = chunk_size[0] * x_idx
             xmax = min(chunk_size[0] * (x_idx + 1), size[0])
             ymin = chunk_size[1] * y_idx

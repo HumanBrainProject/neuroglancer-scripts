@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.6.0
     hooks:
     -   id: check-added-large-files
     -   id: check-case-conflict
@@ -15,11 +15,12 @@ repos:
     -   id: name-tests-test
     -   id: trailing-whitespace
 
--   repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-    -   id: flake8
-        additional_dependencies: [pep8-naming]
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.5.0
+  hooks:
+    # Run the linter.
+    - id: ruff
 
 -   repo: https://github.com/mgedmin/check-manifest
     rev: "0.49"

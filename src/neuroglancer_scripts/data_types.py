@@ -7,7 +7,6 @@ import logging
 
 import numpy as np
 
-
 __all__ = [
     "NG_DATA_TYPES",
     "NG_INTEGER_DATA_TYPES",
@@ -88,7 +87,7 @@ def get_dtype(input_dtype):
     if input_dtype.names is None:
         return input_dtype, False
     if input_dtype.names not in NG_MULTICHANNEL_DATATYPES:
-        err = 'tuple datatype {} not yet supported'.format(input_dtype.names)
+        err = f'tuple datatype {input_dtype.names} not yet supported'
         raise NotImplementedError(err)
     for index, value in enumerate(input_dtype.names):
         err = 'Multichanneled datatype should have the same datatype'

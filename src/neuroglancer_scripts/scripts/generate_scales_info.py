@@ -11,9 +11,8 @@ import logging
 import sys
 
 import neuroglancer_scripts.accessor
-from neuroglancer_scripts import data_types
-from neuroglancer_scripts import precomputed_io
 import neuroglancer_scripts.dyadic_pyramid
+from neuroglancer_scripts import data_types, precomputed_io
 
 logger = logging.getLogger(__name__)
 

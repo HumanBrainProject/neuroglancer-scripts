@@ -25,7 +25,6 @@ import numpy as np
 
 import neuroglancer_scripts
 
-
 __all__ = [
     "InvalidMeshDataError",
     "save_mesh_as_neuroglancer_vtk",
@@ -85,23 +84,22 @@ def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
     file.write("# vtk DataFile Version 3.0\n")
     if title:
         title += ". "
-    title += "Written by neuroglancer-scripts-{0}.".format(
-        neuroglancer_scripts.__version__
-    )
-    file.write("{0}\n".format(title[:255]))
+    title += ("Written by neuroglancer-scripts-"
+              f"{neuroglancer_scripts.__version__}.")
+    file.write(f"{title[:255]}\n")
     file.write("ASCII\n")
     file.write("DATASET POLYDATA\n")
-    file.write("POINTS {0:d} {1}\n".format(vertices.shape[0], "float"))
+    file.write("POINTS {:d} {}\n".format(vertices.shape[0], "float"))
     if not np.can_cast(vertices.dtype, np.float32):
         # As of a8ce681660864ab3ac7c1086c0b4262e40f24707 Neuroglancer reads
         # everything as float32 anyway
         logger.warning("Vertex coordinates will be converted to float32")
     np.savetxt(file, vertices.astype(np.float32), fmt="%.9g")
-    file.write("POLYGONS {0:d} {1:d}\n"
-               .format(triangles.shape[0], 4 * triangles.shape[0]))
+    file.write(f"POLYGONS {triangles.shape[0]:d} {4 * triangles.shape[0]:d}\n"
+               )
     np.savetxt(file, np.insert(triangles, 0, 3, axis=1), fmt="%d")
     if vertex_attributes:
-        file.write("POINT_DATA {0:d}\n".format(vertices.shape[0]))
+        file.write(f"POINT_DATA {vertices.shape[0]:d}\n")
         for vertex_attribute in vertex_attributes:
             name = vertex_attribute["name"]
             assert re.match("\\s", name) is None
@@ -118,12 +116,12 @@ def save_mesh_as_neuroglancer_vtk(file, vertices, triangles,
             if not np.can_cast(values.dtype, np.float32):
                 # As of a8ce681660864ab3ac7c1086c0b4262e40f24707 Neuroglancer
                 # reads everything as float32 anyway
-                logger.warning("Data for the '{0}' vertex attribute will be "
-                               "converted to float32".format(name))
-            file.write("SCALARS {0} {1}".format(name, "float"))
+                logger.warning(f"Data for the '{name}' vertex attribute will "
+                               "be converted to float32")
+            file.write("SCALARS {} {}".format(name, "float"))
             if num_components != 1:
-                file.write(" {0:d}".format(num_components))
-            file.write("\nLOOKUP_TABLE {0}\n".format("default"))
+                file.write(f" {num_components:d}")
+            file.write("\nLOOKUP_TABLE {}\n".format("default"))
             np.savetxt(file, values.astype(np.float32), fmt="%.9g")
 
 

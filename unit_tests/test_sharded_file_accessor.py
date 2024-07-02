@@ -3,23 +3,24 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import json
+import pathlib
+from unittest.mock import MagicMock, PropertyMock, call, patch
+
+import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock, call, PropertyMock
 from neuroglancer_scripts.sharded_file_accessor import (
     InMemByteArray,
+    MiniShard,
     OnDiskByteArray,
     OnDiskBytesDict,
-    ShardSpec,
-    MiniShard,
-    ShardedIOError,
     Shard,
-    ShardedScale,
-    ShardVolumeSpec,
     ShardedFileAccessor,
+    ShardedIOError,
+    ShardedScale,
+    ShardSpec,
+    ShardVolumeSpec,
 )
-import numpy as np
-import pathlib
-import json
 
 
 def test_ondisk_bytes_dict():

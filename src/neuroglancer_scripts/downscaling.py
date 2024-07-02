@@ -13,9 +13,8 @@ The central component here is the :class:`Downscaler` base class. Use
 
 import numpy as np
 
-from neuroglancer_scripts.utils import ceil_div
 from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
-
+from neuroglancer_scripts.utils import ceil_div
 
 __all__ = [
     "get_downscaler",
@@ -49,8 +48,8 @@ def get_downscaler(downscaling_method, info=None, options={}):
     elif downscaling_method == "stride":
         return StridingDownscaler()
     else:
-        raise NotImplementedError("invalid downscaling method {0}"
-                                  .format(downscaling_method))
+        raise NotImplementedError("invalid downscaling method "
+                                  + downscaling_method)
 
 
 def add_argparse_options(parser):

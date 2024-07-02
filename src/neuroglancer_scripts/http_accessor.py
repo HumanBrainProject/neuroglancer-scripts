@@ -16,7 +16,6 @@ import requests
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT, DataAccessError
 
-
 __all__ = [
     "HttpAccessor",
 ]
@@ -62,8 +61,8 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
                 return False
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            raise DataAccessError("Error probing the existence of {0}: {1}"
-                                  .format(file_url, exc)) from exc
+            raise DataAccessError("Error probing the existence of "
+                                  f"{file_url}: {exc}") from exc
         return True
 
     def fetch_file(self, relative_path):
@@ -72,6 +71,5 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
             r = self._session.get(file_url)
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            raise DataAccessError("Error reading {0}: {1}"
-                                  .format(file_url, exc)) from exc
+            raise DataAccessError(f"Error reading {file_url}: {exc}") from exc
         return r.content

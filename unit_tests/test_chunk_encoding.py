@@ -7,16 +7,15 @@ import struct
 
 import numpy as np
 import pytest
-
 from neuroglancer_scripts.chunk_encoding import (
-    get_encoder,
-    add_argparse_options,
     CompressedSegmentationEncoder,
-    JpegChunkEncoder,
-    RawChunkEncoder,
+    IncompatibleEncoderError,
     InvalidFormatError,
     InvalidInfoError,
-    IncompatibleEncoderError,
+    JpegChunkEncoder,
+    RawChunkEncoder,
+    add_argparse_options,
+    get_encoder,
 )
 
 

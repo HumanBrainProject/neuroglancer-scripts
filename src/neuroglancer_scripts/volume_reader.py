@@ -6,16 +6,16 @@
 import json
 import logging
 
-import numpy as np
 import nibabel
 import nibabel.orientations
+import numpy as np
 from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
-from neuroglancer_scripts.accessor import DataAccessError
 import neuroglancer_scripts.data_types
-from neuroglancer_scripts import precomputed_io
 import neuroglancer_scripts.transform
+from neuroglancer_scripts import precomputed_io
+from neuroglancer_scripts.accessor import DataAccessError
 from neuroglancer_scripts.sharded_base import ShardSpec
 
 __all__ = [
@@ -111,23 +111,20 @@ def nibabel_image_to_info(img,
         guessed_dtype = input_dtype.name
     else:
         guessed_dtype = "float32"
-    formatted_info = """\
+    formatted_info = f"""\
 {{
     "type": "image",
-    "num_channels": {num_channels},
-    "data_type": "{data_type}",
+    "num_channels": {shape[3] if len(shape) >= 4 else 1},
+    "data_type": "{guessed_dtype}",
     "scales": [
         {{
             "encoding": "raw",
-            "size": {size},
-            "resolution": {resolution},
+            "size": {list(shape[:3])},
+            "resolution": {[float(vs * 1_000_000) for vs in voxel_sizes[:3]]},
             "voxel_offset": [0, 0, 0]
         }}
     ]
-}}""".format(num_channels=shape[3] if len(shape) >= 4 else 1,
-             data_type=guessed_dtype,
-             size=list(shape[:3]),
-             resolution=[float(vs * 1_000_000) for vs in voxel_sizes[:3]])
+}}"""
 
     info = json.loads(formatted_info)  # ensure well-formed JSON
 

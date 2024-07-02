@@ -5,19 +5,18 @@
 # This software is made available under the MIT licence, see LICENCE.txt.
 
 import argparse
-import pathlib
 import json
-
-import pytest
+import pathlib
 from unittest.mock import patch
 
+import pytest
 from neuroglancer_scripts.accessor import (
-    get_accessor_for_url,
+    Accessor,
+    DataAccessError,
+    URLError,
     add_argparse_options,
     convert_file_url_to_pathname,
-    Accessor,
-    URLError,
-    DataAccessError,
+    get_accessor_for_url,
 )
 from neuroglancer_scripts.file_accessor import FileAccessor
 from neuroglancer_scripts.http_accessor import HttpAccessor

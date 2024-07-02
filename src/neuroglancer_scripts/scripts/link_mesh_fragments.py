@@ -14,7 +14,6 @@ import sys
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.precomputed_io as precomputed_io
 
-
 logger = logging.getLogger(__name__)
 
 

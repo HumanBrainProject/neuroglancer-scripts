@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # neuroglancer-scripts documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb  2 15:05:24 2018.
@@ -19,10 +18,10 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../src/'))
 
 import neuroglancer_scripts  # noqa: E402
-
 
 # -- General configuration ------------------------------------------------
 

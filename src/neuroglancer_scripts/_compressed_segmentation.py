@@ -9,8 +9,8 @@ import struct
 
 import numpy as np
 
-from neuroglancer_scripts.utils import ceil_div
 from neuroglancer_scripts.chunk_encoding import InvalidFormatError
+from neuroglancer_scripts.utils import ceil_div
 
 
 def pad_block(block, block_size):
@@ -104,7 +104,7 @@ def _encode_channel(chunk_channel, block_size):
 
 def _pack_encoded_values(encoded_values, bits):
     if bits == 0:
-        return bytes()
+        return b""
     else:
         assert 32 % bits == 0
         assert np.array_equal(encoded_values,
@@ -162,8 +162,8 @@ def _decode_channel_into(chunk, channel, buf, block_size):
         bits = res[0] >> 24
         if bits not in (0, 1, 2, 4, 8, 16, 32):
             raise InvalidFormatError("Invalid number of encoding bits for "
-                                     "compressed_segmentation block ({0})"
-                                     .format(bits))
+                                     f"compressed_segmentation block ({bits})"
+                                     )
         encoded_values_offset = 4 * res[1]
         lookup_table_past_end = lookup_table_offset + chunk.itemsize * min(
             (2 ** bits),

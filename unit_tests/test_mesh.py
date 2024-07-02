@@ -7,11 +7,10 @@ import gzip
 import io
 
 import numpy as np
-
 from neuroglancer_scripts.mesh import (
-    save_mesh_as_precomputed,
     read_precomputed_mesh,
     save_mesh_as_neuroglancer_vtk,
+    save_mesh_as_precomputed,
 )
 
 

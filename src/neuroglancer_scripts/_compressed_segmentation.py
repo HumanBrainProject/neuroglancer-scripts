@@ -79,6 +79,7 @@ def _encode_channel(chunk_channel, block_size):
         (lookup_table, encoded_values) = np.unique(
             block, return_inverse=True, return_counts=False)
         bits = number_of_encoding_bits(len(lookup_table))
+        encoded_values = encoded_values.ravel()  # Numpy 2.0 compat
 
         # Write look-up table to the buffer (or re-use another one)
         lut_bytes = lookup_table.astype(block.dtype).tobytes()

@@ -127,7 +127,7 @@ def nibabel_image_to_info(img,
 }}""".format(num_channels=shape[3] if len(shape) >= 4 else 1,
              data_type=guessed_dtype,
              size=list(shape[:3]),
-             resolution=[vs * 1000000 for vs in voxel_sizes[:3]])
+             resolution=[float(vs * 1_000_000) for vs in voxel_sizes[:3]])
 
     info = json.loads(formatted_info)  # ensure well-formed JSON
 

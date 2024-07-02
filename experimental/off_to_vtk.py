@@ -32,7 +32,7 @@ def off_mesh_file_to_vtk(input_filename, output_filename, data_format="binary",
         assert match
         num_vertices = int(match.group(1))
         num_triangles = int(match.group(2))
-        vertices = np.empty((num_vertices, 3), dtype=np.float)
+        vertices = np.empty((num_vertices, 3), dtype=float)
         for i in range(num_vertices):
             components = f.readline().split()
             assert len(components) >= 3

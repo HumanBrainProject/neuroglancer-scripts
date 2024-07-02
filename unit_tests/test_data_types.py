@@ -135,9 +135,8 @@ def test_dtype_conversion_integer_downcasting(dtype):
 
 
 def test_unsupported_tupled_dtype():
-
-    random_val = np.random.rand(81).reshape((3, 3, 3, 3)) * 255
-    random_val = random_val.astype(np.uint8)
+    rng = np.random.default_rng()
+    random_val = rng.integers(256, size=(3, 3, 3, 3), dtype=np.uint8)
     wrong_type = np.dtype([('A', 'u1'), ('B', 'u1'), ('C', 'u1')])
     new_data = random_val.copy().view(dtype=wrong_type).reshape((3, 3, 3))
 
@@ -146,8 +145,8 @@ def test_unsupported_tupled_dtype():
 
 
 def test_supported_tupled_dtype():
-    random_val = np.random.rand(81).reshape((3, 3, 3, 3)) * 255
-    random_val = random_val.astype(np.uint8)
+    rng = np.random.default_rng()
+    random_val = rng.integers(256, size=(3, 3, 3, 3), dtype=np.uint8)
     right_type = np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1')])
     new_data = random_val.copy().view(dtype=right_type).reshape((3, 3, 3))
     dtype, isrgb = get_dtype(new_data.dtype)

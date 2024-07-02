@@ -17,7 +17,7 @@ extend-select = [
     "W",
     "I",
     "N",
-    "NPY201",
+    "NPY",
 ]
 ignore = [
     "N802",  # Gives false positives when a name contains an uppercase acronym

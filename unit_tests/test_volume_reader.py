@@ -11,15 +11,13 @@ from neuroglancer_scripts.volume_reader import (
 
 
 def prepare_nifti_images():
-
-    random_rgb_val = np.random.rand(81).reshape((3, 3, 3, 3)) * 255
-    random_rgb_val = random_rgb_val.astype(np.uint8)
+    rng = np.random.default_rng()
+    random_rgb_val = rng.integers(256, size=(3, 3, 3, 3), dtype=np.uint8)
     right_type = np.dtype([("R", "u1"), ("G", "u1"), ("B", "u1")])
     new_data = random_rgb_val.copy().view(dtype=right_type).reshape((3, 3, 3))
     rgb_img = nib.Nifti1Image(new_data, np.eye(4))
 
-    random_uint8_val = np.random.rand(27).reshape((3, 3, 3)) * 255
-    random_uint8_val = random_uint8_val.astype(np.uint8)
+    random_uint8_val = rng.integers(256, size=(3, 3, 3), dtype=np.uint8)
     uint8_img = nib.Nifti1Image(random_uint8_val, np.eye(4))
 
     return [(rgb_img, 3), (uint8_img, 1)]

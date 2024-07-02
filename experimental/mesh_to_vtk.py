@@ -7,10 +7,9 @@
 
 import sys
 
+import neuroglancer_scripts.mesh
 import nibabel
 import numpy as np
-
-import neuroglancer_scripts.mesh
 
 
 def mesh_file_to_vtk(input_filename, output_filename, data_format="ascii",

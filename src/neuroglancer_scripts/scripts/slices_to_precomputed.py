@@ -5,8 +5,8 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import numpy as np
 import skimage.io
@@ -14,11 +14,13 @@ from tqdm import tqdm, trange
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
 from neuroglancer_scripts import precomputed_io
-from neuroglancer_scripts.utils import (permute, invert_permutation,
-                                        readable_count)
-
+from neuroglancer_scripts.data_types import get_chunk_dtype_transformer
+from neuroglancer_scripts.utils import (
+    invert_permutation,
+    permute,
+    readable_count,
+)
 
 # Generated with the following Python expression:
 # >>> from itertools import *

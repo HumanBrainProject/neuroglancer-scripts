@@ -10,8 +10,7 @@ import math
 import numpy as np
 from tqdm import tqdm
 
-from neuroglancer_scripts.utils import (LENGTH_UNITS, ceil_div, format_length)
-
+from neuroglancer_scripts.utils import LENGTH_UNITS, ceil_div, format_length
 
 __all__ = [
     "choose_unit_for_key",

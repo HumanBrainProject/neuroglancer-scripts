@@ -15,7 +15,6 @@ import json
 from neuroglancer_scripts import chunk_encoding
 from neuroglancer_scripts.chunk_encoding import InvalidInfoError
 
-
 __all__ = [
     "get_IO_for_existing_dataset",
     "get_IO_for_new_dataset",

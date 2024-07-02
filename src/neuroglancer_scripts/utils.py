@@ -11,7 +11,6 @@ import collections
 
 import numpy as np
 
-
 __all__ = [
     "ceil_div",
     "permute",

@@ -7,11 +7,12 @@
 # BSD 3-clause licence by Copyright (c) 2017, Ignacio Tartavull, William
 # Silversmith, and later authors (see below).
 
-from typing import List, Dict, Any
-from abc import ABC, abstractmethod
 import math
-import numpy as np
 import zlib
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List
+
+import numpy as np
 
 _MAX_UINT64 = 0xffffffffffffffff
 

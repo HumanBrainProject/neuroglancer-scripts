@@ -6,16 +6,16 @@
 import json
 import logging
 
-import numpy as np
 import nibabel
 import nibabel.orientations
+import numpy as np
 from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
-from neuroglancer_scripts.accessor import DataAccessError
 import neuroglancer_scripts.data_types
-from neuroglancer_scripts import precomputed_io
 import neuroglancer_scripts.transform
+from neuroglancer_scripts import precomputed_io
+from neuroglancer_scripts.accessor import DataAccessError
 from neuroglancer_scripts.sharded_base import ShardSpec
 
 __all__ = [

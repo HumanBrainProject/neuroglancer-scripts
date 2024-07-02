@@ -25,7 +25,6 @@ import numpy as np
 
 import neuroglancer_scripts
 
-
 __all__ = [
     "InvalidMeshDataError",
     "save_mesh_as_neuroglancer_vtk",

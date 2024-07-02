@@ -16,9 +16,7 @@ import neuroglancer_scripts.chunk_encoding
 import neuroglancer_scripts.downscaling
 import neuroglancer_scripts.dyadic_pyramid
 import neuroglancer_scripts.scripts.generate_scales_info
-from neuroglancer_scripts import precomputed_io
-from neuroglancer_scripts import volume_reader
-
+from neuroglancer_scripts import precomputed_io, volume_reader
 
 logger = logging.getLogger(__name__)
 

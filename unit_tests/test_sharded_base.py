@@ -3,17 +3,22 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-import pytest
-from collections import namedtuple
-import numpy as np
 import zlib
-from unittest.mock import patch, MagicMock
+from collections import namedtuple
+from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pytest
 from neuroglancer_scripts.sharded_base import (
-    ShardVolumeSpec, ShardSpec, CMCReadWrite, ShardedIOError,
-    ReadableMiniShardCMC, ShardedScaleBase, ShardedAccessorBase, ShardCMC
+    CMCReadWrite,
+    ReadableMiniShardCMC,
+    ShardCMC,
+    ShardedAccessorBase,
+    ShardedIOError,
+    ShardedScaleBase,
+    ShardSpec,
+    ShardVolumeSpec,
 )
-
 
 ShardSpecArg = namedtuple("ShardSpecArg", ["minishard_bits", "shard_bits",
                                            "hash",

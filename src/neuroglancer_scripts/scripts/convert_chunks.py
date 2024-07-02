@@ -13,9 +13,7 @@ from tqdm import tqdm
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-from neuroglancer_scripts import data_types
-from neuroglancer_scripts import precomputed_io
-
+from neuroglancer_scripts import data_types, precomputed_io
 
 logger = logging.getLogger(__name__)
 

@@ -3,21 +3,22 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
-from typing import Dict
-import numpy as np
 import json
+from typing import Dict
 
-from neuroglancer_scripts.sharded_base import (
-    ShardSpec,
-    CMCReadWrite,
-    ShardedScaleBase,
-    ShardedAccessorBase,
-    ShardVolumeSpec,
-    ShardedIOError,
-    ShardCMC,
-)
-import neuroglancer_scripts.http_accessor
+import numpy as np
 import requests
+
+import neuroglancer_scripts.http_accessor
+from neuroglancer_scripts.sharded_base import (
+    CMCReadWrite,
+    ShardCMC,
+    ShardedAccessorBase,
+    ShardedIOError,
+    ShardedScaleBase,
+    ShardSpec,
+    ShardVolumeSpec,
+)
 
 
 class HttpShard(ShardCMC):

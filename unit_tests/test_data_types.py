@@ -5,7 +5,6 @@
 
 import numpy as np
 import pytest
-
 from neuroglancer_scripts.data_types import (
     NG_DATA_TYPES,
     NG_INTEGER_DATA_TYPES,

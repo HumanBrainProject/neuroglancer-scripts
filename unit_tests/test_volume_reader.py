@@ -1,10 +1,13 @@
+import json
+from unittest.mock import patch
+
 import nibabel as nib
 import numpy as np
 import pytest
-import json
-from unittest.mock import patch
-from neuroglancer_scripts.volume_reader import nibabel_image_to_info, \
-    volume_file_to_precomputed
+from neuroglancer_scripts.volume_reader import (
+    nibabel_image_to_info,
+    volume_file_to_precomputed,
+)
 
 
 def prepare_nifti_images():

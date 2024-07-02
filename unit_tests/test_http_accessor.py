@@ -7,11 +7,10 @@ import json
 
 import pytest
 import requests
-
-from neuroglancer_scripts.http_accessor import HttpAccessor
 from neuroglancer_scripts.accessor import (
     DataAccessError,
 )
+from neuroglancer_scripts.http_accessor import HttpAccessor
 
 
 @pytest.mark.parametrize("base_url", [

@@ -19,10 +19,10 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../src/'))
 
 import neuroglancer_scripts  # noqa: E402
-
 
 # -- General configuration ------------------------------------------------
 

@@ -10,7 +10,6 @@ import io
 import numpy as np
 import PIL.Image
 
-
 from neuroglancer_scripts.chunk_encoding import InvalidFormatError
 
 

@@ -5,14 +5,12 @@
 
 import numpy as np
 import pytest
-
 from neuroglancer_scripts.accessor import get_accessor_for_url
 from neuroglancer_scripts.chunk_encoding import InvalidInfoError
 from neuroglancer_scripts.precomputed_io import (
     get_IO_for_existing_dataset,
     get_IO_for_new_dataset,
 )
-
 
 DUMMY_INFO = {
     "type": "image",

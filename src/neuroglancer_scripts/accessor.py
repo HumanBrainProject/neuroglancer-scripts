@@ -11,8 +11,8 @@ The central component here is the :class:`Accessor` base class. Use
 :func:`get_accessor_for_url` for instantiating a concrete accessor object.
 """
 
-import urllib.parse
 import json
+import urllib.parse
 
 __all__ = [
     "get_accessor_for_url",
@@ -37,8 +37,7 @@ def get_accessor_for_url(url, accessor_options={}):
     url = _strip_precomputed(url)
     r = urllib.parse.urlsplit(url)
     if r.scheme in ("", "file"):
-        from neuroglancer_scripts import file_accessor
-        from neuroglancer_scripts import sharded_base
+        from neuroglancer_scripts import file_accessor, sharded_base
         flat = accessor_options.get("flat", False)
         gzip = accessor_options.get("gzip", True)
         compresslevel = accessor_options.get("compresslevel", 9)
@@ -67,8 +66,7 @@ def get_accessor_for_url(url, accessor_options={}):
         return accessor
 
     elif r.scheme in ("http", "https"):
-        from neuroglancer_scripts import http_accessor
-        from neuroglancer_scripts import sharded_base
+        from neuroglancer_scripts import http_accessor, sharded_base
         accessor = http_accessor.HttpAccessor(url)
 
         is_sharding = False

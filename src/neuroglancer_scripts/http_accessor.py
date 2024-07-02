@@ -16,7 +16,6 @@ import requests
 import neuroglancer_scripts.accessor
 from neuroglancer_scripts.accessor import _CHUNK_PATTERN_FLAT, DataAccessError
 
-
 __all__ = [
     "HttpAccessor",
 ]

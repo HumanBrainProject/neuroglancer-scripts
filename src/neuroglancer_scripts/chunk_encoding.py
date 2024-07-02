@@ -11,7 +11,6 @@ The central component here is the :class:`ChunkEncoder` base class. Use
 
 import numpy as np
 
-
 __all__ = [
     "get_encoder",
     "add_argparse_options",

@@ -9,8 +9,8 @@ import struct
 
 import numpy as np
 
-from neuroglancer_scripts.utils import ceil_div
 from neuroglancer_scripts.chunk_encoding import InvalidFormatError
+from neuroglancer_scripts.utils import ceil_div
 
 
 def pad_block(block, block_size):

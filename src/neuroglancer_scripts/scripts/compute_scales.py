@@ -10,8 +10,8 @@ import sys
 
 import neuroglancer_scripts.accessor
 import neuroglancer_scripts.chunk_encoding
-import neuroglancer_scripts.dyadic_pyramid
 import neuroglancer_scripts.downscaling
+import neuroglancer_scripts.dyadic_pyramid
 from neuroglancer_scripts import precomputed_io
 
 

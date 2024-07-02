@@ -6,11 +6,10 @@
 import pathlib
 
 import pytest
-
-from neuroglancer_scripts.file_accessor import FileAccessor
 from neuroglancer_scripts.accessor import (
     DataAccessError,
 )
+from neuroglancer_scripts.file_accessor import FileAccessor
 
 
 @pytest.mark.parametrize("compresslevel", [0, 1, 9])

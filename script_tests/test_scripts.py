@@ -13,11 +13,9 @@ import subprocess
 
 import nibabel
 import numpy as np
-import pytest
 import PIL.Image
-
+import pytest
 from neuroglancer_scripts.mesh import read_precomputed_mesh
-
 
 # Environment passed to sub-processes so that they raise an error on warnings
 env = os.environ.copy()

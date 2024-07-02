@@ -7,7 +7,6 @@ import logging
 
 import numpy as np
 
-
 __all__ = [
     "NG_DATA_TYPES",
     "NG_INTEGER_DATA_TYPES",

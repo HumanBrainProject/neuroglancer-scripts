@@ -5,14 +5,13 @@
 
 import numpy as np
 import pytest
-
 from neuroglancer_scripts.downscaling import (
-    get_downscaler,
-    add_argparse_options,
-    Downscaler,
-    StridingDownscaler,
     AveragingDownscaler,
-    MajorityDownscaler
+    Downscaler,
+    MajorityDownscaler,
+    StridingDownscaler,
+    add_argparse_options,
+    get_downscaler,
 )
 
 

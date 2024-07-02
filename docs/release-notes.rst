@@ -1,6 +1,35 @@
 Release notes
 =============
 
+1.2.0 (2 July 2024)
+--------------------
+
+New features
+~~~~~~~~~~~~
+
+- Add support for the sharded precomputed format. Many thanks to Xiao Gui for implementing this significant new feature in `PR #35 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/35>`_.
+
+
+Other improvements
+~~~~~~~~~~~~~~~~~~
+
+- Performance of the HTTP accessor was greatly improved by reusing a HTTP session. Thanks to Xiao Gui for implementing this in `PR #33 <https://github.com/HumanBrainProject/neuroglancer-scripts/pull/33>`_.
+
+
+Python version support
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Add support and tests for Python 3.12.
+
+- Drop support for Python 3.5.
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fix incompatibilities with NumPy 2.0.0, which notably caused incorrect data to be encoded when using the `compressed_segmentation` encoding.
+
+
 1.1.0 (7 March 2023)
 --------------------
 

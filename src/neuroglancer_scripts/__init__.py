@@ -33,4 +33,4 @@
 # 10. Push the master branch and the new tag to Github
 # 11. Create the Release of GitHub, which will also publish the release to PyPI
 #     through an Action (.github/workflows/publish_to_pypi.yaml).
-__version__ = "1.2.0"
+__version__ = "1.2.1dev0"

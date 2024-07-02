@@ -79,4 +79,4 @@ This repository uses `pre-commit`_ to ensure that all committed code follows min
 Acknowledgments
 ===============
 
-`cloud-volume <https://github.com/seung-lab/cloud-volume>_` (BSD 3-Clause licensed) for compressed morton code and shard/minishard mask implementation.
+`cloud-volume <https://github.com/seung-lab/cloud-volume>`_ (BSD 3-Clause licensed) for compressed morton code and shard/minishard mask implementation.

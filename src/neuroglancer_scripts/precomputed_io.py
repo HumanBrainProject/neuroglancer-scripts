@@ -14,6 +14,7 @@ import json
 
 from neuroglancer_scripts import chunk_encoding
 from neuroglancer_scripts.chunk_encoding import InvalidInfoError
+from neuroglancer_scripts.iobase import MultiResIOBase
 
 __all__ = [
     "get_IO_for_existing_dataset",
@@ -41,8 +42,9 @@ def get_IO_for_existing_dataset(accessor, encoder_options={}):
     return PrecomputedIO(info, accessor, encoder_options=encoder_options)
 
 
-def get_IO_for_new_dataset(info, accessor, overwrite_info=False,
-                           encoder_options={}):
+def get_IO_for_new_dataset(
+    info, accessor, overwrite_info=False, encoder_options={}
+):
     """Create a new pyramid and store the provided *info*.
 
     :param dict info: the *info* of the new pyramid
@@ -53,13 +55,16 @@ def get_IO_for_new_dataset(info, accessor, overwrite_info=False,
     """
     info_str = json.dumps(info, separators=(",", ":"), sort_keys=True)
     info_bytes = info_str.encode("utf-8")
-    accessor.store_file("info", info_bytes,
-                        mime_type="application/json",
-                        overwrite=overwrite_info)
+    accessor.store_file(
+        "info",
+        info_bytes,
+        mime_type="application/json",
+        overwrite=overwrite_info,
+    )
     return PrecomputedIO(info, accessor, encoder_options=encoder_options)
 
 
-class PrecomputedIO:
+class PrecomputedIO(MultiResIOBase):
     """Object for high-level access to a Neuroglancer precomputed dataset.
 
     An object of this class provides access to chunk data in terms of NumPy
@@ -79,15 +84,18 @@ class PrecomputedIO:
     :param dict encoder_options: extrinsic encoder options (see
         :func:`neuroglancer_scripts.chunk_encoding.get_encoder`).
     """
+
     def __init__(self, info, accessor, encoder_options={}):
+        super().__init__()
         self._info = info
         self.accessor = accessor
         self._scale_info = {
             scale_info["key"]: scale_info for scale_info in info["scales"]
         }
         self._encoders = {
-            scale_info["key"]: chunk_encoding.get_encoder(info, scale_info,
-                                                          encoder_options)
+            scale_info["key"]: chunk_encoding.get_encoder(
+                info, scale_info, encoder_options
+            )
             for scale_info in info["scales"]
         }
 
@@ -105,6 +113,10 @@ class PrecomputedIO:
         :rtype: dict
         """
         return self._scale_info[scale_key]
+
+    def iter_scale(self):
+        """Iterate over the scales"""
+        yield from self._scale_info.items()
 
     def scale_is_lossy(self, scale_key):
         """Test if the scale is using a lossy encoding.
@@ -131,9 +143,14 @@ class PrecomputedIO:
             raise NotImplementedError("voxel_offset is not supported")
         for chunk_size in scale_info["chunk_sizes"]:
             xcs, ycs, zcs = chunk_size
-            if (xmin % xcs == 0 and (xmax == min(xmin + xcs, xs))
-                    and ymin % ycs == 0 and (ymax == min(ymin + ycs, ys))
-                    and zmin % zcs == 0 and (zmax == min(zmin + zcs, zs))):
+            if (
+                xmin % xcs == 0
+                and (xmax == min(xmin + xcs, xs))
+                and ymin % ycs == 0
+                and (ymax == min(ymin + ycs, ys))
+                and zmin % zcs == 0
+                and (zmax == min(zmin + zcs, zs))
+            ):
                 return True
         return False
 
@@ -179,6 +196,5 @@ class PrecomputedIO:
         encoder = self._encoders[scale_key]
         buf = encoder.encode(chunk)
         self.accessor.store_chunk(
-            buf, scale_key, chunk_coords,
-            mime_type=encoder.mime_type
+            buf, scale_key, chunk_coords, mime_type=encoder.mime_type
         )

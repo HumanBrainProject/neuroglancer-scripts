@@ -38,35 +38,45 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
 
         # Fix the base URL to end with a slash, discard query and fragment
         r = urllib.parse.urlsplit(base_url)
-        self.base_url = urllib.parse.urlunsplit((
-            r.scheme, r.netloc,
-            r.path if r.path[-1] == "/" else r.path + "/",
-            "", ""))
+        self.base_url = urllib.parse.urlunsplit(
+            (
+                r.scheme,
+                r.netloc,
+                r.path if r.path[-1] == "/" else r.path + "/",
+                "",
+                "",
+            )
+        )
 
     def chunk_relative_url(self, key, chunk_coords):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
         url_suffix = _CHUNK_PATTERN_FLAT.format(
-            xmin, xmax, ymin, ymax, zmin, zmax, key=key)
+            xmin, xmax, ymin, ymax, zmin, zmax, key=key
+        )
         return url_suffix
 
     def fetch_chunk(self, key, chunk_coords):
         chunk_url = self.chunk_relative_url(key, chunk_coords)
         return self.fetch_file(chunk_url)
 
+    def format_path(self, relative_path):
+        return self.base_url + relative_path
+
     def file_exists(self, relative_path):
-        file_url = self.base_url + relative_path
+        file_url = self.format_path(relative_path)
         try:
             r = self._session.head(file_url)
             if r.status_code == requests.codes.not_found:
                 return False
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            raise DataAccessError("Error probing the existence of "
-                                  f"{file_url}: {exc}") from exc
+            raise DataAccessError(
+                "Error probing the existence of " f"{file_url}: {exc}"
+            ) from exc
         return True
 
     def fetch_file(self, relative_path):
-        file_url = self.base_url + relative_path
+        file_url = self.format_path(relative_path)
         try:
             r = self._session.get(file_url)
             r.raise_for_status()

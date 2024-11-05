@@ -48,14 +48,19 @@ def get_encoder(info, scale_info, encoder_options={}):
         num_channels = info["num_channels"]
         encoding = scale_info["encoding"]
     except KeyError as exc:
-        raise InvalidInfoError("The info dict is missing an essential key "
-                               f"{exc}") from exc
+        raise InvalidInfoError(
+            "The info dict is missing an essential key " f"{exc}"
+        ) from exc
     if not isinstance(num_channels, int) or not num_channels > 0:
-        raise InvalidInfoError(f"Invalid value {num_channels} for "
-                               "num_channels (must be a positive integer)")
+        raise InvalidInfoError(
+            f"Invalid value {num_channels} for "
+            "num_channels (must be a positive integer)"
+        )
     if data_type not in NEUROGLANCER_DATA_TYPES:
-        raise InvalidInfoError(f"Invalid data_type {data_type} (should be one "
-                               f"of {NEUROGLANCER_DATA_TYPES})")
+        raise InvalidInfoError(
+            f"Invalid data_type {data_type} (should be one "
+            f"of {NEUROGLANCER_DATA_TYPES})"
+        )
     try:
         if encoding == "raw":
             return RawChunkEncoder(data_type, num_channels)
@@ -65,15 +70,20 @@ def get_encoder(info, scale_info, encoder_options={}):
             except KeyError:
                 raise InvalidInfoError(
                     'Encoding is set to "compressed_segmentation" but '
-                    '"compressed_segmentation_block_size" is missing')
-            return CompressedSegmentationEncoder(data_type, num_channels,
-                                                 block_size)
+                    '"compressed_segmentation_block_size" is missing'
+                )
+            return CompressedSegmentationEncoder(
+                data_type, num_channels, block_size
+            )
         elif encoding == "jpeg":
             jpeg_plane = encoder_options.get("jpeg_plane", "xy")
             jpeg_quality = encoder_options.get("jpeg_quality", 95)
-            return JpegChunkEncoder(data_type, num_channels,
-                                    jpeg_plane=jpeg_plane,
-                                    jpeg_quality=jpeg_quality)
+            return JpegChunkEncoder(
+                data_type,
+                num_channels,
+                jpeg_plane=jpeg_plane,
+                jpeg_quality=jpeg_quality,
+            )
         else:
             raise InvalidInfoError(f"Invalid encoding {encoding}")
     except IncompatibleEncoderError as exc:
@@ -97,37 +107,51 @@ def add_argparse_options(parser, allow_lossy=False):
         get_encoder(info, scale_info, vars(args))
     """
     import argparse
+
     if allow_lossy:
+
         def jpeg_quality(arg):
             q = int(arg)
             if not 1 <= q <= 100:
                 raise argparse.ArgumentTypeError(
-                    "JPEG quality must be between 1 and 100")
+                    "JPEG quality must be between 1 and 100"
+                )
             return q
 
         group = parser.add_argument_group("Options for JPEG compression")
-        group.add_argument("--jpeg-quality", type=jpeg_quality,
-                           default=95, metavar="Q",
-                           help="JPEG quality factor (1 is worst, 100 is "
-                           "best, values above 95 increase file size but "
-                           "provide hardly any extra quality)")
-        group.add_argument("--jpeg-plane", choices=("xy", "xz"), default="xy",
-                           help='plane of JPEG compression (default: xy)')
+        group.add_argument(
+            "--jpeg-quality",
+            type=jpeg_quality,
+            default=95,
+            metavar="Q",
+            help="JPEG quality factor (1 is worst, 100 is "
+            "best, values above 95 increase file size but "
+            "provide hardly any extra quality)",
+        )
+        group.add_argument(
+            "--jpeg-plane",
+            choices=("xy", "xz"),
+            default="xy",
+            help="plane of JPEG compression (default: xy)",
+        )
 
 
 class IncompatibleEncoderError(Exception):
     """Raised when an Encoder cannot handle the requested data type."""
+
     pass
 
 
 # TODO inherit from a new DataError class?
 class InvalidInfoError(Exception):
     """Raised when an *info* dict is invalid or inconsistent."""
+
     pass
 
 
 class InvalidFormatError(Exception):
     """Raised when chunk data cannot be decoded properly."""
+
     pass
 
 
@@ -176,6 +200,7 @@ class RawChunkEncoder(ChunkEncoder):
     :param str data_type: data type supported by Neuroglancer
     :param int num_channels: number of image channels
     """
+
     lossy = False
 
     def encode(self, chunk):
@@ -188,11 +213,17 @@ class RawChunkEncoder(ChunkEncoder):
     def decode(self, buf, chunk_size):
         try:
             return np.frombuffer(buf, dtype=self.dtype).reshape(
-                (self.num_channels,
-                 chunk_size[2], chunk_size[1], chunk_size[0]))
+                (
+                    self.num_channels,
+                    chunk_size[2],
+                    chunk_size[1],
+                    chunk_size[0],
+                )
+            )
         except Exception as exc:
-            raise InvalidFormatError(f"Cannot decode raw-encoded chunk: {exc}"
-                                     ) from exc
+            raise InvalidFormatError(
+                f"Cannot decode raw-encoded chunk: {exc}"
+            ) from exc
 
 
 class CompressedSegmentationEncoder(ChunkEncoder):
@@ -205,18 +236,21 @@ class CompressedSegmentationEncoder(ChunkEncoder):
     :raises IncompatibleEncoderError: if data_type or num_channels are
                                       unsupported
     """
+
     lossy = False
 
     def __init__(self, data_type, num_channels, block_size):
         if data_type not in ("uint32", "uint64"):
             raise IncompatibleEncoderError(
                 "The compressed_segmentation encoding can only handle uint32 "
-                "or uint64 data_type")
+                "or uint64 data_type"
+            )
         super().__init__(data_type, num_channels)
         self.block_size = block_size
 
     def encode(self, chunk):
         from neuroglancer_scripts import _compressed_segmentation
+
         chunk = np.asarray(chunk).astype(self.dtype, casting="safe")
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
@@ -225,9 +259,10 @@ class CompressedSegmentationEncoder(ChunkEncoder):
 
     def decode(self, buf, chunk_size):
         from neuroglancer_scripts import _compressed_segmentation
+
         chunk = np.empty(
             (self.num_channels, chunk_size[2], chunk_size[1], chunk_size[0]),
-            dtype=self.dtype
+            dtype=self.dtype,
         )
         _compressed_segmentation.decode_chunk_into(chunk, buf, self.block_size)
         return chunk
@@ -243,15 +278,18 @@ class JpegChunkEncoder(ChunkEncoder):
     :raises IncompatibleEncoderError: if data_type or num_channels are
                                       unsupported
     """
+
     lossy = True
     mime_type = "image/jpeg"
 
-    def __init__(self, data_type, num_channels,
-                 jpeg_quality=95, jpeg_plane="xy"):
+    def __init__(
+        self, data_type, num_channels, jpeg_quality=95, jpeg_plane="xy"
+    ):
         if data_type != "uint8" or num_channels not in (1, 3):
             raise IncompatibleEncoderError(
                 "The JPEG encoding can only handle uint8 data_type with 1 or "
-                "3 channels")
+                "3 channels"
+            )
         super().__init__(data_type, num_channels)
         assert 1 <= jpeg_quality <= 100
         assert jpeg_plane in ("xy", "xz")
@@ -260,6 +298,7 @@ class JpegChunkEncoder(ChunkEncoder):
 
     def encode(self, chunk):
         from neuroglancer_scripts import _jpeg
+
         assert np.can_cast(chunk.dtype, self.dtype, casting="safe")
         assert chunk.ndim == 4
         assert chunk.shape[0] == self.num_channels
@@ -268,4 +307,83 @@ class JpegChunkEncoder(ChunkEncoder):
 
     def decode(self, buf, chunk_size):
         from neuroglancer_scripts import _jpeg
+
         return _jpeg.decode_chunk(buf, chunk_size, self.num_channels)
+
+
+class BloscEncoder(ChunkEncoder):
+    lossy = False
+
+    def __init__(
+        self,
+        data_type,
+        num_channels,
+        blosc_clevel=9,
+        blosc_shuffle="shuffle",
+        blosc_cname="zstd",
+    ):
+        super().__init__(data_type, num_channels)
+        self.blosc_clevel = blosc_clevel
+        self.blosc_shuffle = blosc_shuffle
+        self.blosc_cname = blosc_cname
+
+    def encode(self, chunk):
+        from numcodecs import blosc
+
+        return blosc.compress(
+            chunk,
+            clevel=self.blosc_clevel,
+            shuffle=self.blosc_shuffle,
+            cname=self.blosc_clevel,
+        )
+
+    def decode(self, buf, chunk_size):
+        from numcodecs import blosc
+
+        try:
+            buf = blosc.decompress(buf)
+            return np.frombuffer(buf, dtype=self.dtype).reshape(
+                (
+                    self.num_channels,
+                    chunk_size[2],
+                    chunk_size[1],
+                    chunk_size[0],
+                )
+            )
+
+        except Exception as exc:
+            raise InvalidFormatError(
+                f"Cannot decode blosc-encoded chunk: {exc}"
+            ) from exc
+
+
+class GZipEncoder(ChunkEncoder):
+    lossy = False
+
+    def __init__(self, data_type, num_channels, gzip_level=-1):
+        super().__init__(data_type, num_channels)
+        self.gzip_level = gzip_level
+
+    def encode(self, chunk):
+        import zlib
+
+        return zlib.compress(chunk, self.gzip_level)
+
+    def decode(self, buf, chunk_size):
+        import zlib
+
+        try:
+            buf = zlib.decompress(buf)
+            return np.frombuffer(buf, dtype=self.dtype).reshape(
+                (
+                    self.num_channels,
+                    chunk_size[2],
+                    chunk_size[1],
+                    chunk_size[0],
+                )
+            )
+
+        except Exception as exc:
+            raise InvalidFormatError(
+                f"Cannot decode blosc-encoded chunk: {exc}"
+            ) from exc

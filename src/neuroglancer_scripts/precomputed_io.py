@@ -14,7 +14,7 @@ import json
 
 from neuroglancer_scripts import chunk_encoding
 from neuroglancer_scripts.chunk_encoding import InvalidInfoError
-from neuroglancer_scripts.iobase import MultiResIOBase
+from neuroglancer_scripts.volume_io.base_io import MultiResIOBase
 
 __all__ = [
     "get_IO_for_existing_dataset",
@@ -103,20 +103,6 @@ class PrecomputedIO(MultiResIOBase):
     def info(self):
         """The precomputed dataset's *info* dictionary."""
         return self._info
-
-    def scale_info(self, scale_key):
-        """The *info* for a given scale.
-
-        :param str scale_key: the *key* property of the chosen scale.
-        :return: ``info["scales"][i]`` where ``info["scales"][i]["key"]
-                                               == scale_key``
-        :rtype: dict
-        """
-        return self._scale_info[scale_key]
-
-    def iter_scale(self):
-        """Iterate over the scales"""
-        yield from self._scale_info.items()
 
     def scale_is_lossy(self, scale_key):
         """Test if the scale is using a lossy encoding.

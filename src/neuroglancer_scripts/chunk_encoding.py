@@ -9,6 +9,8 @@ The central component here is the :class:`ChunkEncoder` base class. Use
 :func:`get_encoder` for instantiating a concrete encoder object.
 """
 
+from typing import Dict, Type
+
 import numpy as np
 
 __all__ = [
@@ -162,6 +164,23 @@ class ChunkEncoder:
     :param int num_channels: number of image channels
     """
 
+    _ENCODER_KLASS: Dict[str, Type["ChunkEncoder"]] = {}
+
+    def __init_subclass__(cls, type: str):
+        assert (
+            type not in cls._ENCODER_KLASS
+        ), f"type {type} already registered."
+        cls._ENCODER_KLASS[type] = cls
+
+    @classmethod
+    def get_encoder(cls, type: str, data_type, num_channels, **kwargs):
+        assert (
+            type in cls._ENCODER_KLASS
+        ), f"type {type} not found in encoder registry!"
+
+        klass = cls._ENCODER_KLASS[type]
+        return klass(data_type, num_channels, **kwargs)
+
     lossy = False
     """True if this encoder is lossy."""
 
@@ -194,7 +213,7 @@ class ChunkEncoder:
         raise NotImplementedError
 
 
-class RawChunkEncoder(ChunkEncoder):
+class RawChunkEncoder(ChunkEncoder, type="raw"):
     """Codec for to the Neuroglancer raw chunk format.
 
     :param str data_type: data type supported by Neuroglancer
@@ -226,7 +245,9 @@ class RawChunkEncoder(ChunkEncoder):
             ) from exc
 
 
-class CompressedSegmentationEncoder(ChunkEncoder):
+class CompressedSegmentationEncoder(
+    ChunkEncoder, type="compressed_segmentation"
+):
     """Codec for to the Neuroglancer precomputed chunk format.
 
     :param str data_type: data type supported by Neuroglancer
@@ -268,7 +289,7 @@ class CompressedSegmentationEncoder(ChunkEncoder):
         return chunk
 
 
-class JpegChunkEncoder(ChunkEncoder):
+class JpegChunkEncoder(ChunkEncoder, type="jpeg"):
     """Codec for to the Neuroglancer raw chunk format.
 
     :param str data_type: data type supported by Neuroglancer
@@ -311,7 +332,7 @@ class JpegChunkEncoder(ChunkEncoder):
         return _jpeg.decode_chunk(buf, chunk_size, self.num_channels)
 
 
-class BloscEncoder(ChunkEncoder):
+class BloscEncoder(ChunkEncoder, type="blosc"):
     lossy = False
 
     def __init__(
@@ -357,7 +378,7 @@ class BloscEncoder(ChunkEncoder):
             ) from exc
 
 
-class GZipEncoder(ChunkEncoder):
+class GZipEncoder(ChunkEncoder, type="gzip"):
     lossy = False
 
     def __init__(self, data_type, num_channels, gzip_level=-1):

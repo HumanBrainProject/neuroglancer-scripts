@@ -1,16 +1,37 @@
 import json
 import struct
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from typing import List
 
 from neuroglancer_scripts.accessor import Accessor
 from neuroglancer_scripts.chunk_encoding import (
-    BloscEncoder,
-    GZipEncoder,
-    RawChunkEncoder,
+    ChunkEncoder,
 )
-from neuroglancer_scripts.iobase import MultiResIOBase
+from neuroglancer_scripts.volume_io.base_io import MultiResIOBase
 
 # N5 spec: https://github.com/saalfeldlab/n5
+# supporting an (undocumented?) custom group per
+# https://github.com/bigdataviewer/bigdataviewer-core/blob/master/BDV%20N5%20format.md
+# https://github.com/saalfeldlab/n5-viewer
+#
+
+
+@dataclass
+class N5ScaleAttr:
+    pass
+
+
+@dataclass
+class N5RootAttr:
+    downsamplingFactors: List[List[int]]  # noqa: N815
+    # once py3.7 is dropped, use Literal instead
+    # {uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32,}
+    # {float64}
+    dataType: str  # noqa: N815
+    multiScale: bool  # noqa: N815
+    resolution: List[int]
+    unit: List[str]  # seems to be... neuroglancer specific?
 
 
 class N5IO(MultiResIOBase):
@@ -61,33 +82,25 @@ class N5IO(MultiResIOBase):
         ]["type"]
         datatype = self._scale_attributes_dict[scale_key]["dataType"]
 
-        encoder = None
-        if compression_type == "blosc":
-            encoder = BloscEncoder(datatype, 1)
-        if compression_type == "gzip":
-            encoder = GZipEncoder(datatype, 1)
-        if compression_type == "raw":
-            encoder = RawChunkEncoder(datatype, 1)
-
-        if encoder is None:
-            raise NotImplementedError(f"Cannot parse {compression_type}")
+        encoder = ChunkEncoder.get_encoder(compression_type, datatype, 1)
 
         self._decoder_dict[scale_key] = encoder
+
         return encoder
 
     @property
     def attribute_json(self):
+        if self._attributes_json is None:
+            self._attributes_json = json.loads(
+                self.accessor.fetch_file("attributes.json")
+            )
         return self._attributes_json
-
-    def iter_scale(self):
-        for scale in self.info.get("scales"):
-            yield scale.get("key"), scale
 
     @property
     def info(self):
         downsample_factors = self.attribute_json.get("downsamplingFactors", [])
         resolution = self.attribute_json.get("resolution", [])
-        units = self.attribute_json.get("units", [])
+        unit = self.attribute_json.get("unit", [])
 
         return {
             "type": "image",
@@ -103,7 +116,7 @@ class N5IO(MultiResIOBase):
                     "resolution": [
                         res
                         * downsample_factors[scale_idx][order_idx]
-                        * self.UNIT_TO_NM.get(units[order_idx], 1)
+                        * self.UNIT_TO_NM.get(unit[order_idx], 1)
                         for order_idx, res in enumerate(resolution)
                     ],
                     "size": scale_attribute.get("dimensions"),
@@ -114,18 +127,6 @@ class N5IO(MultiResIOBase):
                 )
             ],
         }
-
-    def scale_info(self, scale_key):
-        found_scale = [
-            scale
-            for scale in self.info.get("scales", [])
-            if scale.get("key") == scale_key
-        ]
-        if len(found_scale) == 0:
-            raise IndexError(f"Cannot find {scale_key}")
-        if len(found_scale) > 1:
-            raise IndexError(f"Found multiple {scale_key}")
-        return found_scale[0]
 
     def _get_grididx_from_chunkcoord(self, scale_key, chunk_coords):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
@@ -149,9 +150,6 @@ class N5IO(MultiResIOBase):
         return encoder.decode(chunk[16:], (sizex, sizey, sizez))
 
     def write_chunk(self, chunk, scale_key, chunk_coords):
-        assert (
-            self.accessor.can_write
-        ), "N5IO.write_chunk: accessor cannot write"
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
         gridx, gridy, gridz = self._get_grididx_from_chunkcoord(
             scale_key, chunk_coords

@@ -56,3 +56,12 @@ class GCSAccessor(neuroglancer_scripts.http_accessor.HttpAccessor):
 
     def format_path(self, relative_path):
         return self.parser.format_url(relative_path)
+
+    def fetch_file(self, relative_path):
+        import json
+
+        import numpy as np
+
+        if relative_path == "transform.json":
+            return json.dumps(np.eye(4).tolist()).encode()
+        return super().fetch_file(relative_path)

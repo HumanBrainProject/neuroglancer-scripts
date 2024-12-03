@@ -21,6 +21,7 @@ repos:
   hooks:
     # Run the linter.
     - id: ruff
+      args: [--fix]
 
 -   repo: https://github.com/mgedmin/check-manifest
     rev: "0.49"

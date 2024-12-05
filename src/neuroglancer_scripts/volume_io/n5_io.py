@@ -2,7 +2,7 @@ import json
 import struct
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 
 from neuroglancer_scripts.accessor import Accessor
 from neuroglancer_scripts.chunk_encoding import (
@@ -14,12 +14,17 @@ from neuroglancer_scripts.volume_io.base_io import MultiResIOBase
 # supporting an (undocumented?) custom group per
 # https://github.com/bigdataviewer/bigdataviewer-core/blob/master/BDV%20N5%20format.md
 # https://github.com/saalfeldlab/n5-viewer
-#
 
 
 @dataclass
 class N5ScaleAttr:
-    pass
+    dimensions: List[int]
+    blockSize: List[int]  # noqa: N815
+    # once py3.7 is dropped, use Literal instead
+    # {uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32,}
+    # {float64}
+    dataType: str  # noqa: N815
+    compression: Dict
 
 
 @dataclass
@@ -38,27 +43,26 @@ class N5IO(MultiResIOBase):
 
     UNIT_TO_NM = {"um": 1e3}
 
-    def __init__(
-        self, attributes_json, accessor: Accessor, encoder_options={}
-    ):
+    def __init__(self, accessor: Accessor):
         super().__init__()
-        self._attributes_json = attributes_json
         self.accessor = accessor
         assert accessor.can_read, "N5IO must have readable accessor"
+
+        self.attribute_json = N5RootAttr(
+            **json.loads(self.accessor.fetch_file("attributes.json"))
+        )
 
         # networkbound, use threads
         with ThreadPoolExecutor() as ex:
             self.scale_attributes = [
-                json.loads(attr)
+                N5ScaleAttr(**json.loads(attr))
                 for attr in list(
                     ex.map(
                         accessor.fetch_file,
                         [
                             f"s{str(idx)}/attributes.json"
                             for idx, _ in enumerate(
-                                self.attribute_json.get(
-                                    "downsamplingFactors", []
-                                )
+                                self.attribute_json.downsamplingFactors
                             )
                         ],
                     )
@@ -77,10 +81,10 @@ class N5IO(MultiResIOBase):
         if scale_key in self._decoder_dict:
             return self._decoder_dict[scale_key]
 
-        compression_type = self._scale_attributes_dict[scale_key][
-            "compression"
-        ]["type"]
-        datatype = self._scale_attributes_dict[scale_key]["dataType"]
+        compression_type = self._scale_attributes_dict[scale_key].compression[
+            "type"
+        ]
+        datatype = self._scale_attributes_dict[scale_key].dataType
 
         encoder = ChunkEncoder.get_encoder(compression_type, datatype, 1)
 
@@ -89,18 +93,10 @@ class N5IO(MultiResIOBase):
         return encoder
 
     @property
-    def attribute_json(self):
-        if self._attributes_json is None:
-            self._attributes_json = json.loads(
-                self.accessor.fetch_file("attributes.json")
-            )
-        return self._attributes_json
-
-    @property
     def info(self):
-        downsample_factors = self.attribute_json.get("downsamplingFactors", [])
-        resolution = self.attribute_json.get("resolution", [])
-        unit = self.attribute_json.get("unit", [])
+        downsample_factors = self.attribute_json.downsamplingFactors
+        resolution = self.attribute_json.resolution
+        unit = self.attribute_json.unit
 
         return {
             "type": "image",
@@ -108,10 +104,8 @@ class N5IO(MultiResIOBase):
             "num_channels": 1,
             "scales": [
                 {
-                    "chunk_sizes": [scale_attribute.get("blockSize")],
-                    "encoding": scale_attribute.get("compression", {}).get(
-                        "type"
-                    ),
+                    "chunk_sizes": [scale_attribute.blockSize],
+                    "encoding": scale_attribute.compression.get("type"),
                     "key": f"s{str(scale_idx)}",
                     "resolution": [
                         res
@@ -119,7 +113,7 @@ class N5IO(MultiResIOBase):
                         * self.UNIT_TO_NM.get(unit[order_idx], 1)
                         for order_idx, res in enumerate(resolution)
                     ],
-                    "size": scale_attribute.get("dimensions"),
+                    "size": scale_attribute.dimensions,
                     "voxel_offset": [0, 0, 0],
                 }
                 for scale_idx, scale_attribute in enumerate(
@@ -132,7 +126,7 @@ class N5IO(MultiResIOBase):
         xmin, xmax, ymin, ymax, zmin, zmax = chunk_coords
         block_sizex, block_sizey, block_sizez = self._scale_attributes_dict[
             scale_key
-        ].get("blockSize")
+        ].blockSize
         return xmin // block_sizex, ymin // block_sizey, zmin // block_sizez
 
     def read_chunk(self, scale_key, chunk_coords):
@@ -157,7 +151,7 @@ class N5IO(MultiResIOBase):
         encoder = self._get_encoder(scale_key)
         buf = encoder.encode(chunk)
         hdr = struct.pack(
-            ">HHIII", (0, 3, xmax - xmin, ymax - ymin, zmax - zmin)
+            ">HHIII", 0, 3, xmax - xmin, ymax - ymin, zmax - zmin
         )
         self.accessor.store_file(
             f"{scale_key}/{gridx}/{gridy}/{gridz}", hdr + buf

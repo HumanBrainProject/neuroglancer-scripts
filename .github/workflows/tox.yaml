@@ -21,15 +21,15 @@ jobs:
           python-version: '3.6'
     runs-on: ${{ matrix.runs-on }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5.0.0
       with:
         lfs: true
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6.0.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: PIP cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4.2.4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-python${{ matrix.python-version }}-${{ hashFiles('setup.cfg') }}

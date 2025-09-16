@@ -17,6 +17,8 @@ jobs:
         python-version: [ '3.12', '3.11', '3.10', '3.9', '3.8', '3.7' ]
         runs-on: ['ubuntu-latest']
         include:
+        - runs-on: 'ubuntu-22.04'
+          python-version: '3.7'
         - runs-on: 'ubuntu-20.04'
           python-version: '3.6'
     runs-on: ${{ matrix.runs-on }}

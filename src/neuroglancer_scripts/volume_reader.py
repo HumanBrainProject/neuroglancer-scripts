@@ -94,8 +94,11 @@ def nibabel_image_to_info(img,
         zero_index = tuple(0 for _ in shape)
         input_dtype = proxy[zero_index].dtype
 
-    input_dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype(
-                            input_dtype)
+    if len(shape) == 5 and shape[4] == 3:
+        is_rgb = True
+    else:
+        input_dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype(
+                                input_dtype)
     if is_rgb:
         shape = shape + (3,)
 
@@ -111,10 +114,23 @@ def nibabel_image_to_info(img,
         guessed_dtype = input_dtype.name
     else:
         guessed_dtype = "float32"
+
+
+    # RGB nifti file has two arrangements, number 1 datatype as integer values with axis 4 to be the components
+    # the other type is datatype == 128, then the data is stored structurally
+    if is_rgb:
+        if len(shape) == 4:
+            num_channels = 3
+        elif len(shape) == 5:
+            num_channels = shape[4]
+        else:
+            num_channels = 3
+    else:
+        num_channels = 1
     formatted_info = f"""\
 {{
     "type": "image",
-    "num_channels": {shape[3] if len(shape) >= 4 else 1},
+    "num_channels": {num_channels},
     "data_type": "{guessed_dtype}",
     "scales": [
         {{
@@ -180,7 +196,7 @@ def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):
     # Volumes given by nibabel are using Fortran indexing (X, Y, Z, T)
     assert volume.shape[:3] == tuple(size)
     if len(volume.shape) > 3:
-        assert volume.shape[3] == num_channels
+        assert volume.shape[4] == num_channels
 
     progress_bar = tqdm(
         total=(((size[0] - 1) // chunk_size[0] + 1)
@@ -207,6 +223,8 @@ def volume_to_precomputed(pyramid_writer, volume, chunk_transformer=None):
                 elif len(volume.shape) == 3:
                     chunk = volume[x_slicing, y_slicing, z_slicing]
                     chunk = chunk[..., np.newaxis]
+                elif len(volume.shape) == 5:
+                    chunk = volume[x_slicing, y_slicing, z_slicing, 0, :]
 
                 if chunk_transformer is not None:
                     chunk = chunk_transformer(chunk, preserve_input=False)
@@ -250,12 +268,10 @@ def nibabel_image_to_precomputed(img,
         # read a value from the file to see the result of the scaling
         zero_index = tuple(0 for _ in shape)
         input_dtype = proxy[zero_index].dtype
-
     affine = img.affine
     voxel_sizes = nibabel.affines.voxel_sizes(affine)
 
     info = precomputed_writer.info
-
     output_dtype = np.dtype(info["data_type"])
     info_voxel_sizes = 1e-6 * np.asarray(info["scales"][0]["resolution"])
     if not np.allclose(voxel_sizes, info_voxel_sizes):
@@ -263,11 +279,19 @@ def nibabel_image_to_precomputed(img,
                        "info file (%s mm)",
                        " × ".join(str(sz) for sz in info_voxel_sizes))
 
-    if not np.can_cast(input_dtype, output_dtype, casting="safe"):
-        logger.warning("The volume has data type %s, but chunks will be "
-                       "saved with %s. You should make sure that the cast "
-                       "does not lose range/accuracy.",
-                       input_dtype.name, output_dtype.name)
+    if input_dtype == [('R', 'u1'), ('G', 'u1'), ('B', 'u1')]:
+        # numpy cannot case RGB*u1 to uint8, the rgb structure need to be handled separately
+        # a structured RGB*uint16 might need additional tweak but the format is extremely rare
+        # assume all structured RGB images are 8-bits
+        structured_rgb = True
+        logger.warning('Structured RGB data detected. Converting to uint8 view to feed the pipeline')
+    else:
+        structured_rgb = False
+        if not np.can_cast(input_dtype, output_dtype, casting="safe"):
+            logger.warning("The volume has data type %s, but chunks will be "
+                           "saved with %s. You should make sure that the cast "
+                           "does not lose range/accuracy.",
+                           input_dtype.name, output_dtype.name)
 
     # Scaling according to --input-min and --input-max. We modify the
     # slope/inter values used by Nibabel rather than re-implementing
@@ -290,16 +314,36 @@ def nibabel_image_to_precomputed(img,
         proxy._inter = prescaling_inter * postscaling_slope + postscaling_inter
 
     # Transformations applied to the voxel values
-    chunk_transformer = (
-        neuroglancer_scripts.data_types.get_chunk_dtype_transformer(
-            input_dtype, output_dtype
+    # data_types.get_chunk_dtype_transformer does not support transform from structured RGB to uint8
+    # force the conversion to be from a uint8 * 3 view for structured RGB format
+    if structured_rgb:
+        chunk_transformer = (
+            neuroglancer_scripts.data_types.get_chunk_dtype_transformer(
+                np.uint8, output_dtype
+            )
         )
-    )
+    else:
+        chunk_transformer = (
+            neuroglancer_scripts.data_types.get_chunk_dtype_transformer(
+                input_dtype, output_dtype
+            )
+        )
     if load_full_volume:
         logger.info("Loading full volume to memory... ")
-        volume = np.asanyarray(img.dataobj)
+        # the structured rgb format handling is explained in this stackoverflow question
+        # https://stackoverflow.com/questions/40534333/how-to-write-a-color-3d-nifti-with-nibabel
+        if structured_rgb:
+            volume = np.asanyarray(img.dataobj)
+            volume = volume.copy().view(dtype=np.uint8).reshape(volume.shape[0:4] + (3,))
+        else:
+            volume = np.asanyarray(img.dataobj)
     else:
-        volume = proxy
+        if structured_rgb:
+            logger.warning('The mmap access for structured RGB nifti format is not supported, reading all data into memory')
+            logger.warning('This process may use a lot of memory, be warned')
+            volume = proxy[:].view(dtype=np.uint8, type=np.ndarray).reshape(proxy.shape[0:4] + (3,))
+        else:
+            volume = proxy
     logger.info("Writing chunks... ")
     volume_to_precomputed(precomputed_writer, volume,
                           chunk_transformer=chunk_transformer)
@@ -316,6 +360,8 @@ def volume_file_to_precomputed(volume_filename,
     dtype, is_rgb = neuroglancer_scripts.data_types.get_dtype_from_vol(
                         img.dataobj)
     if is_rgb:
+        pass
+        """
         proxy = np.asarray(img.dataobj)
         new_proxy = proxy.view(dtype=np.uint8, type=np.ndarray)
         third = int(new_proxy.shape[0] / 3)
@@ -325,6 +371,7 @@ def volume_file_to_precomputed(volume_filename,
             new_proxy[2*third:]
         ], axis=-1)
         img = nibabel.Nifti1Image(new_dataobj, img.affine)
+        """
 
     accessor = neuroglancer_scripts.accessor.get_accessor_for_url(
         dest_url, options

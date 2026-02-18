@@ -80,12 +80,23 @@ def get_chunk_dtype_transformer(input_dtype, output_dtype, warn=True):
 
 def get_dtype_from_vol(volume):
     zero_index = tuple(0 for _ in volume.shape)
+
+    # RGB format test case 1: datatype == 2 (unsigned char, 4 signed short, 8 signed int, 16 float, 64 double
+    # 256 signed char, 512 unsigned short, 768 unsigned int, 1024 long long, 1280 unsigned long long
+    # 1536 long double
+    # rgb values are stored as 3 uint array on the 4th axis
+    if len(volume.shape) == 5 and volume.shape[4] == 3:
+        logger.info('RGB uint8 * 3 format detected')
+        return volume[zero_index].dtype, True
+
     return get_dtype(volume[zero_index].dtype)
 
 
 def get_dtype(input_dtype):
     if input_dtype.names is None:
         return input_dtype, False
+    # RGB format case 2: when nifti datatype == 128, the values are stored in structured format
+    # np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1')])
     if input_dtype.names not in NG_MULTICHANNEL_DATATYPES:
         err = f'tuple datatype {input_dtype.names} not yet supported'
         raise NotImplementedError(err)

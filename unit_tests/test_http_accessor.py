@@ -33,6 +33,10 @@ def test_http_accessor(base_url, requests_mock):
     requests_mock.head("http://h.test/i/info", status_code=404)
     assert a.file_exists("info") is False
 
+    requests_mock.head("http://h.test/i/info", status_code=405)
+    requests_mock.get("http://h.test/i/info", status_code=200)
+    assert a.file_exists("info") is True
+
     requests_mock.get("http://h.test/i/key/0-1_0-1_0-1",
                       content=dummy_chunk_buf)
     fetched_chunk = a.fetch_chunk("key", chunk_coords)
@@ -44,6 +48,11 @@ def test_http_accessor_errors(requests_mock):
     a = HttpAccessor("http://h.test/i/")
 
     requests_mock.head("http://h.test/i/info", status_code=500)
+    with pytest.raises(DataAccessError):
+        a.file_exists("info")
+
+    requests_mock.head("http://h.test/i/info", status_code=405)
+    requests_mock.get("http://h.test/i/info", status_code=404)
     with pytest.raises(DataAccessError):
         a.file_exists("info")
 

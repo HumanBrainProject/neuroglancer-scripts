@@ -40,8 +40,12 @@ class HttpShard(ShardCMC):
         assert self.can_read_cmc
 
     def file_exists(self, filepath):
-        resp = self._session.head(f"{self.base_url}{filepath}")
+        url = f"{self.base_url}{filepath}"
+        resp = self._session.head(url)
         if resp.status_code in (200, 404):
+            return resp.status_code == 200
+        if resp.status_code == 405:
+            resp = self._session.get(url, stream=True)
             return resp.status_code == 200
         resp.raise_for_status()
         return False

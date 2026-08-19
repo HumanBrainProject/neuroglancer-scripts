@@ -78,8 +78,10 @@ class HttpShard(ShardCMC):
 
     def fetch_cmc_chunk(self, cmc: np.uint64):
         minishard_key = self.get_minishard_key(cmc)
-        assert minishard_key in self.minishard_dict
-        return self.minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
+        assert (
+            minishard_key in self.ro_minishard_dict
+        ), f"{minishard_key} not in {self.minishard_dict.keys()}"
+        return self.ro_minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
 
 
 class HttpShardedScale(ShardedScaleBase):

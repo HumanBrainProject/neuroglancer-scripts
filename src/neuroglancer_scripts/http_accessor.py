@@ -59,6 +59,10 @@ class HttpAccessor(neuroglancer_scripts.accessor.Accessor):
             r = self._session.head(file_url)
             if r.status_code == requests.codes.not_found:
                 return False
+            if r.status_code == 405:
+                r = self._session.get(file_url, stream=True)
+                r.raise_for_status()
+                return True
             r.raise_for_status()
         except requests.exceptions.RequestException as exc:
             raise DataAccessError("Error probing the existence of "

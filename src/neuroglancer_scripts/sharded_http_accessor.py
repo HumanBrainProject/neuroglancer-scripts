@@ -40,8 +40,12 @@ class HttpShard(ShardCMC):
         assert self.can_read_cmc
 
     def file_exists(self, filepath):
-        resp = self._session.head(f"{self.base_url}{filepath}")
+        url = f"{self.base_url}{filepath}"
+        resp = self._session.head(url)
         if resp.status_code in (200, 404):
+            return resp.status_code == 200
+        if resp.status_code == 405:
+            resp = self._session.get(url, stream=True)
             return resp.status_code == 200
         resp.raise_for_status()
         return False
@@ -74,8 +78,10 @@ class HttpShard(ShardCMC):
 
     def fetch_cmc_chunk(self, cmc: np.uint64):
         minishard_key = self.get_minishard_key(cmc)
-        assert minishard_key in self.minishard_dict
-        return self.minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
+        assert (
+            minishard_key in self.ro_minishard_dict
+        ), f"{minishard_key} not in {self.minishard_dict.keys()}"
+        return self.ro_minishard_dict[minishard_key].fetch_cmc_chunk(cmc)
 
 
 class HttpShardedScale(ShardedScaleBase):

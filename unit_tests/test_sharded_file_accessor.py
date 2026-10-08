@@ -250,8 +250,10 @@ def test_shard_kwargs(tmpdir, shard_spec_2_2_2):
     (("{shard_key_str}.shard",), True, False),
     (("{shard_key_str}.index", "{shard_key_str}.data"), True, True)
 ])
-def test_init_shard(tmpdir, shard_spec_2_2_2, write_files, readable, legacy):
-    Shard.get_minishards_offsets = MagicMock(return_value=[])
+def test_init_shard(tmpdir, shard_spec_2_2_2, write_files, readable, legacy,
+                    monkeypatch):
+    monkeypatch.setattr(Shard, "get_minishards_offsets",
+                        MagicMock(return_value=[]))
     shard_key_str = "1"
     shard_key = np.uint64(1)
     for f in write_files:
@@ -273,12 +275,10 @@ def test_init_shard(tmpdir, shard_spec_2_2_2, write_files, readable, legacy):
 ))
 def test_init_shard_minishards(read_bytes_mock, get_minishards_offsets_mock,
                                tmpdir,
-                               shard_spec_2_2_2):
-    Shard.get_minishard_key = MagicMock()
-    Shard.get_minishard_key.side_effect = [
-        "foo",
-        "bar",
-    ]
+                               shard_spec_2_2_2,
+                               monkeypatch):
+    monkeypatch.setattr(Shard, "get_minishard_key",
+                        MagicMock(side_effect=["foo", "bar"]))
 
     shard_key_str = "1"
     shard_key = np.uint64(1)
@@ -819,3 +819,54 @@ def test_accessor_close(faccessor_w: ShardedFileAccessor, tmpdir):
 
     mock1.close.assert_called_once()
     mock2.close.assert_called_once()
+
+
+@pytest.fixture
+def faccessor_w_gzip(tmpdir):
+    with open(tmpdir / "info", "w") as fp:
+        json.dump({
+            "scales": [
+                {
+                    "size": [128, 128, 128],
+                    "chunk_sizes": [[64, 64, 64]],
+                    "key": "20mm",
+                    "sharding": {
+                        "@type": "neuroglancer_uint64_sharded_v1",
+                        "minishard_bits": 2,
+                        "shard_bits": 2,
+                        "hash": "identity",
+                        "minishard_index_encoding": "gzip",
+                        "data_encoding": "gzip",
+                        "preshift_bits": 0
+                    }
+                }
+            ]
+        }, fp=fp)
+    yield ShardedFileAccessor(tmpdir)
+
+
+def test_store_chunk_gzip_is_gzip_format(faccessor_w_gzip: ShardedFileAccessor,
+                                         tmpdir):
+    """The sharded data region must hold gzip streams (RFC 1952, magic 1f 8b),
+    not bare zlib streams (RFC 1950), otherwise Neuroglancer cannot read the
+    chunks. Regression test."""
+    import gzip
+
+    payload = bytes(range(256)) * 4
+    faccessor_w_gzip.store_chunk(payload, "20mm", (0, 64, 0, 64, 0, 64))
+    faccessor_w_gzip.close()
+
+    shard_dir = pathlib.Path(tmpdir) / "20mm"
+    shard_file, = [f for f in shard_dir.iterdir() if f.suffix == ".shard"]
+    raw = shard_file.read_bytes()
+
+    # the data region starts right after the fixed-size shard index
+    header_byte_length = int(2 ** 2 * 16)
+    assert raw[header_byte_length:header_byte_length + 2] == b"\x1f\x8b"
+
+    # the stored chunk must be decodable by a standard gzip reader
+    chunk = faccessor_w_gzip.fetch_chunk("20mm", (0, 64, 0, 64, 0, 64))
+    assert chunk == payload
+    assert gzip.decompress(
+        raw[header_byte_length:header_byte_length + len(gzip.compress(payload))]
+    ) == payload

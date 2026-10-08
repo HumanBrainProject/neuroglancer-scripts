@@ -7,8 +7,8 @@
 # BSD 3-clause licence by Copyright (c) 2017, Ignacio Tartavull, William
 # Silversmith, and later authors (see below).
 
+import gzip
 import math
-import zlib
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
@@ -57,21 +57,21 @@ class ShardSpec:
         self._preshift_mask = None
 
     def data_encoder(self, b: bytes) -> bytes:
-        return zlib.compress(b) if self.data_encoding == "gzip" else b
+        return gzip.compress(b) if self.data_encoding == "gzip" else b
 
     def data_decoder(self, b: bytes) -> bytes:
-        return zlib.decompress(b) if self.data_encoding == "gzip" else b
+        return gzip.decompress(b) if self.data_encoding == "gzip" else b
 
     def index_encoder(self, b: bytes) -> bytes:
         return (
-            zlib.compress(b)
+            gzip.compress(b)
             if self.minishard_index_encoding == "gzip"
             else b
         )
 
     def index_decoder(self, b: bytes) -> bytes:
         return (
-            zlib.decompress(b)
+            gzip.decompress(b)
             if self.minishard_index_encoding == "gzip"
             else b
         )
@@ -278,6 +278,10 @@ class ShardCMC(CMCReadWrite, ABC):
             for offset, end in zip(offsets[::2], offsets[1::2]):
                 start = int(offset + self.header_byte_length)
                 length = int(end - offset)
+                # Unused minishard slots are written as an empty range
+                # (start == end); they contain no chunks, so skip them.
+                if length == 0:
+                    continue
                 minishard_raw_buffer = self.read_bytes(start, length)
                 minishard_decoded_buffer = self.shard_spec.index_decoder(
                     minishard_raw_buffer)

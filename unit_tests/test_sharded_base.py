@@ -3,6 +3,7 @@
 #
 # This software is made available under the MIT licence, see LICENCE.txt.
 
+import gzip
 import zlib
 from collections import namedtuple
 from unittest.mock import MagicMock, patch
@@ -85,35 +86,34 @@ def test_get_shard_key(shard_bits):
 
 
 text = b'foo bar'
-compressed_text = zlib.compress(text)
-
-encode_decode_args = [
-    ("raw", (text, text), (text, text)),
-    ("gzip", (text, compressed_text), (compressed_text, text)),
-]
 
 
-@pytest.mark.parametrize("enc_type, encoding, decoding", encode_decode_args)
-def test_data_encode_decode(enc_type, encoding, decoding):
-    enc_from, enc_to = encoding
-    dec_from, dec_to = decoding
+@pytest.mark.parametrize("enc_type", ["raw", "gzip"])
+def test_data_encode_decode(enc_type):
     spec = ShardSpec(0, 0, "identity", enc_type, enc_type, 0)
 
-    encoded = spec.data_encoder(enc_from)
-    assert encoded == enc_to
-    assert spec.data_decoder(encoded) == enc_from
+    for encoder, decoder in [
+        (spec.data_encoder, spec.data_decoder),
+        (spec.index_encoder, spec.index_decoder),
+    ]:
+        encoded = encoder(text)
 
-    decoded = spec.data_decoder(dec_from)
-    assert decoded == dec_to
-    assert spec.data_encoder(decoded) == dec_from
+        # encoding must round-trip
+        assert decoder(encoded) == text
 
-    encoded = spec.index_encoder(enc_from)
-    assert encoded == enc_to
-    assert spec.index_decoder(encoded) == enc_from
+        if enc_type == "raw":
+            assert encoded == text
+            continue
 
-    decoded = spec.index_decoder(dec_from)
-    assert decoded == dec_to
-    assert spec.index_encoder(decoded) == dec_from
+        # The Neuroglancer sharded spec requires the gzip format (RFC 1952,
+        # magic bytes 1f 8b), not a bare zlib stream (RFC 1950, magic 78 9c).
+        # Regression test for output that was silently written as zlib and
+        # therefore unreadable by Neuroglancer.
+        assert encoded[:2] == b"\x1f\x8b"
+        # ... and must be decodable by a standard, spec-compliant gzip reader
+        assert gzip.decompress(encoded) == text
+        # ... and must not be the old, non-compliant zlib stream
+        assert encoded != zlib.compress(text)
 
 
 v0 = (

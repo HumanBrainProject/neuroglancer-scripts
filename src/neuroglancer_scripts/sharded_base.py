@@ -57,7 +57,7 @@ class ShardSpec:
         self._preshift_mask = None
 
     def data_encoder(self, b: bytes) -> bytes:
-        return gzip.compress(b) if self.data_encoding == "gzip" else b
+        return gzip.compress(b) if self.data_encoding == "gzip" else bytes(b)
 
     def data_decoder(self, b: bytes) -> bytes:
         return gzip.decompress(b) if self.data_encoding == "gzip" else b
